@@ -37,4 +37,18 @@ public class User {
     public void setRole(String r)           { this.role = r; }
     public void setStoreId(String s)        { this.storeId = s; }
     public void setStateAbbr(String a)      { this.stateAbbr = a; }
+
+public boolean isHQ() {
+    return "HQ_ADMIN".equals(role);
 }
+
+public boolean isStateManager() {
+    return "STATE_MANAGER".equals(role);
+}
+
+public boolean isStoreManager() {
+    return "STORE_MANAGER".equals(role);
+}
+
+}
+

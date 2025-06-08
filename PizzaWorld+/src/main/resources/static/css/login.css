@@ -1,0 +1,155 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.wrapper {
+  position: relative;
+  width: 420px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  color: aliceblue;
+  border-radius: 10px;
+  padding: 30px 40px;
+}
+
+.wrapper h1 {
+  text-align: center;
+  font-size: 36px;
+}
+
+.wrapper .input-box {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  margin: 30px 0;
+}
+
+.input-box input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  font-size: 16px;
+  color: aliceblue;
+  padding: 20px 45px 20px 20px;
+}
+
+.input-box input::placeholder {
+  color: aliceblue;
+}
+
+.input-box i {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.gender-box {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: 50px;
+  margin: 30px 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+}
+
+.gender-label {
+  font-size: 16px;
+  color: aliceblue;
+  margin-right: 15px;
+}
+
+.gender-options {
+  display: flex;
+  gap: 15px;
+}
+
+.gender-options label {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  color: aliceblue;
+  cursor: pointer;
+}
+
+.gender-options input[type="radio"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  margin-right: 8px;
+  position: relative;
+  cursor: pointer;
+}
+
+.gender-options input[type="radio"]:checked {
+  border: 6px solid aliceblue;
+}
+
+.wrapper .btn {
+  width: 100%;
+  height: 45px;
+  background: aliceblue;
+  border: none;
+  outline: none;
+  border-radius: 40px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  color: #333;
+  font-weight: 600;
+}
+
+.wrapper .link {
+  font-size: 14.5px;
+  text-align: center;
+  margin: 20px 0 15px;
+}
+
+.link a {
+  color: aliceblue;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}
+
+.link p a {
+  color: aliceblue;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link p a:hover {
+  text-decoration: underline;
+}
+
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Abstand zwischen den Radios */
+}

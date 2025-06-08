@@ -3,7 +3,6 @@ package pizzaworld.util;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
-import pizzaworld.model.User;
 import pizzaworld.repository.UserRepo;
 
 @Component

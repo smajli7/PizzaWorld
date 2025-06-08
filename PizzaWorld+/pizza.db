@@ -1,3 +1,41 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9e0515f866df4b4d0823281631ccb5a9dc4e0759dca554a1aace16eaa24bf6cd
-size 1230
+-- Wie viele Stores gibt es überhaupt?
+SELECT COUNT(*) AS anzahl_stores FROM stores;
+
+-- Wie viele Store-Manager wurden angelegt?
+SELECT COUNT(*) AS anzahl_store_mgr FROM users WHERE role = 'STORE_MANAGER';
+
+-- Wie viele unterschiedliche Bundesstaaten?
+SELECT COUNT(DISTINCT state_abbr) AS anzahl_states FROM stores;
+
+select * from users;
+
+
+UPDATE users
+SET    state_abbr = (
+        SELECT s.state_abbr
+        FROM   stores s
+        WHERE  s.id = users.store_id
+      )
+WHERE  role = 'STORE_MANAGER';
+
+
+-- Ersetze Klartext-Passwort "store_1" durch bcrypt-Hash
+UPDATE users 
+SET password = '$2a$10$I72LVzi5hDNgF7OGz/TJbud1HHtfX3YBeckmn2EwynwrMFgCwWjTu'
+WHERE password = 'store_1';
+
+-- Ersetze Klartext-Passwort "state_1" durch bcrypt-Hash
+UPDATE users 
+SET password = '$2a$10$xmQBUD0RYkNfkVimQycWzuWWYxOnd7ftIPJwEfnADwIJZx/xtgYg.'
+WHERE password = 'state_1';
+
+-- Ersetze Klartext-Passwort "HQ_View" durch bcrypt-Hash
+UPDATE users 
+SET password = '$2a$10$zJNSMoFILzHXk2CpWN5UD.8YUBJHZwGcMocwJ4plb7Swmy4ICNKF.'
+WHERE password = 'HQ_View';
+
+
+SELECT '[' || username || ']' FROM users WHERE username LIKE '%HQ_login%';
+
+
+SELECT username FROM users WHERE upper(username) = upper('HQ_login');

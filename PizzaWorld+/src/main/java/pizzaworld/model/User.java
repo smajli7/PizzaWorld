@@ -13,42 +13,43 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false)             // Klartext-PW nur für Demo!
+    @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)             // HQ_ADMIN | STATE_MANAGER | STORE_MANAGER
+    @Column(nullable = false)
     private String role;
 
-    // FK-Spalten – je nach Rolle ist genau eine gefüllt
-    private String storeId;               // STORE_MANAGER
-    private String stateAbbr;             // STATE_MANAGER
+    private String storeId;
+    private String stateAbbr;
 
-    /* -----  Getter & Setter  ----- */
+    public User() {}
 
-    public Long getId()                     { return id; }
-    public String getUsername()             { return username; }
-    public String getPassword()             { return password; }
-    public String getRole()                 { return role; }
-    public String getStoreId()              { return storeId; }
-    public String getStateAbbr()            { return stateAbbr; }
+    public User(Long id, String username, String password, String role, String storeId, String stateAbbr) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.storeId = storeId;
+        this.stateAbbr = stateAbbr;
+    }
 
-    public void setUsername(String u)       { this.username = u; }
-    public void setPassword(String p)       { this.password = p; }
-    public void setRole(String r)           { this.role = r; }
-    public void setStoreId(String s)        { this.storeId = s; }
-    public void setStateAbbr(String a)      { this.stateAbbr = a; }
+    // Getter
+    public Long getId() { return id; }
+    public String getUsername() { return username; }
+    public String getPassword() { return password; }
+    public String getRole() { return role; }
+    public String getStoreId() { return storeId; }
+    public String getStateAbbr() { return stateAbbr; }
 
-public boolean isHQ() {
-    return "HQ_ADMIN".equals(role);
+    // Setter
+    public void setUsername(String u) { this.username = u; }
+    public void setPassword(String p) { this.password = p; }
+    public void setRole(String r) { this.role = r; }
+    public void setStoreId(String s) { this.storeId = s; }
+    public void setStateAbbr(String a) { this.stateAbbr = a; }
+
+    // Rollenprüfung
+    public boolean isHQ() { return "HQ_ADMIN".equals(role); }
+    public boolean isStateManager() { return "STATE_MANAGER".equals(role); }
+    public boolean isStoreManager() { return "STORE_MANAGER".equals(role); }
 }
-
-public boolean isStateManager() {
-    return "STATE_MANAGER".equals(role);
-}
-
-public boolean isStoreManager() {
-    return "STORE_MANAGER".equals(role);
-}
-
-}
-

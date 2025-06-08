@@ -74,4 +74,6 @@ public class AuthController {
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
+
+
 }

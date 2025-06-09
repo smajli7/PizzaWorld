@@ -24,7 +24,7 @@ public class SecurityConfig {
     return new BCryptPasswordEncoder();       // RICHTIG
 }
 
-   @Bean
+    @Bean
 UserDetailsService userDetailsService(UserRepo repo) {
     return username -> {
         System.out.println("🔍 Suche Benutzer: " + username);
@@ -54,9 +54,9 @@ UserDetailsService userDetailsService(UserRepo repo) {
             .csrf(AbstractHttpConfigurer::disable)                 // CSRF für Demo aus
             .sessionManagement(sm ->
                     sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/login", "/api/login", "/api/logout", "/error").permitAll()
-                    .anyRequest().authenticated())
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
+            .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable)
             .logout(logout -> logout.logoutUrl("/logout"));

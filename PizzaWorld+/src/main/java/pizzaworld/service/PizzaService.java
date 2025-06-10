@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import pizzaworld.model.Order;
 import pizzaworld.model.User;
 import pizzaworld.repository.PizzaRepo;
 
@@ -46,9 +45,4 @@ public class PizzaService {
         };
     }
 
-    public List<Order> filterOrders(Map<String, String> params) {
-        String customerId = params.getOrDefault("customerId", null);
-        String storeId = params.getOrDefault("storeId", null);
-        return pizzaRepo.dynamicOrderFilter(customerId, storeId);
-    }
 }

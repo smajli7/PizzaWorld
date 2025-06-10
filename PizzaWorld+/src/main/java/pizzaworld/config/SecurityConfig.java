@@ -16,29 +16,27 @@ import org.springframework.security.web.SecurityFilterChain;
 import pizzaworld.repository.UserRepo;
 
 @Configuration
-@EnableWebSecurity          // sorgt dafür, dass diese Config die Auto-Security ersetzt
+@EnableWebSecurity // sorgt dafür, dass diese Config die Auto-Security ersetzt
 public class SecurityConfig {
 
     @Bean
     PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();       // RICHTIG
-}
+        return new BCryptPasswordEncoder(); // RICHTIG
+    }
 
     @Bean
-UserDetailsService userDetailsService(UserRepo repo) {
-    return username -> {
-        System.out.println("🔍 Suche Benutzer: " + username);
-        return repo.findByUsername(username)
-            .map(u -> org.springframework.security.core.userdetails.User
-                .withUsername(u.getUsername())
-                .password(u.getPassword())
-                .roles(u.getRole())
-                .build())
-            .orElseThrow(() -> new UsernameNotFoundException(username));
-    };
-}
-
-
+    UserDetailsService userDetailsService(UserRepo repo) {
+        return username -> {
+            System.out.println("🔍 Suche Benutzer: " + username);
+            return repo.findByUsername(username)
+                    .map(u -> org.springframework.security.core.userdetails.User
+                            .withUsername(u.getUsername())
+                            .password(u.getPassword())
+                            .roles(u.getRole())
+                            .build())
+                    .orElseThrow(() -> new UsernameNotFoundException(username));
+        };
+    }
 
     /* ---------- AuthenticationManager für den Controller ---------- */
     @Bean
@@ -51,15 +49,14 @@ UserDetailsService userDetailsService(UserRepo repo) {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            .csrf(AbstractHttpConfigurer::disable)                 // CSRF für Demo aus
-            .sessionManagement(sm ->
-                    sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
-            .anyRequest().authenticated())
-            .httpBasic(AbstractHttpConfigurer::disable)
-            .formLogin(AbstractHttpConfigurer::disable)
-            .logout(logout -> logout.logoutUrl("/logout"));
+                .csrf(AbstractHttpConfigurer::disable) // CSRF für Demo aus
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(logout -> logout.logoutUrl("/logout"));
 
         return http.build();
     }

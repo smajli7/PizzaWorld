@@ -38,8 +38,4 @@ public class PizzaController {
         return ResponseEntity.ok(pizzaService.getSalesKPIs(from, to, user));
     }
 
-    @GetMapping("/orders")
-    public ResponseEntity<?> getFilteredOrders(@RequestParam Map<String, String> params) {
-        return ResponseEntity.ok(pizzaService.filterOrders(params));
-    }
 }

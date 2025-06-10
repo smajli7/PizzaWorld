@@ -55,6 +55,14 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable) // Basic Auth deaktivieren
             .formLogin(AbstractHttpConfigurer::disable) // Kein Login-Formular anzeigen (du kannst dein eigenes bauen)
             .logout(logout -> logout.logoutUrl("/logout")); // Logout-URL
+                .csrf(AbstractHttpConfigurer::disable) // CSRF für Demo aus
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(logout -> logout.logoutUrl("/logout"));
 
         return http.build();
     }

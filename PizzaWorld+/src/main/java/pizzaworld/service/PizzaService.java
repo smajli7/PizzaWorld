@@ -1,6 +1,7 @@
 package pizzaworld.service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,4 +67,11 @@ public class PizzaService {
             default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         };
     }
+
+    public List<Map<String, Object>> filterOrders(Map<String, String> params) {
+        String customerId = params.get("customerId");
+        String storeId = params.get("storeId");
+        return pizzaRepo.dynamicOrderFilter(customerId, storeId);
+    }
+
 }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import pizzaworld.service.PizzaService;
 import pizzaworld.service.UserService;
+import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 
 @RestController
@@ -26,10 +27,13 @@ public class PizzaController {
     @Autowired
     private UserService userService;
 
+
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboardKPIs(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getDashboardKPIs(@AuthenticationPrincipal CustomUserDetails userDetails) {
+            User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getDashboardKPIs(user));
-    }
+}
+
 
     @GetMapping("/store/{storeId}")
     public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId, @AuthenticationPrincipal User user) {

@@ -60,7 +60,7 @@ export class LoginComponent implements OnInit {
       next: () => {
         this.successMsg = 'Login erfolgreich';
         this.errorMsg = null;
-        this.router.navigateByUrl('/dashboard');   // jetzt ohne TS2304
+        this.router.navigateByUrl('/dashboard');   
       },
       error: () => {
         this.errorMsg = 'Benutzername oder Passwort falsch';

@@ -20,7 +20,8 @@ import java.util.Map;
 public class AuthController {
 
     /* ---------- DTO direkt hier ---------- */
-    public record LoginRequest(String username, String password) {}
+    public record LoginRequest(String username, String password) {
+    }
 
     private final AuthenticationManager authManager;
     private final UserService userService;
@@ -34,40 +35,38 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request) {
 
-    Authentication auth = authManager.authenticate(
-            new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+        Authentication auth = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(req.username(), req.password()));
 
-    // Session festschreiben
-    SecurityContextHolder.getContext().setAuthentication(auth);
+        // Session festschreiben
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
-    // 🔥 WICHTIG: Session manuell mit Authentifizierung füllen!
-    request.getSession(true).setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+        // 🔥 WICHTIG: Session manuell mit Authentifizierung füllen!
+        request.getSession(true).setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-    return ResponseEntity.ok(Map.of(
-            "message", "Login success",
-            "username", auth.getName(),
-            "roles", auth.getAuthorities()
-    ));
-}
-
+        return ResponseEntity.ok(Map.of(
+                "message", "Login success",
+                "username", auth.getName(),
+                "roles", auth.getAuthorities()));
+    }
 
     /* ---------- 2. Aktuell eingeloggter Benutzer ---------- */
     @GetMapping("/me")
     public ResponseEntity<?> me(@AuthenticationPrincipal UserDetails springUser) {
         if (springUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(Map.of("error", "Not logged in"));
+                    .body(Map.of("error", "Not logged in"));
         }
         User u = userService.find(springUser.getUsername());
         if (u == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                                .body(Map.of("error", "User not in DB"));
+                    .body(Map.of("error", "User not in DB"));
         }
         Map<String, Object> body = new HashMap<>();
         body.put("username", u.getUsername());
-        body.put("role",     u.getRole());
-        body.put("storeId",  u.getStoreId());
-        body.put("stateAbbr",u.getStateAbbr());
+        body.put("role", u.getRole());
+        body.put("storeId", u.getStoreId());
+        body.put("stateAbbr", u.getStateAbbr());
         return ResponseEntity.ok(body);
     }
 
@@ -78,6 +77,5 @@ public class AuthController {
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
-
 
 }

@@ -6,7 +6,6 @@ import pizzaworld.repository.UserRepo;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
 
-
 @Service
 public class UserService {
 
@@ -30,4 +29,3 @@ public class UserService {
         return repo.findByUsername(username).orElse(null);
     }
 }
-

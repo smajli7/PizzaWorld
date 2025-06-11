@@ -30,8 +30,8 @@ public class SecurityConfig {
         return username -> {
             System.out.println("🔍 Suche Benutzer: " + username);
             return repo.findByUsername(username)
-                .map(CustomUserDetails::new) // 👈 unser echter DB-User wird verwendet
-                .orElseThrow(() -> new UsernameNotFoundException("Benutzer nicht gefunden: " + username));
+                    .map(CustomUserDetails::new) // 👈 unser echter DB-User wird verwendet
+                    .orElseThrow(() -> new UsernameNotFoundException("Benutzer nicht gefunden: " + username));
         };
     }
 
@@ -46,16 +46,17 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            .csrf(AbstractHttpConfigurer::disable) // Für REST-APIs meist deaktiviert
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen bei Login
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
-                .anyRequest().authenticated()
-            )
-            .httpBasic(AbstractHttpConfigurer::disable) // Basic Auth deaktivieren
-            .formLogin(AbstractHttpConfigurer::disable) // Kein Login-Formular anzeigen (du kannst dein eigenes bauen)
-            .logout(logout -> logout.logoutUrl("/logout")); // Logout-URL
-         
+                .csrf(AbstractHttpConfigurer::disable) // Für REST-APIs meist deaktiviert
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.ALWAYS)) // Session anlegen bei
+                                                                                                 // Login
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/login", "/api/logout", "/error", "/login").permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(AbstractHttpConfigurer::disable) // Basic Auth deaktivieren
+                .formLogin(AbstractHttpConfigurer::disable) // Kein Login-Formular anzeigen (du kannst dein eigenes
+                                                            // bauen)
+                .logout(logout -> logout.logoutUrl("/logout")); // Logout-URL
+
         return http.build();
     }
 }

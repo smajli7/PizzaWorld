@@ -1,46 +1,58 @@
 package pizzaworld.controller;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import pizzaworld.service.PizzaService;
-import pizzaworld.model.CustomUserDetails;
+import pizzaworld.service.UserService;
 import pizzaworld.model.User;
 
 @RestController
 @RequestMapping("/api")
 public class PizzaController {
-
     @Autowired
     private PizzaService pizzaService;
+    @Autowired
+    private UserService userService;
 
-    // 📊 Dashboard-KPIs je nach Rolle (HQ, State, Store)
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboardKPIs(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
+    public ResponseEntity<?> getDashboardKPIs(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(pizzaService.getDashboardKPIs(user));
     }
 
-    // 📍 KPIs für bestimmte Filiale (nur erlaubt für HQ, zuständiger State oder Store-Manager)
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<?> getStoreKPIs(
-            @PathVariable String storeId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
+    public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId, @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, user));
     }
 
-    // 💶 Umsatzanalyse nach Zeitraum (je nach Rolle unterschiedlich gefiltert)
     @GetMapping("/sales")
-    public ResponseEntity<?> getSalesKPIs(
-            @RequestParam LocalDate from,
+    public ResponseEntity<?> getSalesKPIs(@RequestParam LocalDate from,
             @RequestParam LocalDate to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
+            @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(pizzaService.getSalesKPIs(from, to, user));
     }
+
+    @GetMapping("/orders")
+    public ResponseEntity<?> getFilteredOrders(@RequestParam Map<String, String> params,
+            @AuthenticationPrincipal UserDetails springUser) {
+
+        User user = userService.find(springUser.getUsername());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        return ResponseEntity.ok(pizzaService.filterOrders(params));
+    }
+
 }

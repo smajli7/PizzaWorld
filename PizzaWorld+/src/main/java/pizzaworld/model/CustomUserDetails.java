@@ -8,7 +8,8 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Diese Klasse wickelt deinen echten User aus der DB ein und macht ihn Spring-kompatibel.
+ * Diese Klasse wickelt deinen echten User aus der DB ein und macht ihn
+ * Spring-kompatibel.
  */
 public class CustomUserDetails implements UserDetails {
 

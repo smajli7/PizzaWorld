@@ -1,0 +1,52 @@
+<!-- Logo-Leiste -->
+<div class="container">
+
+  <a routerLink="/">
+    <img class="logo" src="src/app/assets/images/Logo.png" alt="PizzaWorld Logo" />
+  </a>
+</div>
+
+<!-- Login-Box -->
+<div class="wrapper">
+  <!-- Angular-Reactive-Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <h1>Login</h1>
+
+    <!-- Benutzername -->
+    <div class="input-box">
+      <input
+        type="text"
+        id="username"
+        formControlName="username"
+        placeholder="Username"
+        required
+      />
+      <i class="bx bxs-user"></i>
+    </div>
+
+    <!-- Passwort + Sichtbarkeitstoggle -->
+    <div class="input-box">
+      <input
+        [type]="showPassword ? 'text' : 'password'"
+        id="password"
+        formControlName="password"
+        placeholder="Passwort"
+        required
+        autocomplete="current-password"
+      />
+      <i
+        class="bx"
+        [ngClass]="showPassword ? 'bxs-show' : 'bx-low-vision'"
+        (click)="togglePassword()"
+        style="cursor: pointer"
+      ></i>
+    </div>
+
+    <!-- Absenden -->
+    <button class="btn" type="submit" [disabled]="form.invalid">Login</button>
+
+    <!-- Rückmeldungen vom Server -->
+    <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
+    <div *ngIf="errorMsg" class="alert alert-danger">{{ errorMsg }}</div>
+  </form>
+</div>

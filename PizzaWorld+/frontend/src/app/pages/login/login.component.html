@@ -1,0 +1,43 @@
+<!-- Hintergrund-Layer: animierte Pizza-Slices -->
+<ul class="bg-pizzas" aria-hidden="true">
+  <li></li><li></li><li></li><li></li><li></li>
+  <li></li><li></li><li></li><li></li><li></li>
+</ul>
+
+<!-- Login-Card -->
+<div class="wrapper">
+  <div class="logo-container">
+    <img class="form-logo" src="assets/images/logo.png" alt="PizzaWorld Logo" />
+  </div>
+
+  
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <!-- Benutzername -->
+    <div class="input-box">
+      <input type="text" formControlName="username" placeholder="Username" />
+      <i class="bx bxs-user"></i>
+    </div>
+
+    <!-- Passwort -->
+    <div class="input-box">
+      <input
+        [type]="showPassword ? 'text' : 'password'"
+        formControlName="password"
+        placeholder="Passwort"
+        autocomplete="current-password"
+      />
+      <i
+        class="bx"
+        [ngClass]="showPassword ? 'bxs-show' : 'bx-low-vision'"
+        (click)="togglePassword()"
+      ></i>
+    </div>
+
+    <button class="btn" type="submit" [disabled]="form.invalid">Login</button>
+
+    <!-- Rückmeldungen -->
+    <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
+    <div *ngIf="errorMsg"   class="alert alert-danger">{{ errorMsg }}</div>
+  </form>
+</div>

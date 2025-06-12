@@ -1,0 +1,111 @@
+/* =========================================
+   FONTS & BASICS (identisch zum Login)
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* =========================================
+   BACKGROUND  – Peach-Gradient -- ohne SVGs
+   ========================================= */
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;            /* Logo oben, Wrapper zentriert */
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+
+  background: linear-gradient(-45deg, #f9f8e8, #fff1d9, #ffe1c2, #f9f8e8);
+  background-size: 300% 300%;
+  animation: bgMove 12s ease-in-out infinite, fadePage .8s ease-out forwards;
+}
+
+@keyframes bgMove   { 0%{background-position:0 50%} 50%{background-position:100% 50%} 100%{background-position:0 50%} }
+@keyframes fadePage { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* =========================================
+   WRAPPER (glasig) – gleich wie Login
+   ========================================= */
+.wrapper {
+  width: 480px;
+  padding: 50px 60px;
+  background: rgba(240, 248, 255, 0.9);
+  border: 2px solid rgba(255, 113, 19, 0.4);
+  border-radius: 12px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  animation: fadeCard .6s ease-out;
+}
+
+@keyframes fadeCard { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+
+.title {
+  text-align: center;
+  margin-bottom: 35px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* =========================================
+   PROFILE-ELEMENTE
+   ========================================= */
+.profile-flex {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+/* Avatar-Platzhalter */
+.avatar {
+  width: 120px;
+  height: 120px;
+  background: #d0d0d0;
+  border-radius: 12px;
+}
+
+/* Infobox */
+.info-box {
+  flex: 1;
+  border: 2px solid rgba(255, 113, 19, 0.4);
+  border-radius: 10px;
+  padding: 18px 22px;
+  line-height: 1.6rem;
+  color: #333;
+}
+
+/* Button (identischer Stil wie Login) */
+.btn {
+  width: 100%;
+  height: 50px;
+  background: aliceblue;
+  border: 2px solid rgba(255, 113, 19, 0.6);
+  border-radius: 40px;
+  font-size: 18px;
+  font-weight: 600;
+  transition: transform .2s, box-shadow .3s;
+  cursor: pointer;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255,113,19,.2);
+}
+
+/* Logo oben */
+.logo-container {
+  margin: 40px 0 20px;
+  text-align: center;
+}
+.form-logo {
+  height: 80px;
+  transition: transform .3s;
+}
+.form-logo:hover { transform: scale(1.05); }

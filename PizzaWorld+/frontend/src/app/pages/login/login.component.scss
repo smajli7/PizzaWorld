@@ -1,0 +1,111 @@
+/* =========================================
+   FONTS & BASICS
+   ========================================= */
+   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+   
+   /* =========================================
+      BACKGROUND – Peach-Gradient + Pizza-Slices
+      ========================================= */
+   :host {
+     position: relative;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     min-height: 100vh;
+     overflow: hidden;
+   
+     background: linear-gradient(-45deg, #f9f8e8, #fff1d9, #ffe1c2, #f9f8e8);
+     background-size: 300% 300%;
+     animation: bgMove 12s ease-in-out infinite, fadePage .8s ease-out forwards;
+   }
+   
+   @keyframes bgMove   { 0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%} }
+   @keyframes fadePage { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+   
+   /* ---------- Pizza-Layer ---------- */
+   .bg-pizzas {
+     position: absolute; inset: 0; z-index: 1;
+     overflow: hidden; pointer-events: none;
+   }
+   
+   .bg-pizzas li {
+     position: absolute;
+     bottom: -120px;                         /* Startlinie */
+     list-style: none;
+     width: 50px; height: 50px;              /* Platzhalter – wird unten überschrieben */
+     background: url("/assets/images/pizza-slice.svg") center/contain no-repeat;
+     animation: floatPizza linear infinite;
+   }
+   
+   /* Weniger Slices (6) + kleinere, zufällige Werte */
+   $count: 6;
+   @for $i from 1 through $count {
+     .bg-pizzas li:nth-child(#{$i}) {
+       left: random(100) * 1%;               /* echte Zufallsposition */
+       $size: 30px + random(70);             /* 30 – 100 px */
+       width:  $size;
+       height: $size;
+       animation-duration: 16s + random(10); /* 16 – 26 s */
+       animation-delay: -$i * .8s;           /* versetzter Start */
+     }
+   }
+   
+   /* Flugbahn + Rotation */
+   @keyframes floatPizza {
+     0%   { transform: translateY(0)            rotate(0deg);   opacity: .6; }
+     50%  { transform: translateY(-50vh) rotate(180deg); opacity: .4; }
+     100% { transform: translateY(-100vh)rotate(360deg); opacity: 0; }
+   }
+   
+   /* =========================================
+      LOGIN-CARD (Wrapper) – unverändert
+      ========================================= */
+   .wrapper {
+     position: relative; z-index: 5;
+     width: 420px; padding: 40px 50px;
+     background: rgba(240, 248, 255, 0.9);
+     border: 2px solid rgba(255, 113, 19, 0.4);
+     border-radius: 12px;
+     backdrop-filter: blur(15px);
+     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+     animation: fadeCard .6s ease-out;
+   }
+   @keyframes fadeCard { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+   
+   /* Logo */
+   .logo-container { text-align: center; margin-bottom: 30px; }
+   .form-logo      { height: 80px; transition: transform .3s; }
+   .form-logo:hover{ transform: scale(1.05); }
+   
+   /* Inputs */
+   .input-box { position: relative; margin: 25px 0; }
+   .input-box input {
+     width: 100%; height: 50px; padding: 0 45px 0 20px;
+     background: transparent; border: 2px solid rgba(255,113,19,.4);
+     border-radius: 40px; font-size: 16px; color: #333;
+     transition: border-color .3s, box-shadow .3s;
+   }
+   .input-box input::placeholder { color: #777; }
+   .input-box input:focus       { border-color: #ff7131; box-shadow: 0 0 8px rgba(255,113,19,.4); }
+   .input-box i {
+     position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+     font-size: 20px; cursor: pointer; transition: transform .25s;
+   }
+   .input-box i:active { transform: translateY(-50%) scale(1.2) rotate(20deg); }
+   
+   /* Button */
+   .btn {
+     width: 100%; height: 50px; margin-top: 10px;
+     background: aliceblue; border: 2px solid rgba(255,113,19,.6);
+     border-radius: 40px; font-size: 18px; font-weight: 600;
+     transition: transform .2s, box-shadow .3s; cursor: pointer;
+   }
+   .btn:disabled             { opacity: .6; cursor: not-allowed; }
+   .btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,113,19,.2); }
+   
+   /* Alerts */
+   .alert { margin-top: 16px; font-weight: 600; opacity: 0; animation: slideAlert .4s forwards; }
+   .alert-success { color: #2e7d32; } .alert-danger { color: #c62828; }
+   @keyframes slideAlert { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+   

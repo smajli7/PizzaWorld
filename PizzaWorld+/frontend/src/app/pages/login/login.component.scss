@@ -1,105 +1,164 @@
-/* ==== Schriftarten & Grundlayout ==== */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+/* =========================================
+   DESIGN-TOKENS
+   ========================================= */
+$primary: rgba(255, 113, 19, .65);
+$bg:      rgb(245, 245, 220);
+$glass:   rgba(240, 248, 255, .55);
+$shadow:  0 6px 20px rgba(0, 0, 0, .15);
 
-* {
-  box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: none; }
 }
+
+@keyframes pulse-border {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 113, 19, .5); }
+  70%  { box-shadow: 0 0 0 6px rgba(255, 113, 19, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 113, 19, 0); }
+}
+
+/* =========================================
+   GLOBALS
+   ========================================= */
+* { box-sizing: border-box; font-family: 'Poppins', sans-serif; }
 
 :host {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  background: $bg;
   overflow: hidden;
-  background-color: rgb(245, 245, 220);
 }
 
-/* ==== Kopfzeile / Logo ==== */
+/* =========================================
+   LOGO-LEISTE
+   ========================================= */
 .container {
   position: absolute;
-  top: 16px;
-  left: 32px;
-  right: 32px;
+  inset: 1rem 2rem auto 2rem;
   display: flex;
   align-items: center;
-  font-size: 24px;
-  text-shadow: 5px 5px 5px rgba(0, 0, 0, 0.8);
-  z-index: 10;
+  z-index: 20;
+
+  /* kleines Glas-Badge hinter Logo */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 16px;
+    background: $glass;
+    backdrop-filter: blur(12px);
+    transition: transform .4s ease;
+  }
+
+  /* Hover-Lift für ganzen Container */
+  &:hover::before { transform: translateY(-4px) scale(1.03); }
 }
 
 .logo {
-  height: 60px; /* oder feste px-Größe */
+  height: 64px;
+  display: block;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.25));
+  transition: transform .4s cubic-bezier(.25,.8,.25,1);
+
+  /* sanfter Lift + Glow beim Hover */
+  .container:hover & {
+    transform: translateY(-4px) scale(1.04);
+    animation: pulse-border 1.7s ease-out infinite;
+  }
 }
 
-/* ==== Login-Box mit Formular ==== */
+/* =========================================
+   LOGIN-CARD
+   ========================================= */
 .wrapper {
-  position: relative;
   width: 420px;
-  background-color: aliceblue;
-  border: 2px solid rgba(255, 113, 19, 0.664);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-  color: #333;
-  border-radius: 10px;
-  padding: 30px 40px;
+  padding: 3rem 3.25rem;
+  border-radius: 24px;
+  background: $glass;
+  border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(18px);
+  box-shadow: $shadow;
+  animation: fade-in-up .8s ease-out;
+
+  h1 {
+    margin: 0 0 1.5rem;
+    font-size: 2.25rem;
+    font-weight: 600;
+    text-align: center;
+  }
 }
 
-.wrapper h1 {
-  text-align: center;
-  font-size: 36px;
-}
-
+/* =========================================
+   FORM-FELDER
+   ========================================= */
 .input-box {
   position: relative;
-  width: 100%;
-  height: 50px;
-  margin: 30px 0;
+  margin: 1.75rem 0;
+
+  input {
+    width: 100%; height: 52px;
+    padding: 0 3rem 0 1.25rem;
+    font-size: 1rem;
+    border-radius: 9999px;
+    border: 2px solid $primary;
+    background: transparent;
+    color: #333;
+    transition: border-color .25s;
+
+    &::placeholder { color: #666; }
+  }
+
+  /* Fokus-Glow */
+  &:focus-within input {
+    border-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255,113,19,.25);
+  }
+
+  i {
+    position: absolute;
+    top: 50%; right: 1.25rem;
+    transform: translateY(-50%);
+    font-size: 1.25rem;
+    color: $primary;
+    transition: color .25s;
+  }
+
+  &:focus-within i { color: #fff; }
 }
 
-.input-box input {
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  border: 2px solid rgba(255, 113, 19, 0.664);
-  border-radius: 40px;
-  font-size: 16px;
-  color: #333;
-  padding: 20px 45px 20px 20px;
-  outline: none;
-}
-
-.input-box input::placeholder {
-  color: #333;
-}
-
-.input-box i {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
+/* =========================================
+   BUTTON
+   ========================================= */
 .btn {
-  width: 100%;
-  height: 45px;
-  background: aliceblue;
-  border: 2px solid rgba(255, 113, 19, 0.664);
-  border-radius: 40px;
+  width: 100%; height: 50px;
+  border-radius: 9999px;
+  border: 2px solid $primary;
+  background: $glass;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 600;
+  transition: transform .25s, box-shadow .25s;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(255,113,19,.35);
+  }
+
+  &:active { transform: translateY(-1px) scale(.97); }
 }
 
-.alert {
-  margin-top: 16px;
-  font-weight: 600;
-}
+/* =========================================
+   ALERTS
+   ========================================= */
+.alert { margin-top: 1rem; font-weight: 600; }
+.alert-success { color: darkgreen; }
+.alert-danger  { color: darkred; }
 
-.alert-success {
-  color: green;
-}
-
-.alert-danger {
-  color: red;
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 520px) {
+  .wrapper { width: 90vw; padding: 2rem; }
+  .logo    { height: 56px; }
 }

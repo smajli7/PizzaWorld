@@ -1,175 +1,314 @@
-//  Pizza World+ Dashboard SCSS
-//  --------------------------------------------------
-
-// 1. Design Tokens & Base Styles
-// --------------------------------------------------
-$font-family: 'Inter', sans-serif;
-
-$color-bg: #f9e6cf;
-$color-card: #ffffff;
-$color-shadow: rgba(0, 0, 0, 0.05);
-$color-primary: #f47c1e;
-$color-primary-hover: darken($color-primary, 5%);
-$color-text: #5a3d2b;
-$color-muted: #9d8c7f;
-
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: $font-family;
-  background: linear-gradient(180deg, lighten($color-bg, 8%) 0%, $color-bg 100%);
-  color: $color-text;
-}
-
-// 2. Layout Containers
-// --------------------------------------------------
-.app {
-  display: flex;
-  min-height: 100vh;
-}
-
-// 3. Sidebar
-// --------------------------------------------------
-.sidebar {
-  width: 260px;
-  background: rgba($color-card, 0.9);
-  backdrop-filter: blur(6px);
-  display: flex;
-  flex-direction: column;
-  padding: 1.75rem 1.25rem;
-  box-shadow: 2px 0 12px $color-shadow;
-
-  .user-panel {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .75rem;
-    margin-bottom: 1.5rem;
-
-    .avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: $color-muted;
-    }
-
-    .greeting {
-      text-align: center;
-      font-weight: 600;
-      line-height: 1.2;
-    }
+:host {
+    display: block;
+    background: linear-gradient(145deg, #FFEFDC, #FFE7C0);
+    height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
   }
-
-  .search {
-    padding: 0.65rem 0.9rem;
-    border: 2px solid $color-primary;
-    border-radius: .75rem;
-    background: transparent;
-    font-size: .95rem;
-    &::placeholder { color: $color-muted; }
-    margin-bottom: 1.2rem;
-  }
-
-  .main-nav, .logout {
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-  }
-
-  .nav-section,
-  .logout {
-    appearance: none;
-    border: none;
-    background: $color-primary;
-    color: #fff;
-    font-weight: 600;
-    padding: 0.6rem 1rem;
-    border-radius: .75rem;
-    cursor: pointer;
-    transition: background .2s ease;
-    &:hover, &:focus-visible { background: $color-primary-hover; }
-  }
-
-  .sub-nav {
-    display: none;
-    flex-direction: column;
-    gap: .4rem;
-    margin-bottom: .8rem;
-    &.active { display: flex; }
-
-    .sub-link {
-      background: transparent;
-      color: $color-text;
-      padding: .5rem 0.9rem;
-      border-radius: .6rem;
-      border: 2px solid transparent;
-      cursor: pointer;
-      &:hover { border-color: $color-primary; }
-    }
-  }
-}
-
-// 4. Main Area
-// --------------------------------------------------
-.dashboard {
-  flex: 1;
-  padding: 2rem 2.5rem;
-
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-  }
-
-  .kpi {
-    background: $color-card;
-    border-radius: 1rem;
-    padding: 1rem 1.25rem;
-    border: 2px solid $color-primary;
-    text-align: center;
-    box-shadow: 0 4px 12px $color-shadow;
-
-    .kpi-label {
-      font-size: .85rem;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      margin-bottom: .4rem;
-    }
-
-    .kpi-value {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-  }
-
-  .charts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-
-    .chart {
-      background: $color-card;
-      border-radius: 1rem;
-      padding: 1rem;
-      border: 2px solid $color-primary;
-      min-height: 280px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-}
-
-// 5. Responsive Tweaks
-// --------------------------------------------------
-@media (max-width: 768px) {
+  
+ //sidebar
+  
   .sidebar {
     position: fixed;
-    left: -300px;
     top: 0;
-    bottom: 0;
-    transition: transform .3s ease;
-    &.open { transform: translateX(300px); }
+    left: 0;
+    width: 250px;
+    height: 100%;
+    background: #F2F8FA;
+    border-right: 1px solid #ECB390;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    transition: width 0.3s;
   }
+  
+  .logo-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+  }
+  
+  .logo-img {
+    height: 70px;
+  }
+  
+  .menu-icon {
+    cursor: pointer;
+    font-size: 25px;
+    color: #333;
+  }
+  
+  .nav-list {
+    margin-top: 5px;
+    padding: 0;
+  }
+  
+  .nav-list li {
+    position: relative;
+    list-style: none;
+    height: 50px;
+    line-height: 50px;
+  }
+
+.sidebar:not(.collapsed) .logo-content .logo-img {
+    transition: transform 0.2s ease;
+  }
+  
+  .sidebar:not(.collapsed) .logo-content .logo-img:hover {
+    transform: scale(1.05);
+  }
+  
+  
+ //search input
+  
+  .nav-list li:first-child {
+    position: relative;
+    padding: 14px 0; 
+  }
+  
+  .nav-list li:first-child input {
+    width: calc(100% - 40px);
+    margin: 0 20px;
+    padding: 14px 40px 14px 60px;  
+    border: 3px solid #FFD580;      
+    border-radius: 25px;            
+    background: transparent;
+    color: #333;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  
+  .nav-list li:first-child input:hover {
+    border-color: #FFB347;         
+  }
+  
+  .nav-list li:first-child input:focus {
+    outline: none;
+    border-color: #FF6F00;         
+  }
+  
+  .nav-list li:first-child i {
+    position: absolute;
+    top: 50%;
+    left: 30px;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: #FFD580;               
+    transition: color 0.2s;
+  }
+  
+  .nav-list li:first-child:hover i,
+  .nav-list li:first-child:focus-within i {
+    color: #FF6F00;                 
+  }
+ 
+  //navbar
+  
+  .nav-list li a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #333;
+    padding: 0 20px 0 30px;        
+    border-radius: 8px;
+    transition: background 0.3s;
+  }
+  
+  .nav-list li a:hover {
+    background: #FFE7C0;
+  }
+  
+  .nav-list .bx {
+    font-size: 24px;
+  }
+  
+  .links-name {
+    margin-left: 24px;             
+    font-size: 16px;
+  }
+  
+//profile
+  
+  .profile-content {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 20px;
+  }
+  
+  .profile {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+  
+  .profile-details {
+    display: flex;
+    align-items: center;
+  }
+  
+  .profile-img {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+  }
+  
+  .name-job .name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .name-job .job {
+    font-size: 12px;
+    color: #777;
+  }
+  
+  #logoutBtn {
+    font-size: 24px;
+    color: #333;
+    cursor: pointer;
+    margin-left: 16px;
+  }
+
+  .sidebar #logoutBtn:hover,
+  .sidebar #logoutBtn:focus {
+    color: #FF6F00 !important;
+  }
+  
+//main 
+  
+  .home-section {
+    margin-left: 250px;
+    padding: 40px;
+    overflow-y: auto;
+    height: 100vh;
+  }
+  
+  .dashboard-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  //sidebar eingeklappt
+  
+  .sidebar.collapsed {
+    width: 60px;
+  }
+  
+  .sidebar.collapsed .logo-content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 9px 0;
+  }
+  
+  .sidebar.collapsed .logo-content .menu-icon {
+    order: 1;
+    margin-bottom: 4px;
+  }
+  
+  .sidebar.collapsed .logo-content .logo-img {
+    order: 2;
+    height: 40px;
+  }
+  
+  .sidebar.collapsed .logo-content .logo-name,
+  .sidebar.collapsed .links-name {
+    display: none;
+  }
+  
+  .sidebar.collapsed .nav-list {
+    margin-top: 4px;
+  }
+  
+  .sidebar.collapsed .nav-list li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    line-height: 50px;
+  }
+  
+  .sidebar.collapsed .nav-list li:first-child input {
+    display: none;
+  }
+  
+  .sidebar.collapsed .nav-list li:first-child i {
+    color: #FF6F00;
+    border: 2px solid #FF6F00;
+    border-radius: 50%;
+    padding: 6px;
+    font-size: 20px;
+    margin-left: -12px;
+  }
+  
+  .sidebar.collapsed .profile-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; 
+    padding: 8px 2px;         
+  }
+
+  .sidebar.collapsed .profile-content .profile-img {
+    width: 32px;
+    height: 32px;
+  }
+  
+  
+  .sidebar.collapsed .profile-details .name-job,
+  .sidebar.collapsed #logoutBtn {
+    display: none;
+  }
+  
+  .sidebar.collapsed ~ .home-section {
+    margin-left: 60px;
+  }
+
+  .logo-img-small {
+    display: none;
+  }
+  
+  .sidebar.collapsed .logo-img {
+    display: none;
+  }
+  
+.sidebar.collapsed .logo-content .logo-img-small {
+    display: block;
+    height: 48px !important;  
+    width: auto;               
+  }
+
+  .sidebar.collapsed .logo-content {
+  padding-top: 16px;
 }
+
+.sidebar.collapsed .menu-icon {
+  margin-bottom: 12px;
+}
+
+.sidebar.collapsed .logo-img-small {
+  display: block;
+  height: 36px;
+  margin-bottom: 12px;
+}
+
+.sidebar.collapsed .nav-list li:hover,
+.sidebar.collapsed .nav-list li:focus-within {
+  background: transparent !important;
+}
+
+.sidebar.collapsed .nav-list li:hover i,
+.sidebar.collapsed .nav-list li:focus-within i {
+  color: #FF6F00 !important;
+}
+
+.sidebar.collapsed .nav-list li a:hover {
+    background: transparent !important;
+  }
+
+  
+  
+  
+  

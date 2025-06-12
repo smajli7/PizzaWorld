@@ -1,13 +1,18 @@
-<!-- Logo-Leiste -->
-<div class="container">
-
-  <a routerLink="/">
-    <img class="logo" src="/assets/images/logo.png" alt="PizzaWorld Logo" />
-  </a>
-</div>
+<!-- Login-Template (login.component.html) -->
 
 <!-- Login-Box -->
 <div class="wrapper">
+  <!-- Logo in der Box -->
+  <div class="logo-container">
+    <a routerLink="/">
+      <img
+        class="form-logo"
+        src="/assets/images/logo.png"
+        alt="PizzaWorld Logo"
+      />
+    </a>
+  </div>
+
   <!-- Angular-Reactive-Form -->
   <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
     <h1>Login</h1>
@@ -38,15 +43,21 @@
         class="bx"
         [ngClass]="showPassword ? 'bxs-show' : 'bx-low-vision'"
         (click)="togglePassword()"
-        style="cursor: pointer"
+        title="Passwort anzeigen/verstecken"
       ></i>
     </div>
 
     <!-- Absenden -->
-    <button class="btn" type="submit" [disabled]="form.invalid">Login</button>
+    <button class="btn" type="submit" [disabled]="form.invalid">
+      Login
+    </button>
 
     <!-- Rückmeldungen vom Server -->
-    <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
-    <div *ngIf="errorMsg" class="alert alert-danger">{{ errorMsg }}</div>
+    <div *ngIf="successMsg" class="alert alert-success">
+      {{ successMsg }}
+    </div>
+    <div *ngIf="errorMsg" class="alert alert-danger">
+      {{ errorMsg }}
+    </div>
   </form>
 </div>

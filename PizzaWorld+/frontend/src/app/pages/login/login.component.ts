@@ -53,14 +53,17 @@ export class LoginComponent implements OnInit {
   }
 
   /** Formular absenden */
-  onSubmit(): void {
-    if (this.form.invalid) return;
+// login.component.ts
+onSubmit(): void {
+  if (this.form.invalid) return;
 
-    this.http.post('/api/login', this.form.value).subscribe({
+  this.http
+    .post('/api/login', this.form.value, { withCredentials: true }) // ⬅️ falls Cookie-Session
+    .subscribe({
       next: () => {
         this.successMsg = 'Login erfolgreich';
         this.errorMsg = null;
-        this.router.navigateByUrl('/dashboard');   
+        this.router.navigate(['/dashboard']);   // ✅ Route-Pfad!
       },
       error: () => {
         this.errorMsg = 'Benutzername oder Passwort falsch';

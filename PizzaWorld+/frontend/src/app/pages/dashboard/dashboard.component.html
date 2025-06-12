@@ -1,1 +1,97 @@
-<p>dashboard works!</p>
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pizza World+ — Dashboard</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Kompilierte CSS-Datei (aus dashboard.scss) -->
+    <link rel="stylesheet" href="dashboard.component.scss" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- ========================= SIDEBAR ========================= -->
+      <aside class="sidebar" id="sidebar">
+        <section class="user-panel">
+          <div class="avatar"></div>
+          <p class="greeting">
+            Hello,<br />
+            <strong>Max Mustermann!</strong>
+          </p>
+        </section>
+
+        <input type="search" class="search" placeholder="Search…" />
+
+        <nav class="main-nav">
+          <button class="nav-section" data-target="dashboard-sub">Dashboard</button>
+          <div class="sub-nav" id="dashboard-sub">
+            <button class="sub-link">Summary</button>
+            <button class="sub-link">Stores</button>
+            <button class="sub-link">Products</button>
+            <button class="sub-link">Sales</button>
+            <button class="sub-link">Orders</button>
+          </div>
+
+          <button class="nav-section">Reports</button>
+        </nav>
+
+        <button class="logout">Logout</button>
+      </aside>
+      <!-- ========================= /SIDEBAR ======================== -->
+
+      <!-- ========================= MAIN ============================ -->
+      <main class="dashboard">
+        <section class="kpi-grid">
+          <article class="kpi">
+            <p class="kpi-label">Revenue</p>
+            <p class="kpi-value">$50.2M</p>
+          </article>
+
+          <article class="kpi">
+            <p class="kpi-label">Orders</p>
+            <p class="kpi-value">$2.05M</p>
+          </article>
+
+          <article class="kpi">
+            <p class="kpi-label">Avg. Order</p>
+            <p class="kpi-value">$24.53</p>
+          </article>
+
+          <article class="kpi">
+            <p class="kpi-label">Customers</p>
+            <p class="kpi-value">34.8K</p>
+          </article>
+
+          <article class="kpi">
+            <p class="kpi-label">Products</p>
+            <p class="kpi-value">36</p>
+          </article>
+        </section>
+
+        <section class="charts">
+          <div class="chart" id="chart-store">[Revenue by Store chart]</div>
+          <div class="chart" id="chart-map">[Store Locations map]</div>
+        </section>
+      </main>
+      <!-- ========================= /MAIN =========================== -->
+    </div>
+
+    <!-- Scripts -->
+    <script>
+      // Accordion Toggle for Sub‑Navigation
+      document.querySelectorAll('.nav-section').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.target;
+          if (target) {
+            document.getElementById(target)?.classList.toggle('active');
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

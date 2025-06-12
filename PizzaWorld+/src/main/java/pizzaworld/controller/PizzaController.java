@@ -41,11 +41,17 @@ public class PizzaController {
     }
 
     @GetMapping("/sales")
-    public ResponseEntity<?> getSalesKPIs(@RequestParam LocalDate from,
-            @RequestParam LocalDate to,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(pizzaService.getSalesKPIs(from, to, user));
+public ResponseEntity<?> getSalesKPIs(@RequestParam LocalDate from,
+                                    @RequestParam LocalDate to,
+                                    @AuthenticationPrincipal UserDetails springUser) {
+    User user = userService.find(springUser.getUsername());
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
     }
+    return ResponseEntity.ok(pizzaService.getSalesKPIs(from, to, user));
+}
+
+
 
     @GetMapping("/orders")
     public ResponseEntity<?> getFilteredOrders(@RequestParam Map<String, String> params,

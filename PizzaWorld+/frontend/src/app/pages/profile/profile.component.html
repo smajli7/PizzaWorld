@@ -1,29 +1,25 @@
-<!-- Sidebar (falls sie Teil des Layouts ist, sonst auslagern) -->
-<div class="sidebar">
-  <div class="welcome">Hello,<br />Max Mustermann!</div>
-  <input type="text" placeholder="Search..." class="search" disabled />
-
-  <nav>
-    <button disabled>Dashboard</button>
-    <div class="subitems">
-      <button disabled>Summary</button>
-      <button disabled>Stores</button>
-      <button disabled>Products</button>
-      <button disabled>Sales</button>
-      <button disabled>Orders</button>
-    </div>
-    <button disabled>Reports</button>
-  </nav>
-
-  <button class="logout" disabled>Logout</button>
+<!-- Logo-Leiste (wie beim Login, falls gewünscht) -->
+<div class="logo-container">
+  <a routerLink="/">
+    <img class="form-logo" src="/assets/images/logo.png" alt="PizzaWorld Logo" />
+  </a>
 </div>
 
-<!-- Profil-Box -->
-<div class="profile-box">
-  <div class="avatar-placeholder"></div>
-  <div class="info-block">
-    <div class="name">Max Mustermann</div>
-    <div class="info">Basic information about the user</div>
-    <button class="edit-btn">Edit</button>
+<!-- Haupt-Wrapper -->
+<div class="wrapper">
+  <h1 class="title">My Profile</h1>
+
+  <!-- Avatar + Infos ------------------------------------>
+  <div class="profile-flex">
+    <div class="avatar"></div>
+
+    <div class="info-box">
+      <p><strong>Name:</strong> Max Mustermann</p>
+      <p><strong>E-Mail:</strong> maxpizzaworld.de</p>
+      <p><strong>Rolle:</strong> Filialleiter</p>
+      <p><strong>Seit:</strong> 01.03.2024</p>
+    </div>
   </div>
+
+  <button class="btn edit-btn">Edit</button>
 </div>

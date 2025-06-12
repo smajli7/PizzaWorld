@@ -1,63 +1,43 @@
-<!-- Login-Template (login.component.html) -->
+<!-- Hintergrund-Layer: animierte Pizza-Slices -->
+<ul class="bg-pizzas" aria-hidden="true">
+  <li></li><li></li><li></li><li></li><li></li>
+  <li></li><li></li><li></li><li></li><li></li>
+</ul>
 
-<!-- Login-Box -->
+<!-- Login-Card -->
 <div class="wrapper">
-  <!-- Logo in der Box -->
   <div class="logo-container">
-    <a routerLink="/">
-      <img
-        class="form-logo"
-        src="/assets/images/logo.png"
-        alt="PizzaWorld Logo"
-      />
-    </a>
+    <img class="form-logo" src="assets/images/logo.png" alt="PizzaWorld Logo" />
   </div>
 
-  <!-- Angular-Reactive-Form -->
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-    <h1>Login</h1>
+  
 
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
     <!-- Benutzername -->
     <div class="input-box">
-      <input
-        type="text"
-        id="username"
-        formControlName="username"
-        placeholder="Username"
-        required
-      />
+      <input type="text" formControlName="username" placeholder="Username" />
       <i class="bx bxs-user"></i>
     </div>
 
-    <!-- Passwort + Sichtbarkeitstoggle -->
+    <!-- Passwort -->
     <div class="input-box">
       <input
         [type]="showPassword ? 'text' : 'password'"
-        id="password"
         formControlName="password"
         placeholder="Passwort"
-        required
         autocomplete="current-password"
       />
       <i
         class="bx"
         [ngClass]="showPassword ? 'bxs-show' : 'bx-low-vision'"
         (click)="togglePassword()"
-        title="Passwort anzeigen/verstecken"
       ></i>
     </div>
 
-    <!-- Absenden -->
-    <button class="btn" type="submit" [disabled]="form.invalid">
-      Login
-    </button>
+    <button class="btn" type="submit" [disabled]="form.invalid">Login</button>
 
-    <!-- Rückmeldungen vom Server -->
-    <div *ngIf="successMsg" class="alert alert-success">
-      {{ successMsg }}
-    </div>
-    <div *ngIf="errorMsg" class="alert alert-danger">
-      {{ errorMsg }}
-    </div>
+    <!-- Rückmeldungen -->
+    <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
+    <div *ngIf="errorMsg"   class="alert alert-danger">{{ errorMsg }}</div>
   </form>
 </div>

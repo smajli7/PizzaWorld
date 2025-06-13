@@ -67,7 +67,7 @@
   .nav-list li:first-child input {
     width: calc(100% - 40px);
     margin: 0 20px;
-    padding: 14px 40px 14px 60px;  
+    padding: 14px 40px 14px 40px;  
     border: 3px solid #FFD580;      
     border-radius: 25px;            
     background: transparent;
@@ -87,7 +87,7 @@
   
   .nav-list li:first-child i {
     position: absolute;
-    top: 50%;
+    top: 53%;
     left: 30px;
     transform: translateY(-50%);
     font-size: 20px;
@@ -241,7 +241,7 @@
     border-radius: 50%;
     padding: 6px;
     font-size: 20px;
-    margin-left: -12px;
+    margin-left: -14px;
   }
   
   .sidebar.collapsed .profile-content {

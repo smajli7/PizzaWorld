@@ -37,24 +37,8 @@
 <section class="home-section">
   <div class="dashboard-container">
 
-    <!-- Revenue chart (renders once revenueOpts is non-null) -->
-    <ng-container *ngIf="revenueOpts as opts">
-      <div class="chart-card">
-        <h2 class="chart-title">Daily Revenue (€)</h2>
-
-        <apx-chart
-          [series]     ="opts.series"
-          [chart]      ="opts.chart"
-          [xaxis]      ="opts.xaxis"
-          [yaxis]      ="opts.yaxis"
-          [stroke]     ="opts.stroke"
-          [dataLabels] ="opts.dataLabels"
-          [tooltip]    ="opts.tooltip">
-        </apx-chart>
-      </div>
-    </ng-container>
-
-    <!-- Dashboard Karten und KPIs -->
+    <!-- Storeübersicht -->
     <router-outlet></router-outlet>
   </div>
 </section>
+

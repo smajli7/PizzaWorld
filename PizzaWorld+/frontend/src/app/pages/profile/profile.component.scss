@@ -63,13 +63,19 @@
   margin-bottom: 30px;
 }
 
-/* Avatar-Platzhalter */
+/* Avatar-Bild */
 .avatar {
   width: 120px;
   height: 120px;
-  background: #d0d0d0;
+
+  background-image: url('/assets/images/avatar.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
   border-radius: 12px;
 }
+
 
 /* Infobox */
 .info-box {

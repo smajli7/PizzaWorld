@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild, ElementRef } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -7,6 +7,12 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [RouterModule, CommonModule],
   templateUrl: './profile.component.html',
-  styleUrl: './profile.component.scss'
+  styleUrls: ['./profile.component.scss']
 })
-export class ProfileComponent {}
+export class ProfileComponent {
+  @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;
+
+  toggleSidebar(): void {
+    this.sidebar.nativeElement.classList.toggle('collapsed');
+  }
+}

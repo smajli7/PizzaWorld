@@ -1,25 +1,116 @@
-<!-- Logo-Leiste (wie beim Login, falls gewünscht) -->
-<div class="logo-container">
-  <a routerLink="/">
-    <img class="form-logo" src="/assets/images/logo.png" alt="PizzaWorld Logo" />
-  </a>
-</div>
-
-<!-- Haupt-Wrapper -->
-<div class="wrapper">
-  <h1 class="title">My Profile</h1>
-
-  <!-- Avatar + Infos ------------------------------------>
-  <div class="profile-flex">
-    <div class="avatar"></div>
-
-    <div class="info-box">
-      <p><strong>Name:</strong> Max Mustermann</p>
-      <p><strong>E-Mail:</strong> maxpizzaworld.de</p>
-      <p><strong>Rolle:</strong> Filialleiter</p>
-      <p><strong>Seit:</strong> 01.03.2024</p>
+<!-- ===== Sidebar ===== -->
+<aside class="sidebar" #sidebar>
+  <div class="logo-content">
+    <div class="logo">
+      <img
+        src="assets/images/logo.png"
+        alt="Pizza World+ logo"
+        class="logo-img"
+      />
+      <img
+        src="assets/images/logo_klein.png"
+        alt="Pizza World+ small logo"
+        class="logo-img-small"
+      />
     </div>
+    <i
+      class="bx bx-menu menu-icon"
+      id="sidebarToggle"
+      (click)="toggleSidebar()"
+    ></i>
   </div>
 
-  <button class="btn edit-btn">Edit</button>
-</div>
+  <ul class="nav-list">
+    <li>
+      <i class="bx bx-search"></i>
+      <input type="text" placeholder="Search..." />
+    </li>
+    <li>
+      <a routerLink="/dashboard">
+        <i class="bx bx-home"></i>
+        <span class="links-name">Summary</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/stores">
+        <i class="bx bx-store"></i>
+        <span class="links-name">Stores</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/products">
+        <i class="bx bx-food-menu"></i>
+        <span class="links-name">Products</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/sales">
+        <i class="bx bx-bar-chart-alt-2"></i>
+        <span class="links-name">Sales</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/orders">
+        <i class="bx bx-cart"></i>
+        <span class="links-name">Orders</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="profile-content">
+    <div class="profile">
+      <div class="profile-details">
+        <a routerLink="/profile" class="profile-link">
+          <img
+            src="assets/images/avatar.png"
+            alt="Profile"
+            class="profile-img"
+          />
+        </a>
+        <div class="name-job">
+          <div class="name">Name/Username</div>
+          <div class="job">Rolle</div>
+        </div>
+      </div>
+      <i class="bx bx-log-out" id="logoutBtn"></i>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== Main content ===== -->
+<section class="home-section">
+  <div class="profile-wrapper">
+    <div class="logo-container">
+      <img
+        src="assets/images/logo.png"
+        alt="Pizza World+ Logo"
+        class="form-logo"
+      />
+    </div>
+
+    <div class="wrapper">
+      <h1 class="title">My Profile</h1>
+
+      <div class="profile-flex">
+        <!-- echtes Avatar-Bild statt Platzhalter -->
+        <img
+          src="assets/images/avatar.png"
+          alt="Avatar"
+          class="avatar"
+        />
+
+        <div class="info-box">
+          <p><strong>Name:</strong> Max Mustermann</p>
+          <p>
+            <strong>E-Mail:</strong>
+            max&#64;pizzaworld.de
+          </p>
+          <p><strong>Rolle:</strong> Filialleiter</p>
+          <p><strong>Seit:</strong> 01.03.2024</p>
+        </div>
+      </div>
+
+      <button class="btn edit-btn">Edit</button>
+    </div>
+  </div>
+</section>

@@ -23,10 +23,10 @@
         <a routerLink="/profile" class="profile-link">
           <img src="assets/images/avatar.png" alt="Profile" class="profile-img" />
         </a>
-        <div class="name-job">
-          <div class="name">Name/Username</div>
-          <div class="job">Rolle</div>
-        </div>
+<div class="name-job" *ngIf="user as u">
+  <div class="name">{{ u.username }}</div>
+  <div class="job">{{ u.role }}</div>
+</div>
       </div>
       <i class="bx bx-log-out" id="logoutBtn"></i>
     </div>

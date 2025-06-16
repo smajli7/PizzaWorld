@@ -2,6 +2,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { importProvidersFrom }   from '@angular/core';
 import { provideRouter }         from '@angular/router';
 import { provideHttpClient }     from '@angular/common/http';
+import { AuthService } from './app/core/auth.service'; // Import AuthService if needed
 
 import { NgApexchartsModule }    from 'ng-apexcharts';   // 👈 NEW
 
@@ -17,3 +18,9 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(NgApexchartsModule)
   ]
 }).catch(err => console.error(err));
+
+bootstrapApplication(AppComponent, { providers: [ /* … */ ] })
+  .then(appRef => {
+    appRef.injector.get(AuthService).loadCurrentUser().subscribe();
+  })
+  .catch(err => console.error(err));

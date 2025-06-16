@@ -1,10 +1,14 @@
 import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';   // stellt <router-outlet> bereit
+import { AuthService } from './core/auth.service'; // Import AuthService
 
 @Component({
-  standalone: true,
   selector: 'app-root',
   templateUrl: './app.component.html',
-  imports: [RouterModule]                         
+  styleUrls: ['./app.component.scss']
 })
-export class AppComponent {}
+export class AppComponent {
+  constructor(private auth: AuthService) {
+    // ✓ runs once right after bootstrap
+    this.auth.loadCurrentUser().subscribe();
+  }
+}

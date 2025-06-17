@@ -96,4 +96,13 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
         """, nativeQuery = true)
     List<Map<String, Object>> dynamicOrderFilter(@Param("customerId") String customerId,
                                                  @Param("storeId") String storeId);
+
+    @Query(value = """
+        SELECT o.* FROM orders o
+        JOIN stores s ON o.storeid = s.storeid
+        WHERE s.state_abbr = :state
+          AND (:customerId IS NULL OR o.customerid = :customerId)
+        """, nativeQuery = true)
+    List<Map<String, Object>> dynamicOrderFilterByState(@Param("state") String state,
+                                                        @Param("customerId") String customerId);
 }

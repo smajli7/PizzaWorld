@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 import pizzaworld.repository.PizzaRepo;
 
@@ -17,12 +18,6 @@ public class PizzaService {
     @Autowired
     private PizzaRepo pizzaRepo;
 
-    /**
-     * Gibt Dashboard-KPIs je nach Benutzerrolle zurück:
-     * - HQ_ADMIN → global
-     * - STATE_MANAGER → bundeslandspezifisch
-     * - STORE_MANAGER → filialbezogen
-     */
     public Map<String, Object> getDashboardKPIs(User user) {
         return switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchGlobalKPIs();
@@ -32,19 +27,14 @@ public class PizzaService {
         };
     }
 
-    /**
-     * Gibt KPIs für eine bestimmte Filiale zurück, wenn:
-     * - HQ_ADMIN
-     * - STATE_MANAGER zuständig für das Bundesland der Filiale
-     * - STORE_MANAGER für die eigene Filiale
-     */
-    public Map<String, Object> getStoreKPIs(String storeId, User user) {
-        String role = user.getRole();
+    public Map<String, Object> getStoreKPIs(String storeId, CustomUserDetails user) {
+        User realUser = user.getUser();
+        String role = realUser.getRole();
         String storeState = pizzaRepo.getStoreState(storeId);
 
         boolean isHQ = role.equals("HQ_ADMIN");
-        boolean isStateManagerOfStore = role.equals("STATE_MANAGER") && user.getStateAbbr().equals(storeState);
-        boolean isOwnStore = role.equals("STORE_MANAGER") && user.getStoreId().equals(storeId);
+        boolean isStateManagerOfStore = role.equals("STATE_MANAGER") && realUser.getStateAbbr().equals(storeState);
+        boolean isOwnStore = role.equals("STORE_MANAGER") && realUser.getStoreId().equals(storeId);
 
         if (isHQ || isStateManagerOfStore || isOwnStore) {
             return pizzaRepo.fetchStoreKPIs(storeId);
@@ -53,12 +43,6 @@ public class PizzaService {
         throw new AccessDeniedException("Zugriff auf diese Filiale nicht erlaubt");
     }
 
-    /**
-     * Gibt Umsatz-/Verkaufs-KPIs für einen Zeitraum zurück, je nach Rolle:
-     * - HQ_ADMIN → alle Verkäufe
-     * - STATE_MANAGER → Verkäufe im Bundesland
-     * - STORE_MANAGER → Verkäufe der eigenen Filiale
-     */
     public Map<String, Object> getSalesKPIs(LocalDate from, LocalDate to, User user) {
         return switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchSalesKPIs(from, to);
@@ -68,10 +52,35 @@ public class PizzaService {
         };
     }
 
-    public List<Map<String, Object>> filterOrders(Map<String, String> params) {
+    public List<Map<String, Object>> filterOrders(Map<String, String> params, User user) {
+        String requestedStoreId = params.get("storeId");
         String customerId = params.get("customerId");
-        String storeId = params.get("storeId");
-        return pizzaRepo.dynamicOrderFilter(customerId, storeId);
-    }
 
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                return pizzaRepo.dynamicOrderFilter(customerId, requestedStoreId);
+
+            case "STATE_MANAGER":
+                if (requestedStoreId == null) {
+                    return pizzaRepo.dynamicOrderFilterByState(user.getStateAbbr(), customerId);
+                }
+
+                String storeState = pizzaRepo.getStoreState(requestedStoreId);
+                if (!user.getStateAbbr().equals(storeState)) {
+                    throw new AccessDeniedException("Keine Berechtigung für diesen Store");
+                }
+
+                return pizzaRepo.dynamicOrderFilter(customerId, requestedStoreId);
+
+            case "STORE_MANAGER":
+                if (requestedStoreId != null && !user.getStoreId().equals(requestedStoreId)) {
+                    throw new AccessDeniedException("Du darfst nur deine eigene Filiale sehen");
+                }
+
+                return pizzaRepo.dynamicOrderFilter(customerId, user.getStoreId());
+
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle");
+        }
+    }
 }

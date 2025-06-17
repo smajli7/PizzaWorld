@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import pizzaworld.model.User;
 import pizzaworld.service.UserService;
+import pizzaworld.util.JwtUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,35 +20,45 @@ import java.util.Map;
 @RequestMapping("/api")
 public class AuthController {
 
-    /* ---------- DTO direkt hier ---------- */
-    public record LoginRequest(String username, String password) {
-    }
+    /* ---------- DTO ---------- */
+    public record LoginRequest(String username, String password) {}
 
     private final AuthenticationManager authManager;
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(AuthenticationManager authManager, UserService userService) {
+    public AuthController(AuthenticationManager authManager, UserService userService, JwtUtil jwtUtil) {
         this.authManager = authManager;
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
-    /* ---------- 1. JSON-Login ---------- */
+    /* ---------- 1. Login mit Session + JWT ---------- */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request) {
 
         Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.username(), req.password()));
+                new UsernamePasswordAuthenticationToken(req.username(), req.password())
+        );
 
-        // Session festschreiben
+        // Session für Web-Kompatibilität
         SecurityContextHolder.getContext().setAuthentication(auth);
-
-        // 🔥 WICHTIG: Session manuell mit Authentifizierung füllen!
         request.getSession(true).setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
+        // Nutzer + Rolle ermitteln
+        User u = userService.find(auth.getName());
+        String role = u.getRole();
+
+        // JWT erzeugen
+        String token = jwtUtil.generateToken(u.getUsername(), role);
+
+        // Antwort mit JWT
         return ResponseEntity.ok(Map.of(
                 "message", "Login success",
-                "username", auth.getName(),
-                "roles", auth.getAuthorities()));
+                "username", u.getUsername(),
+                "role", role,
+                "token", token
+        ));
     }
 
     /* ---------- 2. Aktuell eingeloggter Benutzer ---------- */
@@ -77,5 +88,4 @@ public class AuthController {
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
-
 }

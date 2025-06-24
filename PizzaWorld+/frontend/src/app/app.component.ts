@@ -11,7 +11,7 @@ import { AuthService } from './core/auth.service'; // Import AuthService
 })
 export class AppComponent {
   constructor(private auth: AuthService) {
-    // ✓ runs once right after bootstrap
+    // Lädt den Benutzer unmittelbar nach dem Bootstrappen EINMAL
     this.auth.loadCurrentUser().subscribe();
   }
 }

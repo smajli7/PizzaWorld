@@ -1,4 +1,4 @@
-// frontend/src/app/pages/login/login.component.ts
+// src/app/pages/login/login.component.ts
 import { Component, OnInit } from '@angular/core';
 import {
   ReactiveFormsModule,
@@ -6,38 +6,33 @@ import {
   Validators,
   FormGroup
 } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import {
-  Router,
-  RouterModule            // ⬅️  für routerLink im Template
-} from '@angular/router';
-import { CommonModule } from '@angular/common'; // ngClass, ngIf, ...
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   standalone: true,
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
-  imports: [
-    CommonModule,          // *ngIf, ngClass, ...
-    RouterModule,          // routerLink
-    ReactiveFormsModule,   // [formGroup]
-    HttpClientModule
-  ]
+  imports: [CommonModule, ReactiveFormsModule]
 })
 export class LoginComponent implements OnInit {
-  /** Formular-Instanz */
+  /* ---------- Form ---------- */
   form!: FormGroup;
 
-  /** UI-State */
+  /* ---------- UI-State ---------- */
   showPassword = false;
-  successMsg: string | null = null;
-  errorMsg: string | null = null;
+  successMsg: string | null = null;   // grüne Info-Box
+  errorMsg:   string | null = null;   // rote Fehler-Box
 
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
-    private router: Router      // ⬅️  DI-Injection, danach in Methoden benutzbar
+    private router: Router,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -47,28 +42,30 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  /** Icon-Klick → Passwort ein-/ausblenden */
   togglePassword(): void {
     this.showPassword = !this.showPassword;
   }
 
-  /** Formular absenden */
-// login.component.ts
-onSubmit(): void {
-  if (this.form.invalid) return;
+  onSubmit(): void {
+    if (this.form.invalid) return;
 
-  this.http
-    .post('/api/login', this.form.value, { withCredentials: true }) // ⬅️ falls Cookie-Session
-    .subscribe({
-      next: () => {
-        this.successMsg = 'Login erfolgreich';
-        this.errorMsg = null;
-        this.router.navigate(['/dashboard']);   // ✅ Route-Pfad!
-      },
-      error: () => {
-        this.errorMsg = 'Benutzername oder Passwort falsch';
-        this.successMsg = null;
-      }
-    });
+    this.http
+      .post<{ token: string }>('/api/login', this.form.value)     // Backend liefert { token }
+      .subscribe({
+        next: res => {
+          /* 1) Token speichern + User laden */
+          this.auth.setToken(res.token);
+          this.auth.loadCurrentUser().subscribe();
+
+          /* 2) UI-Feedback + Weiterleitung */
+          this.successMsg = 'Login erfolgreich';
+          this.errorMsg   = null;
+          this.router.navigate(['/dashboard']);
+        },
+        error: () => {
+          this.errorMsg   = 'Benutzername oder Passwort falsch';
+          this.successMsg = null;
+        }
+      });
   }
 }

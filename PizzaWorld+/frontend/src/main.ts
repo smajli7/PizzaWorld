@@ -1,26 +1,36 @@
-import { bootstrapApplication } from '@angular/platform-browser';
-import { importProvidersFrom }   from '@angular/core';
+// src/main.ts
+import { bootstrapApplication }  from '@angular/platform-browser';
 import { provideRouter }         from '@angular/router';
-import { provideHttpClient }     from '@angular/common/http';
-import { AuthService } from './app/core/auth.service'; // Import AuthService if needed
+import {
+  provideHttpClient,
+  HTTP_INTERCEPTORS
+} from '@angular/common/http';
+import { importProvidersFrom }   from '@angular/core';
 
-import { NgApexchartsModule }    from 'ng-apexcharts';   // 👈 NEW
+import { NgApexchartsModule }    from 'ng-apexcharts';
 
-import { AppComponent } from './app/app.component';
-import { routes }       from './app/app.routes';
+import { AppComponent }          from './app/app.component';
+import { routes }                from './app/app.routes';
+
+import { AuthService }           from './app/core/auth.service';     // ✅ richtiger Pfad
+
+import { TokenInterceptor }      from './app/core/token-interceptor'; // ⬅️ automatisch „Bearer …“
 
 bootstrapApplication(AppComponent, {
   providers: [
+    /* Basis-Provider */
     provideRouter(routes),
     provideHttpClient(),
 
-    // ⬇️ one-liner that makes <apx-chart> & its inputs available everywhere
+    /* Globale Interceptor-Registrierung */
+    { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
+
+    /* ApexCharts als Stand-alone-Provider */
     importProvidersFrom(NgApexchartsModule)
   ]
-}).catch(err => console.error(err));
-
-bootstrapApplication(AppComponent, { providers: [ /* … */ ] })
-  .then(appRef => {
-    appRef.injector.get(AuthService).loadCurrentUser().subscribe();
-  })
-  .catch(err => console.error(err));
+})
+.then(appRef => {
+  /* Lädt /api/me genau einmal nach dem Bootstrap */
+  appRef.injector.get(AuthService).loadCurrentUser().subscribe();
+})
+.catch(err => console.error(err));

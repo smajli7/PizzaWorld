@@ -1,38 +1,46 @@
 // src/app/core/auth/auth.service.ts
-// Minimal AuthService that hits /api/me once, caches the result, and exposes an observable
-
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { CurrentUser } from './models/current-user.model';
-
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import {
+  BehaviorSubject, Observable, tap, catchError, of
+} from 'rxjs';
+import { CurrentUser } from './models/current-user.model'; // Import your CurrentUser model
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  /** Holds the user object or null while unknown */
-  private currentUserSubject = new BehaviorSubject<CurrentUser | null>(null);
-  /** Public stream – templates use `auth.currentUser$ | async` */
-  readonly currentUser$ = this.currentUserSubject.asObservable();
+  private readonly tokenKey = 'authToken';
 
-  /** Make sure we only query /api/me once */
-  private loaded = false;
+  private currentUserSubject = new BehaviorSubject<CurrentUser | null>(null);
+  currentUser$               = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  /** Call this once (e.g. app initialization) */
-  loadCurrentUser(): Observable<CurrentUser> {
-    if (this.loaded) {
-      // already in flight or cached → return stream as‑is
-      return this.currentUser$ as unknown as Observable<CurrentUser>;
-    }
-    this.loaded = true;
-    return this.http
-      .get<CurrentUser>('/api/me', { withCredentials: true })
-      .pipe(tap(user => this.currentUserSubject.next(user)));
+  /* ───────── Token ───────── */
+  setToken(token: string): void { localStorage.setItem(this.tokenKey, token); }
+  get token(): string | null     { return localStorage.getItem(this.tokenKey); }
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+    this.currentUserSubject.next(null);
   }
 
-  /** Optional helper if you need the value synchronously */
-  get snapshot(): CurrentUser | null {
-    return this.currentUserSubject.value;
+  /* ─────── User-Info ─────── */
+  private loaded = false;
+  loadCurrentUser(): Observable<CurrentUser | null> {
+    if (this.loaded) return this.currentUser$;
+    this.loaded = true;
+
+    const t = this.token;
+    if (!t) return of(null);
+
+    return this.http
+      .get<CurrentUser>('/api/me', {
+        headers: new HttpHeaders({ Authorization: `Bearer ${t}` })
+      })
+      .pipe(
+        tap(u => this.currentUserSubject.next(u)),
+        catchError(() => { this.logout(); return of(null); })
+      );
   }
+
+  get snapshot(): CurrentUser | null { return this.currentUserSubject.value; }
 }

@@ -3,6 +3,7 @@ import { CommonModule }   from '@angular/common';
 import { RouterModule }   from '@angular/router';
 import { HttpClient }     from '@angular/common/http';
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 
 import {
   ApexAxisChartSeries,
@@ -28,6 +29,7 @@ export interface ChartOptions {
   selector: 'app-stores',
   standalone: true,
   imports: [
+    SidebarComponent,
     CommonModule,
     RouterModule,
     NgApexchartsModule      // <apx-chart> is recognised here

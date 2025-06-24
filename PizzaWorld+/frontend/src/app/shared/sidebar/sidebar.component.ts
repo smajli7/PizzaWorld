@@ -12,12 +12,13 @@ import { AuthService } from '../../core/auth.service';
   imports: [CommonModule, RouterModule]
 })
 export class SidebarComponent {
-  /** Current user observable supplied by AuthService */
-  //user$ = this.auth.currentUser$;
+  user$: typeof this.auth.currentUser$;
 
   @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;
 
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService) {
+    this.user$ = this.auth.currentUser$;
+  }
 
   toggleSidebar(): void {
     this.sidebar.nativeElement.classList.toggle('collapsed');

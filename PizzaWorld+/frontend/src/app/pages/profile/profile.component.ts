@@ -2,15 +2,17 @@ import { Component, ElementRef, ViewChild, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-
 import { CurrentUser } from '../../core/models/current-user.model';
+import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+
+
 
 @Component({
   selector: 'app-profile',
   standalone: true,
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
-  imports: [RouterModule, CommonModule]
+  imports: [RouterModule, SidebarComponent, CommonModule]
 })
 export class ProfileComponent implements OnInit {
   @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;

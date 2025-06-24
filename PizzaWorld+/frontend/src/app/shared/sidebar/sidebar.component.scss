@@ -1,308 +1,237 @@
+// src/app/shared/sidebar/sidebar.component.scss
 
- 
-  
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 250px;
-    height: 100%;
-    background: #F2F8FA;
-    border-right: 1px solid #ECB390;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    transition: width 0.3s;
-  }
-  
+// Color Palette Variables
+$sidebar-bg: #F2F8FA;
+$border-color: #ECB390;
+$text-color: #333;
+$text-muted-color: #777;
+$primary-accent: #FF6F00;
+$secondary-accent: #FFB347;
+$tertiary-accent: #FFD580;
+$hover-bg: #FFE7C0;
+
+// Base sidebar styling
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background: $sidebar-bg;
+  border-right: 1px solid $border-color;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: width 0.3s ease;
+
+  // --- Logo Section ---
   .logo-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 20px;
-  }
-  
-  .logo-img {
-    height: 70px;
-  }
-  
-  .menu-icon {
-    cursor: pointer;
-    font-size: 25px;
-    color: #333;
-  }
-  
-  .nav-list {
-    margin-top: 5px;
-    padding: 0;
-  }
-  
-  .nav-list li {
-    position: relative;
-    list-style: none;
-    height: 50px;
-    line-height: 50px;
+    height: 80px; // Fixed height for alignment
+    box-sizing: border-box;
+
+    .logo-img {
+      height: 70px;
+      transition: transform 0.2s ease, opacity 0.3s ease;
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+
+    .logo-img-small {
+      display: none; // Hidden by default
+    }
+
+    .menu-icon {
+      cursor: pointer;
+      font-size: 25px;
+      color: $text-color;
+    }
   }
 
-.sidebar:not(.collapsed) .logo-content .logo-img {
-    transition: transform 0.2s ease;
+  // --- Navigation List ---
+  .nav-list {
+    margin-top: 5px;
+    padding: 0 10px;
+    height: calc(100% - 160px); // Sidebar height - logo - profile
+    overflow-y: auto;
+
+    li {
+      list-style: none;
+
+      a {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: $text-color;
+        padding: 0 20px;
+        height: 50px;
+        line-height: 50px;
+        border-radius: 8px;
+        transition: background 0.3s, color 0.3s;
+        margin: 5px 0;
+
+        &:hover,
+        &.active-link { // Style for active route
+          background: $primary-accent;
+          color: white;
+        }
+
+        .bx {
+          font-size: 24px;
+        }
+
+        .links-name {
+          margin-left: 24px;
+          font-size: 16px;
+          opacity: 1;
+          transition: opacity 0.3s ease;
+        }
+      }
+    }
+
+    // --- Search Item Specific Styling ---
+    .search-item {
+      position: relative;
+      margin: 5px 0 15px 0;
+
+      i {
+        position: absolute;
+        top: 50%;
+        left: 20px;
+        transform: translateY(-50%);
+        font-size: 20px;
+        color: $tertiary-accent;
+        transition: color 0.2s;
+      }
+
+      input {
+        width: 100%;
+        height: 50px;
+        padding: 14px 20px 14px 50px;
+        border: 2px solid $tertiary-accent;
+        border-radius: 8px;
+        background: transparent;
+        color: $text-color;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+
+        &:hover {
+          border-color: $secondary-accent;
+        }
+
+        &:focus {
+          outline: none;
+          border-color: $primary-accent;
+          & ~ i {
+            color: $primary-accent;
+          }
+        }
+      }
+    }
   }
-  
-  .sidebar:not(.collapsed) .logo-content .logo-img:hover {
-    transform: scale(1.05);
-  }
-  
-  
- //search input
-  
-  .nav-list li:first-child {
-    position: relative;
-    padding: 14px 0; 
-  }
-  
-  .nav-list li:first-child input {
-    width: calc(100% - 40px);
-    margin: 0 20px;
-    padding: 14px 40px 14px 40px;  
-    border: 3px solid #FFD580;      
-    border-radius: 25px;            
-    background: transparent;
-    color: #333;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-  }
-  
-  .nav-list li:first-child input:hover {
-    border-color: #FFB347;         
-  }
-  
-  .nav-list li:first-child input:focus {
-    outline: none;
-    border-color: #FF6F00;         
-  }
-  
-  .nav-list li:first-child i {
-    position: absolute;
-    top: 53%;
-    left: 30px;
-    transform: translateY(-50%);
-    font-size: 20px;
-    color: #FFD580;               
-    transition: color 0.2s;
-  }
-  
-  .nav-list li:first-child:hover i,
-  .nav-list li:first-child:focus-within i {
-    color: #FF6F00;                 
-  }
- 
-  //navbar
-  
-  .nav-list li a {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: #333;
-    padding: 0 20px 0 30px;        
-    border-radius: 8px;
-    transition: background 0.3s;
-  }
-  
-  .nav-list li a:hover {
-    background: #FFE7C0;
-  }
-  
-  .nav-list .bx {
-    font-size: 24px;
-  }
-  
-  .links-name {
-    margin-left: 24px;             
-    font-size: 16px;
-  }
-  
-//profile
-  
+
+  // --- Profile Section ---
   .profile-content {
     position: absolute;
     bottom: 0;
     width: 100%;
     padding: 20px;
-  }
-  
-  .profile {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 16px;
-  }
-  
-  .profile-details {
-    display: flex;
-    align-items: center;
-  }
-  
-  .profile-img {
-    height: 40px;
-    width: 40px;
-    border-radius: 50%;
-    margin-right: 12px;
-  }
-  
-  .name-job .name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .name-job .job {
-    font-size: 12px;
-    color: #777;
-  }
-  
-  #logoutBtn {
-    font-size: 24px;
-    color: #333;
-    cursor: pointer;
-    margin-left: 16px;
+    box-sizing: border-box;
+
+    .profile {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .profile-link {
+        text-decoration: none;
+      }
+      
+      .profile-details {
+        display: flex;
+        align-items: center;
+      }
+
+      .profile-img {
+        height: 40px;
+        width: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+        object-fit: cover;
+      }
+
+      .name-job {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+        .name {
+          font-size: 14px;
+          font-weight: 600;
+          color: $text-color;
+        }
+        .job {
+          font-size: 12px;
+          color: $text-muted-color;
+        }
+      }
+      
+      .bx-log-out {
+        font-size: 24px;
+        color: $text-color;
+        cursor: pointer;
+        transition: color 0.2s;
+        &:hover {
+          color: $primary-accent;
+        }
+      }
+    }
   }
 
-  .sidebar #logoutBtn:hover,
-  .sidebar #logoutBtn:focus {
-    color: #FF6F00 !important;
-  }
-  
-//main 
-  
-  .home-section {
-    margin-left: 250px;
-    padding: 40px;
-    overflow-y: auto;
-    height: 100vh;
-  }
-  
-  .dashboard-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 24px;
-  }
+  // --- COLLAPSED STATE ---
+  &.collapsed {
+    width: 80px;
 
-  //sidebar eingeklappt
-  
-  .sidebar.collapsed {
-    width: 60px;
-  }
-  
-  .sidebar.collapsed .logo-content {
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 9px 0;
-  }
-  
-  .sidebar.collapsed .logo-content .menu-icon {
-    order: 1;
-    margin-bottom: 4px;
-  }
-  
-  .sidebar.collapsed .logo-content .logo-img {
-    order: 2;
-    height: 40px;
-  }
-  
-  .sidebar.collapsed .logo-content .logo-name,
-  .sidebar.collapsed .links-name {
-    display: none;
-  }
-  
-  .sidebar.collapsed .nav-list {
-    margin-top: 4px;
-  }
-  
-  .sidebar.collapsed .nav-list li {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 50px;
-    line-height: 50px;
-  }
-  
-  .sidebar.collapsed .nav-list li:first-child input {
-    display: none;
-  }
-  
-  .sidebar.collapsed .nav-list li:first-child i {
-    color: #FF6F00;
-    border: 2px solid #FF6F00;
-    border-radius: 50%;
-    padding: 6px;
-    font-size: 20px;
-    margin-left: -14px;
-  }
-  
-  .sidebar.collapsed .profile-content {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end; 
-    padding: 8px 2px;         
-  }
+    .logo-content {
+      padding: 20px 0;
+      justify-content: center;
+      .logo-img { display: none; }
+      .logo-img-small { display: block; height: 40px; }
+      .menu-icon { position: absolute; right: 27px; }
+    }
+    
+    .nav-list {
+      li a {
+        padding: 0;
+        justify-content: center;
+        .links-name {
+          opacity: 0;
+          pointer-events: none; // Prevent interaction when invisible
+        }
+      }
+      .search-item { display: none; } // Hides search when collapsed
+    }
 
-  .sidebar.collapsed .profile-content .profile-img {
-    width: 32px;
-    height: 32px;
+    .profile-content {
+      .profile {
+        justify-content: center;
+        .name-job, .bx-log-out {
+          opacity: 0;
+          pointer-events: none;
+        }
+      }
+    }
   }
-  
-  
-  .sidebar.collapsed .profile-details .name-job,
-  .sidebar.collapsed #logoutBtn {
-    display: none;
-  }
-  
-  .sidebar.collapsed ~ .home-section {
-    margin-left: 60px;
-  }
-
-  .logo-img-small {
-    display: none;
-  }
-  
-  .sidebar.collapsed .logo-img {
-    display: none;
-  }
-  
-.sidebar.collapsed .logo-content .logo-img-small {
-    display: block;
-    height: 48px !important;  
-    width: auto;               
-  }
-
-  .sidebar.collapsed .logo-content {
-  padding-top: 16px;
 }
 
-.sidebar.collapsed .menu-icon {
-  margin-bottom: 12px;
+// Utility class for visually hiding elements (e.g., labels) for accessibility
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
-
-.sidebar.collapsed .logo-img-small {
-  display: block;
-  height: 36px;
-  margin-bottom: 12px;
-}
-
-.sidebar.collapsed .nav-list li:hover,
-.sidebar.collapsed .nav-list li:focus-within {
-  background: transparent !important;
-}
-
-.sidebar.collapsed .nav-list li:hover i,
-.sidebar.collapsed .nav-list li:focus-within i {
-  color: #FF6F00 !important;
-}
-
-.sidebar.collapsed .nav-list li a:hover {
-    background: transparent !important;
-  }
-
-  
-  
-  
-  

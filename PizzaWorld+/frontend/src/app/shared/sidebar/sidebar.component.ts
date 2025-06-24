@@ -23,4 +23,13 @@ export class SidebarComponent {
   toggleSidebar(): void {
     this.sidebar.nativeElement.classList.toggle('collapsed');
   }
+
+    logout(): void {
+    // In a real-world application, you would inject an AuthService
+    // and call its logout method here.
+    // e.g., this.authService.logout();
+    console.log('Logout action triggered!');
+    // You would typically redirect the user after logout:
+    // this.router.navigate(['/login']);
+  }
 }

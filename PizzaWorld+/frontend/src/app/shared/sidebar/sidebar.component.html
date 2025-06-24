@@ -1,38 +1,62 @@
-<!-- src/app/shared/sidebar/sidebar.component.html -->
-<aside class="sidebar" #sidebar>
+<aside class="sidebar" [ngClass]="{ 'collapsed': isCollapsed }">
   <div class="logo-content">
     <div class="logo">
       <img src="assets/images/logo.png" alt="Pizza World+ logo" class="logo-img" />
       <img src="assets/images/logo_klein.png" alt="Pizza World+ small logo" class="logo-img-small" />
     </div>
-    <i class="bx bx-menu menu-icon" id="sidebarToggle" (click)="toggleSidebar()"></i>
+    <i class="bx bx-menu menu-icon" (click)="toggleSidebar()" aria-label="Toggle navigation menu"></i>
   </div>
 
   <ul class="nav-list">
-    <li>
+    <li class="search-item">
+      <label for="sidebarSearch" class="visually-hidden">Search</label>
       <i class="bx bx-search"></i>
-      <input type="text" placeholder="Search..." />
+      <input type="text" id="sidebarSearch" placeholder="Search..." />
     </li>
-    <li><a routerLink="/dashboard"><i class="bx bx-home"></i><span class="links-name">Summary</span></a></li>
-    <li><a routerLink="/stores"><i class="bx bx-store"></i><span class="links-name">Stores</span></a></li>
-    <li><a routerLink="/products"><i class="bx bx-food-menu"></i><span class="links-name">Products</span></a></li>
-    <li><a routerLink="/sales"><i class="bx bx-bar-chart-alt-2"></i><span class="links-name">Sales</span></a></li>
-    <li><a routerLink="/orders"><i class="bx bx-cart"></i><span class="links-name">Orders</span></a></li>
+    <li>
+      <a routerLink="/dashboard" routerLinkActive="active-link">
+        <i class="bx bx-home"></i>
+        <span class="links-name">Summary</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/stores" routerLinkActive="active-link">
+        <i class="bx bx-store"></i>
+        <span class="links-name">Stores</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/products" routerLinkActive="active-link">
+        <i class="bx bx-food-menu"></i>
+        <span class="links-name">Products</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/sales" routerLinkActive="active-link">
+        <i class="bx bx-bar-chart-alt-2"></i>
+        <span class="links-name">Sales</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/orders" routerLinkActive="active-link">
+        <i class="bx bx-cart"></i>
+        <span class="links-name">Orders</span>
+      </a>
+    </li>
   </ul>
 
   <div class="profile-content">
     <div class="profile">
-      <div class="profile-details">
-        <a routerLink="/profile" class="profile-link">
+      <a routerLink="/profile" class="profile-link" aria-label="View profile">
+        <div class="profile-details">
           <img src="assets/images/avatar.png" alt="Profile" class="profile-img" />
-        </a>
-        <!-- reactive user block -->
-        <div class="name-job" *ngIf="user$ | async as u">
-          <div class="name">{{ u.username }}</div>
-          <div class="job">{{ u.role }}</div>
+          <div class="name-job" *ngIf="user$ | async as u">
+            <div class="name">{{ u.username }}</div>
+            <div class="job">{{ u.role }}</div>
+          </div>
         </div>
-      </div>
-      <i class="bx bx-log-out" id="logoutBtn"></i>
+      </a>
+      <i class="bx bx-log-out" (click)="logout()" tabindex="0" role="button" aria-label="Log out"></i>
     </div>
   </div>
 </aside>

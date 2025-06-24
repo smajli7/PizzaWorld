@@ -1,70 +1,27 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
-import { CommonModule }   from '@angular/common';
-import { RouterModule }   from '@angular/router';
-import { HttpClient }     from '@angular/common/http';
-import { NgApexchartsModule } from 'ng-apexcharts';
+// src/app/pages/dashboard/dashboard.component.ts
+import { Component, OnInit } from '@angular/core';
+import { CommonModule }      from '@angular/common';        // ⬅️ NEU
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-
-import {
-  ApexAxisChartSeries,
-  ApexChart,
-  ApexDataLabels,
-  ApexStroke,
-  ApexTooltip,
-  ApexXAxis,
-  ApexYAxis
-} from 'ng-apexcharts';
-
-export interface ChartOptions {
-  series: ApexAxisChartSeries;
-  chart: ApexChart;
-  xaxis: ApexXAxis;
-  yaxis: ApexYAxis;
-  stroke: ApexStroke;
-  dataLabels: ApexDataLabels;
-  tooltip: ApexTooltip;
-}
+import { KpiTileComponent }  from '../../core/kpi-tile/KpiTileComponent';
+import { KpiService }        from '../../core/kpi.service';
 
 @Component({
-  selector: 'app-dashboard',
   standalone: true,
-  imports: [
-    SidebarComponent,
-    CommonModule,
-    RouterModule,
-    NgApexchartsModule      // <apx-chart> is recognised here
-  ],
+  selector  : 'app-dashboard',
   templateUrl: './dashboard.component.html',
-  styleUrls: ['./dashboard.component.scss']
+  styleUrls : ['./dashboard.component.scss'],
+  imports   : [
+    CommonModule,         // ⬅️  Pipe-Definitionen
+    SidebarComponent,
+    KpiTileComponent
+  ]
 })
 export class DashboardComponent implements OnInit {
-  @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;
+  totalRevenue = 0;
 
-  /** Filled after HTTP call; null until then */
-  revenueOpts: ChartOptions | null = null;
+  constructor(private kpi: KpiService) {}
 
-  constructor(private http: HttpClient) {}
-
-  ngOnInit(): void {
-    this.http.get<any[]>('/api/kpi/orders-per-day').subscribe(rows => {
-      this.revenueOpts = {
-        series: [
-          {
-            name : 'Revenue €',
-            data : rows.map(r => [new Date(r.day).getTime(), +r.revenue])
-          }
-        ],
-        chart      : { type: 'area', height: 320, toolbar: { show: false } },
-        xaxis      : { type: 'datetime' },
-        yaxis      : { title: { text: 'Revenue (€)' } },
-        stroke     : { curve: 'smooth' },
-        dataLabels : { enabled: false },
-        tooltip    : { shared : true }
-      };
-    });
-  }
-
-  toggleSidebar(): void {
-    this.sidebar.nativeElement.classList.toggle('collapsed');
+  ngOnInit() {
+    this.kpi.getDashboard().subscribe(k => this.totalRevenue = k.revenue);
   }
 }

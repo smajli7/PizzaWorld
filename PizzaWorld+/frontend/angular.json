@@ -28,8 +28,8 @@
             "assets": [ "src/favicon.ico", "src/assets" ],
             "styles": [
               "@angular/material/prebuilt-themes/cyan-orange.css",
-              "node_modules/@tabler/core/dist/css/tabler.min.css",
-              "node_modules/@tabler/icons-webfont/dist/tabler-icons.min.css",
+              
+        
               "src/styles.scss"
             ],
             "scripts": []

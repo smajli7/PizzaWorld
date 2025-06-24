@@ -2,3 +2,19 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+:root {
+  --sidebar-w: 250px;          /* offene Breite */
+  --sidebar-w-collapsed: 60px; /* falls du doch wieder einklappst */
+}
+
+/* rechter Inhalts-Bereich */
+.home-section {
+  margin-left: var(--sidebar-w);
+  padding: 40px;
+}
+
+/* falls Sidebar die Klasse .collapsed bekommt */
+.sidebar.collapsed ~ .home-section {
+  margin-left: var(--sidebar-w-collapsed);
+}

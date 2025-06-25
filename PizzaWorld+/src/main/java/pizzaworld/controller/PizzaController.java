@@ -47,8 +47,18 @@ public class PizzaController {
         CsvExportUtil.writeCsv(response, headers, rows, "dashboard.csv");
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<?> getUserProfile(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(Map.of(
+                "username", user.getUsername(),
+                "role", user.getRole(),
+                "storeId", user.getStoreId(),
+                "stateAbbr", user.getStateAbbr()));
+    }
+
     // 📍 Alle Stores
-    @GetMapping("/store")
+    @GetMapping("/stores")
     public ResponseEntity<?> getAllStores() {
         return ResponseEntity.ok(pizzaService.getAllStores());
     }
@@ -103,14 +113,14 @@ public class PizzaController {
     public ResponseEntity<?> getFilteredOrders(@RequestParam Map<String, String> params,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.filterOrders(params, user));
+        return ResponseEntity.ok(pizzaService.dynamicOrderFilter(params, user));
     }
 
     @GetMapping("/orders/export")
     public void exportOrdersCsv(@RequestParam Map<String, String> params,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
-        List<Map<String, Object>> data = pizzaService.filterOrders(params, userDetails.getUser());
+        List<Map<String, Object>> data = pizzaService.dynamicOrderFilter(params, userDetails.getUser());
         if (data.isEmpty()) {
             CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "orders.csv");
             return;

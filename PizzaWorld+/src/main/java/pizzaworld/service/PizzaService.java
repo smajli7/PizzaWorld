@@ -1,4 +1,5 @@
 package pizzaworld.service;
+
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -62,35 +63,68 @@ public class PizzaService {
         };
     }
 
-    public List<Map<String, Object>> filterOrders(Map<String, String> params, User user) {
-        String requestedStoreId = params.get("storeId");
+    public List<Map<String, Object>> dynamicOrderFilter(Map<String, String> params, User user) {
+        String storeId = params.get("storeId");
         String customerId = params.get("customerId");
+        String state = params.get("state"); // Optional manuell überschreibbar
+        String orderId = params.get("orderId");
+        String nitems = params.get("nitems");
+        String from = params.get("from");
+        String to = params.get("to");
 
-        switch (user.getRole()) {
+        String userRole = user.getRole();
+        String userState = user.getStateAbbr();
+        String userStoreId = user.getStoreId();
+
+        // Rollenbasierte Zugriffskontrolle
+        switch (userRole) {
             case "HQ_ADMIN":
-                return pizzaRepo.dynamicOrderFilter(customerId, requestedStoreId);
+                // HQ sieht alles
+                break;
 
             case "STATE_MANAGER":
-                if (requestedStoreId == null) {
-                    return pizzaRepo.dynamicOrderFilterByState(user.getStateAbbr(), customerId);
+                if (storeId != null) {
+                    String storeState = pizzaRepo.getStoreState(storeId);
+                    if (!userState.equals(storeState)) {
+                        throw new AccessDeniedException("Kein Zugriff auf diesen Store");
+                    }
                 }
-
-                String storeState = pizzaRepo.getStoreState(requestedStoreId);
-                if (!user.getStateAbbr().equals(storeState)) {
-                    throw new AccessDeniedException("Keine Berechtigung für diesen Store");
-                }
-
-                return pizzaRepo.dynamicOrderFilter(customerId, requestedStoreId);
+                // Zugriff auf kompletten Staat
+                state = userState;
+                break;
 
             case "STORE_MANAGER":
-                if (requestedStoreId != null && !user.getStoreId().equals(requestedStoreId)) {
-                    throw new AccessDeniedException("Du darfst nur deine eigene Filiale sehen");
+                if (storeId != null && !userStoreId.equals(storeId)) {
+                    throw new AccessDeniedException("Zugriff nur auf deinen eigenen Store erlaubt");
                 }
-
-                return pizzaRepo.dynamicOrderFilter(customerId, user.getStoreId());
+                storeId = userStoreId;
+                state = null; // wird nicht benötigt
+                break;
 
             default:
                 throw new AccessDeniedException("Unbekannte Rolle");
+        }
+
+        // Typensicherheit für Integers
+        Integer orderIdInt = parseIntSafe(orderId);
+        Integer nitemsInt = parseIntSafe(nitems);
+
+        // Query an Repository weiterreichen
+        return pizzaRepo.dynamicOrderFilter(
+                storeId,
+                customerId,
+                state,
+                from,
+                to,
+                orderIdInt,
+                nitemsInt);
+    }
+
+    private Integer parseIntSafe(String value) {
+        try {
+            return value != null ? Integer.parseInt(value) : null;
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -104,22 +138,26 @@ public class PizzaService {
 
         switch (user.getRole()) {
             case "HQ_ADMIN":
-                return pizzaRepo.dynamicProductFilter(requestedStoreId, category);
+                // HQ sieht alles – keine Einschränkung
+                return pizzaRepo.dynamicProductFilter(null, null, category);
 
             case "STATE_MANAGER":
+                // Wenn Store angegeben, prüfen ob er im eigenen Bundesland liegt
                 if (requestedStoreId != null) {
                     String storeState = pizzaRepo.getStoreState(requestedStoreId);
                     if (!user.getStateAbbr().equals(storeState)) {
                         throw new AccessDeniedException("Keine Berechtigung für diesen Store");
                     }
                 }
-                return pizzaRepo.dynamicProductFilterByState(user.getStateAbbr(), requestedStoreId, category);
+                // Zugriff auf State-bezogene Produkte, ggf. eingeschränkt auf Store
+                return pizzaRepo.dynamicProductFilter(requestedStoreId, user.getStateAbbr(), category);
 
             case "STORE_MANAGER":
+                // Zugriff nur auf eigene Filiale
                 if (requestedStoreId != null && !user.getStoreId().equals(requestedStoreId)) {
                     throw new AccessDeniedException("Du darfst nur deine eigene Filiale sehen");
                 }
-                return pizzaRepo.dynamicProductFilter(user.getStoreId(), category);
+                return pizzaRepo.dynamicProductFilter(user.getStoreId(), null, category);
 
             default:
                 throw new AccessDeniedException("Unbekannte Rolle");

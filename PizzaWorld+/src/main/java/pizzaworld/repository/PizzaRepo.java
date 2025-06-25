@@ -89,42 +89,62 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
                      @Param("from") LocalDate from,
                      @Param("to") LocalDate to);
 
-       @Query(value = "SELECT storeid, name, state_abbr FROM stores", nativeQuery = true)
-       List<Map<String, Object>> findAllStores();
-
        @Query(value = """
-                     SELECT * FROM orders
-                     WHERE (:customerId IS NULL OR customerid = :customerId)
-                       AND (:storeId IS NULL OR storeid = :storeId)
+                     SELECT storeid,
+                            zipcode,
+                            state_abbr,
+                            latitude,
+                            longitude,
+                            city AS name,  -- Alias für Frontend-Kompatibilität
+                            state,
+                            distance
+                     FROM stores
                      """, nativeQuery = true)
-       List<Map<String, Object>> dynamicOrderFilter(@Param("customerId") String customerId,
-                     @Param("storeId") String storeId);
+       List<Map<String, Object>> findAllStores();
 
        @Query(value = """
                      SELECT o.* FROM orders o
                      JOIN stores s ON o.storeid = s.storeid
-                     WHERE s.state_abbr = :state
+                     WHERE (:storeId IS NULL OR o.storeid = :storeId)
                        AND (:customerId IS NULL OR o.customerid = :customerId)
+                       AND (:state IS NULL OR s.state_abbr = :state)
+                       AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
+                       AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
+                       AND (:orderId IS NULL OR o.orderid = :orderId)
+                       AND (:nitems IS NULL OR o.nitems = :nitems)
                      """, nativeQuery = true)
-       List<Map<String, Object>> dynamicOrderFilterByState(@Param("state") String state,
-                     @Param("customerId") String customerId);
+       List<Map<String, Object>> dynamicOrderFilter(
+                     @Param("storeId") String storeId,
+                     @Param("customerId") String customerId,
+                     @Param("state") String state,
+                     @Param("fromDate") String fromDate,
+                     @Param("toDate") String toDate,
+                     @Param("orderId") Integer orderId,
+                     @Param("nitems") Integer nitems);
 
        @Query(value = """
-                     SELECT p.sku, p.name,
-                            COUNT(*) AS total_orders,
-                            COUNT(DISTINCT o.customerid) AS unique_customers,
-                            SUM(p.price) AS revenue,
-                            AVG(o.total) AS avg_order
+                     SELECT
+                         p.sku,
+                         p.name,
+                         p.category,
+                         p.price,
+                         p.size,
+                         p.ingredients,
+                         p.launch,
+                         COUNT(*) AS total_orders,
+                         COUNT(DISTINCT o.customerid) AS unique_customers,
+                         SUM(p.price) AS revenue,
+                         AVG(o.total) AS avg_order
                      FROM products p
                      JOIN order_items oi ON p.sku = oi.sku
                      JOIN orders o ON o.orderid = oi.orderid
                      WHERE p.sku = :sku
-                     GROUP BY p.sku, p.name
+                     GROUP BY p.sku, p.name, p.category, p.price, p.size, p.ingredients, p.launch
                      """, nativeQuery = true)
-       Map<String, Object> fetchProductDetails(@Param("sku") String sku); // Store: Revenue per Product
+       Map<String, Object> fetchProductDetails(@Param("sku") String sku);
 
        @Query(value = """
-                     SELECT p.name, SUM(p.price) AS revenue
+                     SELECT p.name, SUM(oi.quantity * p.price) AS revenue
                      FROM order_items oi
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN products p ON p.sku = oi.sku
@@ -160,40 +180,30 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        Map<String, Object> fetchWorstProductByStore(@Param("storeId") String storeId);
 
        @Query(value = """
-                     SELECT p.sku, p.name, p.category,
-                            COUNT(*) AS total_orders,
-                            COUNT(DISTINCT o.customerid) AS customers,
-                            SUM(p.price) AS revenue
-                     FROM products p
-                     JOIN order_items oi ON p.sku = oi.sku
-                     JOIN orders o ON o.orderid = oi.orderid
-                     WHERE (:storeId IS NULL OR o.storeid = :storeId)
-                       AND (:category IS NULL OR p.category = :category)
-                     GROUP BY p.sku, p.name, p.category
-                     ORDER BY revenue DESC
-                     """, nativeQuery = true)
-       List<Map<String, Object>> dynamicProductFilter(
-                     @Param("storeId") String storeId,
-                     @Param("category") String category);
-
-       @Query(value = """
-                     SELECT p.sku, p.name, p.category,
-                            COUNT(*) AS total_orders,
-                            COUNT(DISTINCT o.customerid) AS customers,
-                            SUM(p.price) AS revenue
+                     SELECT
+                         p.sku,
+                         p.name,
+                         p.price,
+                         p.category,
+                         p.size,
+                         p.ingredients,
+                         p.launch,
+                         COUNT(*) AS total_orders,
+                         COUNT(DISTINCT o.customerid) AS customers,
+                         SUM(p.price) AS revenue
                      FROM products p
                      JOIN order_items oi ON p.sku = oi.sku
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN stores s ON o.storeid = s.storeid
-                     WHERE s.state_abbr = :state
-                       AND (:storeId IS NULL OR o.storeid = :storeId)
+                     WHERE (:storeId IS NULL OR o.storeid = :storeId)
+                       AND (:state IS NULL OR s.state_abbr = :state)
                        AND (:category IS NULL OR p.category = :category)
-                     GROUP BY p.sku, p.name, p.category
+                     GROUP BY p.sku, p.name, p.price, p.category, p.size, p.ingredients, p.launch
                      ORDER BY revenue DESC
                      """, nativeQuery = true)
-       List<Map<String, Object>> dynamicProductFilterByState(
-                     @Param("state") String state,
+       List<Map<String, Object>> dynamicProductFilter(
                      @Param("storeId") String storeId,
+                     @Param("state") String state,
                      @Param("category") String category);
 
 }

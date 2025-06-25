@@ -1,6 +1,7 @@
 package pizzaworld.service;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +41,7 @@ public class PizzaService {
         );
     }
 
+<<<<<<< Updated upstream
     /* ───────────────────────── Store KPIs ───────────────────────── */
     public DashboardKpiDto getStoreKPIs(String storeId, CustomUserDetails principal) {
         User u = principal.getUser();
@@ -53,6 +55,17 @@ public class PizzaService {
 
         if (!allowed) {
             throw new AccessDeniedException("Keine Berechtigung für diesen Store");
+=======
+        if (isHQ || isStateManagerOfStore || isOwnStore) {
+            Map<String, Object> kpis = pizzaRepo.fetchStoreKPIs(storeId);
+            Map<String, Object> best = pizzaRepo.fetchTopProductByStore(storeId);
+            Map<String, Object> worst = pizzaRepo.fetchWorstProductByStore(storeId);
+
+            return Map.of(
+                    "kpis", kpis,
+                    "best", best,
+                    "worst", worst);
+>>>>>>> Stashed changes
         }
 
         Map<String, Object> m = repo.fetchStoreKPIs(storeId);
@@ -112,7 +125,56 @@ public class PizzaService {
         };
     }
 
+<<<<<<< Updated upstream
     /* ───────────────────────── Hilfs-Caster ───────────────────────── */
     private static long   lng(Map<String,Object> m, String k) { return ((Number) m.get(k)).longValue(); }
     private static double dbl(Map<String,Object> m, String k) { return ((Number) m.get(k)).doubleValue(); }
+=======
+    public List<Map<String, Object>> filterProducts(Map<String, String> params, User user) {
+        String requestedStoreId = params.get("storeId");
+        String category = params.get("category");
+
+        System.out.println("🧾 USER: " + user.getUsername());
+        System.out.println("🎭 ROLLE: " + user.getRole());
+        System.out.println("📦 PARAMS: " + params);
+
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                return pizzaRepo.dynamicProductFilter(requestedStoreId, category);
+
+            case "STATE_MANAGER":
+                if (requestedStoreId != null) {
+                    String storeState = pizzaRepo.getStoreState(requestedStoreId);
+                    if (!user.getStateAbbr().equals(storeState)) {
+                        throw new AccessDeniedException("Keine Berechtigung für diesen Store");
+                    }
+                }
+                return pizzaRepo.dynamicProductFilterByState(user.getStateAbbr(), requestedStoreId, category);
+
+            case "STORE_MANAGER":
+                if (requestedStoreId != null && !user.getStoreId().equals(requestedStoreId)) {
+                    throw new AccessDeniedException("Du darfst nur deine eigene Filiale sehen");
+                }
+                return pizzaRepo.dynamicProductFilter(user.getStoreId(), category);
+
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle");
+        }
+    }
+
+    public Map<String, Object> getProductDetails(String sku) {
+        return pizzaRepo.fetchProductDetails(sku);
+    }
+
+    public List<Map<String, Object>> getRevenuePerProduct(String storeId) {
+        return pizzaRepo.fetchRevenuePerProductByStore(storeId);
+    }
+
+    public Map<String, Object> getTopProductsByStore(String storeId) {
+        Map<String, Object> best = pizzaRepo.fetchTopProductByStore(storeId);
+        Map<String, Object> worst = pizzaRepo.fetchWorstProductByStore(storeId);
+        return Map.of("best", best, "worst", worst);
+    }
+
+>>>>>>> Stashed changes
 }

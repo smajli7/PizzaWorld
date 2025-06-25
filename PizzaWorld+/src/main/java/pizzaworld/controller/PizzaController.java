@@ -1,4 +1,5 @@
 package pizzaworld.controller;
+
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.List;
@@ -34,7 +35,7 @@ public class PizzaController {
 
     @GetMapping("/dashboard/export")
     public void exportDashboardCsv(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                   HttpServletResponse response) {
+            HttpServletResponse response) {
         Map<String, Object> data = pizzaService.getDashboardKPIs(userDetails.getUser());
         List<String> headers = List.of("Revenue", "Orders", "AvgOrder", "Customers", "Products");
         List<List<String>> rows = List.of(List.of(
@@ -42,8 +43,7 @@ public class PizzaController {
                 String.valueOf(data.get("orders")),
                 String.valueOf(data.get("avg_order")),
                 String.valueOf(data.get("customers")),
-                String.valueOf(data.get("products"))
-        ));
+                String.valueOf(data.get("products"))));
         CsvExportUtil.writeCsv(response, headers, rows, "dashboard.csv");
     }
 
@@ -70,47 +70,46 @@ public class PizzaController {
     // 🏪 Store KPIs + Best/Worst
     @GetMapping("/store/{storeId}")
     public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId,
-                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, userDetails));
     }
 
     // 📆 Sales KPIs
     @GetMapping("/sales")
     public ResponseEntity<?> getSalesKPIs(@RequestParam LocalDate from,
-                                          @RequestParam LocalDate to,
-                                          @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getSalesKPIs(from, to, user));
     }
 
     @GetMapping("/sales/export")
     public void exportSalesCsv(@RequestParam LocalDate from,
-                                @RequestParam LocalDate to,
-                                @AuthenticationPrincipal CustomUserDetails userDetails,
-                                HttpServletResponse response) {
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
         Map<String, Object> data = pizzaService.getSalesKPIs(from, to, userDetails.getUser());
         List<String> headers = List.of("Revenue", "Total Orders", "Unique Customers", "Avg Order");
         List<List<String>> rows = List.of(List.of(
                 String.valueOf(data.get("revenue")),
                 String.valueOf(data.get("total_orders")),
                 String.valueOf(data.get("unique_customers")),
-                String.valueOf(data.get("avg_order"))
-        ));
+                String.valueOf(data.get("avg_order"))));
         CsvExportUtil.writeCsv(response, headers, rows, "sales.csv");
     }
 
     // 📦 Orders
     @GetMapping("/orders")
     public ResponseEntity<?> getFilteredOrders(@RequestParam Map<String, String> params,
-                                               @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.filterOrders(params, user));
     }
 
     @GetMapping("/orders/export")
     public void exportOrdersCsv(@RequestParam Map<String, String> params,
-                                 @AuthenticationPrincipal CustomUserDetails userDetails,
-                                 HttpServletResponse response) {
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
         List<Map<String, Object>> data = pizzaService.filterOrders(params, userDetails.getUser());
         if (data.isEmpty()) {
             CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "orders.csv");
@@ -123,18 +122,30 @@ public class PizzaController {
         CsvExportUtil.writeCsv(response, headers, rows, "orders.csv");
     }
 
-    // 🧀 Products
+    /**
+     * 🧀 API: GET /api/products?storeId=...&category=...&available=...
+     * ⏩ Gibt Produkte gefiltert nach Filiale, Kategorie, Verfügbarkeit zurück
+     * 🔐 Zugriff:
+     * - HQ_ADMIN: alle Produkte
+     * - STATE_MANAGER: nur Produkte aus eigenen Filialen
+     * - STORE_MANAGER: nur eigene Filiale
+     * ✅ Frontend:
+     * - Flexibler Einsatz in Produktübersicht / Management-UI
+     * - Beispiel: /api/products?storeId=S490972&category=Pizza
+     */
     @GetMapping("/products")
     public ResponseEntity<?> getFilteredProducts(@RequestParam Map<String, String> params,
-                                                 @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
+        System.out.println("🔐 Controller erreicht");
+        System.out.println("👤 userDetails: " + userDetails);
         return ResponseEntity.ok(pizzaService.filterProducts(params, user));
     }
 
     @GetMapping("/products/export")
     public void exportProducts(@RequestParam Map<String, String> params,
-                               @AuthenticationPrincipal CustomUserDetails userDetails,
-                               HttpServletResponse response) {
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
         List<Map<String, Object>> data = pizzaService.filterProducts(params, userDetails.getUser());
         if (data.isEmpty()) {
             CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "products.csv");
@@ -151,4 +162,4 @@ public class PizzaController {
     public ResponseEntity<?> getProductDetail(@PathVariable String sku) {
         return ResponseEntity.ok(pizzaService.getProductDetails(sku));
     }
-} 
+}

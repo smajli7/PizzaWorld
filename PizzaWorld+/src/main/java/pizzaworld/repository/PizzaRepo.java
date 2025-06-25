@@ -89,6 +89,9 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
                      @Param("from") LocalDate from,
                      @Param("to") LocalDate to);
 
+       @Query(value = "SELECT storeid, name, state_abbr FROM stores", nativeQuery = true)
+       List<Map<String, Object>> findAllStores();
+
        @Query(value = """
                      SELECT * FROM orders
                      WHERE (:customerId IS NULL OR customerid = :customerId)

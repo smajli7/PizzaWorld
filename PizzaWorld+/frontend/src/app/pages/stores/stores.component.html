@@ -38,7 +38,7 @@
                   label="Clear Filters" 
                   class="p-button-outlined p-button-sm" 
                   (click)="clearFilters()"
-                  [disabled]="!searchTerm && !selectedState">
+                  [disabled]="!searchTerm && selectedStates.length === 0">
           </button>
         </div>
       </div>
@@ -56,21 +56,21 @@
         </div>
         <div class="filter-field">
           <label for="state" class="filter-label">Filter by State</label>
-          <p-dropdown id="state"
-                     [(ngModel)]="selectedState"
-                     [options]="states"
-                     optionLabel="label"
-                     optionValue="value"
-                     placeholder="Select a state..."
-                     (onChange)="onStateChange()"
-                     class="p-w-full">
+          <p-multiselect id="state"
+                        [(ngModel)]="selectedStates"
+                        [options]="states"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Select states..."
+                        (onChange)="onStateChange()"
+                        [filter]="false"
+                        class="p-w-full">
             <ng-template let-state pTemplate="item">
-              <span *ngIf="state.value; else noFilter" class="state-badge-dropdown">[{{ state.label }}]</span>
-              <ng-template #noFilter>
-                <span class="state-badge-dropdown state-badge-none"><span class="none-badge-inner">None</span></span>
-              </ng-template>
+              <div class="state-dropdown-item">
+                <span class="state-badge-dropdown">[{{ state.label }}]</span>
+              </div>
             </ng-template>
-          </p-dropdown>
+          </p-multiselect>
         </div>
       </div>
     </div>

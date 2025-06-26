@@ -163,6 +163,77 @@
   }
 }
 
+// Multiselect styling to match search input
+:host ::ng-deep .p-multiselect {
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+  transition: border-color 0.3s ease;
+  width: 200px;
+  
+  &:not(.p-disabled):hover {
+    border-color: #ff6b35;
+  }
+  
+  &.p-focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+  }
+  
+  .p-multiselect-label {
+    padding: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  .p-multiselect-dropdown {
+    color: #6c757d;
+    margin-right: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: transparent;
+    color: var(--p-multiselect-dropdown-color);
+    width: var(--p-multiselect-dropdown-width);
+    border-start-end-radius: var(--p-multiselect-border-radius);
+    border-end-end-radius: var(--p-multiselect-border-radius);
+    margin-right: 0.5em;
+    
+  }
+  
+  .p-multiselect-panel {
+    .p-multiselect-filter-container {
+      display: none !important;
+    }
+    
+    .p-multiselect-filter {
+      display: none !important;
+    }
+    
+    .p-multiselect-filter-icon {
+      display: none !important;
+    }
+    
+    .p-multiselect-filter-input {
+      display: none !important;
+    }
+    
+    .p-multiselect-header {
+      display: none !important;
+    }
+    
+    .p-multiselect-items-wrapper {
+      margin: 0 !important;
+      margin-top: -1.4em !important;
+      padding: 0 !important;
+    }
+    
+    .p-multiselect-item {
+      margin: 0 !important;
+      padding: 0.5rem 1rem !important;
+    }
+  }
+}
+
 // Dropdown styling
 .p-dropdown {
   border-radius: 8px;
@@ -445,6 +516,20 @@ apx-chart {
   
   &:hover {
     color: #ff6b35;
+  }
+}
+
+.state-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  
+  .state-checkmark {
+    color: #ff6b35;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+    font-weight: bold;
   }
 }
 

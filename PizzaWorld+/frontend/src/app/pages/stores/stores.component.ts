@@ -6,7 +6,7 @@ import { KpiService, StoreInfo } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
-import { DropdownModule } from 'primeng/dropdown';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
@@ -51,7 +51,7 @@ export interface ChartOptions {
     NgApexchartsModule,
     CardModule,
     InputTextModule,
-    DropdownModule,
+    MultiSelectModule,
     ButtonModule,
     TableModule,
     TooltipModule,
@@ -69,7 +69,7 @@ export class StoresComponent implements OnInit {
 
   // Search and filter
   searchTerm = '';
-  selectedState = '';
+  selectedStates: string[] = [];
   states: { label: string, value: string }[] = [];
 
   // Chart data
@@ -148,7 +148,7 @@ export class StoresComponent implements OnInit {
     const uniqueStates = [...new Set(this.allStores.map(store => store.state))]
       .sort()
       .map(state => ({ label: state, value: state }));
-    this.states = [{ label: 'None', value: '' }, ...uniqueStates];
+    this.states = uniqueStates;
   }
 
   private applyFilters(): void {
@@ -159,7 +159,7 @@ export class StoresComponent implements OnInit {
         store.zipcode.includes(this.searchTerm) ||
         store.state.toLowerCase().includes(this.searchTerm.toLowerCase());
 
-      const matchesState = !this.selectedState || store.state === this.selectedState;
+      const matchesState = this.selectedStates.length === 0 || this.selectedStates.includes(store.state);
 
       return matchesSearch && matchesState;
     });
@@ -178,7 +178,7 @@ export class StoresComponent implements OnInit {
 
   clearFilters(): void {
     this.searchTerm = '';
-    this.selectedState = '';
+    this.selectedStates = [];
     this.applyFilters();
   }
 

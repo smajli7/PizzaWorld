@@ -1,7 +1,7 @@
 // src/app/shared/sidebar/sidebar.component.ts
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
@@ -16,7 +16,7 @@ export class SidebarComponent {
 
   @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;
 
-  constructor(private auth: AuthService) {
+  constructor(private auth: AuthService, private router: Router) {
     this.user$ = this.auth.currentUser$;
   }
 
@@ -24,12 +24,8 @@ export class SidebarComponent {
     this.sidebar.nativeElement.classList.toggle('collapsed');
   }
 
-    logout(): void {
-    // In a real-world application, you would inject an AuthService
-    // and call its logout method here.
-    // e.g., this.authService.logout();
-    console.log('Logout action triggered!');
-    // You would typically redirect the user after logout:
-    // this.router.navigate(['/login']);
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 }

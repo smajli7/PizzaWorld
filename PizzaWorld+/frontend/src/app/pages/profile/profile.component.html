@@ -1,39 +1,36 @@
 <app-sidebar></app-sidebar>
 
-<!-- ===== Main content ===== -->
-<section class="home-section">
-  <div class="profile-wrapper">
-    <div class="logo-container">
-      <img
-        src="assets/images/logo.png"
-        alt="Pizza World+ Logo"
-        class="form-logo"
-      />
+<div class="profile-bg">
+  <div class="profile-card-new">
+    <div class="profile-avatar-wrap">
+      <img src="assets/images/avatar.png" alt="Avatar" class="profile-avatar" />
     </div>
-
-    <div class="wrapper">
-      <h1 class="title">My Profile</h1>
-
-      <div class="profile-flex">
-        <!-- echtes Avatar-Bild statt Platzhalter -->
-        <img
-          src="assets/images/avatar.png"
-          alt="Avatar"
-          class="avatar"
-        />
-
-        <div class="info-box">
-          <p><strong>Name:</strong> Max Mustermann</p>
-          <p>
-            <strong>E-Mail:</strong>
-            max&#64;pizzaworld.de
-          </p>
-          <p><strong>Rolle:</strong> Filialleiter</p>
-          <p><strong>Seit:</strong> 01.03.2024</p>
+    <h2 class="profile-title">My Profile</h2>
+    <ng-container *ngIf="user; else loadingOrError">
+      <div class="profile-info-list">
+        <div class="profile-info-item">
+          <span class="profile-info-label">Username</span>
+          <span class="profile-info-value">{{ user.username }}</span>
+        </div>
+        <div class="profile-info-item">
+          <span class="profile-info-label">Role</span>
+          <span class="profile-info-value">{{ user.role }}</span>
+        </div>
+        <div class="profile-info-item">
+          <span class="profile-info-label">Store ID</span>
+          <span class="profile-info-value">{{ user.storeId }}</span>
+        </div>
+        <div class="profile-info-item">
+          <span class="profile-info-label">State</span>
+          <span class="profile-info-value">{{ user.stateAbbr }}</span>
         </div>
       </div>
-
-      <button class="btn edit-btn">Edit</button>
-    </div>
+    </ng-container>
+    <ng-template #loadingOrError>
+      <div *ngIf="user === undefined; else errorBlock" class="profile-loading">Loading profile...</div>
+      <ng-template #errorBlock>
+        <div class="profile-error">Failed to load profile information.</div>
+      </ng-template>
+    </ng-template>
   </div>
-</section>
+</div>

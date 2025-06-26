@@ -50,17 +50,21 @@ export class LoginComponent implements OnInit {
     if (this.form.invalid) return;
 
     this.http
-      .post<{ token: string }>('/api/login', this.form.value)     // Backend liefert { token }
+      .post<{ token: string }>('/api/login', this.form.value)
       .subscribe({
         next: res => {
-          /* 1) Token speichern + User laden */
           this.auth.setToken(res.token);
-          this.auth.loadCurrentUser().subscribe();
-
-          /* 2) UI-Feedback + Weiterleitung */
-          this.successMsg = 'Login erfolgreich';
-          this.errorMsg   = null;
-          this.router.navigate(['/dashboard']);
+          // Wait for user to be loaded before navigating
+          this.auth.loadCurrentUser().subscribe({
+            next: () => {
+              this.successMsg = 'Login erfolgreich';
+              this.errorMsg   = null;
+              this.router.navigate(['/dashboard']);
+            },
+            error: () => {
+              this.errorMsg = 'Failed to load user after login';
+            }
+          });
         },
         error: () => {
           this.errorMsg   = 'Benutzername oder Passwort falsch';

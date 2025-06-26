@@ -1,0 +1,10 @@
+// Products page background wrapper
+.app-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #e9e4d0 0%, #f2f8fa 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+// ...existing products styles...

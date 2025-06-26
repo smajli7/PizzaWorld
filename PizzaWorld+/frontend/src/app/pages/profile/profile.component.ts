@@ -1,9 +1,9 @@
 import { Component, ElementRef, ViewChild, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CurrentUser } from '../../core/models/current-user.model';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { AuthService } from '../../core/auth.service';
 
 
 
@@ -20,11 +20,11 @@ export class ProfileComponent implements OnInit {
   /** Holds data returned by GET /api/me (username, role, storeId, stateAbbr) */
   user?: CurrentUser;
 
-  constructor(private http: HttpClient) {}
+  constructor(private auth: AuthService) {}
 
   ngOnInit(): void {
-    this.http.get<CurrentUser>('/api/me').subscribe({
-      next: res => (this.user = res),
+    this.auth.loadCurrentUser().subscribe({
+      next: res => (this.user = res ?? undefined),
       error: err => console.error('Failed to load current user', err)
     });
   }

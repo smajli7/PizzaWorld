@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule }      from '@angular/common';        // ⬅️ NEU
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 import { KpiTileComponent }  from '../../core/kpi-tile/KpiTileComponent';
-import { KpiService }        from '../../core/kpi.service';
+import { KpiService, DashboardKpiDto } from '../../core/kpi.service';
 
 @Component({
   standalone: true,
@@ -17,11 +17,11 @@ import { KpiService }        from '../../core/kpi.service';
   ]
 })
 export class DashboardComponent implements OnInit {
-  totalRevenue = 0;
+  kpis: DashboardKpiDto | null = null;
 
   constructor(private kpi: KpiService) {}
 
   ngOnInit() {
-    this.kpi.getDashboard().subscribe(k => this.totalRevenue = k.revenue);
+    this.kpi.getDashboard().subscribe(k => this.kpis = k);
   }
 }

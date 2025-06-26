@@ -1,3 +1,17 @@
-
-
 <app-sidebar></app-sidebar>
+<div class="app-bg">
+  <section class="home-section">
+    <!-- Existing stores content here -->
+    <div *ngIf="storesOpts">
+      <apx-chart
+        [series]="storesOpts.series"
+        [chart]="storesOpts.chart"
+        [xaxis]="storesOpts.xaxis"
+        [yaxis]="storesOpts.yaxis"
+        [stroke]="storesOpts.stroke"
+        [dataLabels]="storesOpts.dataLabels"
+        [tooltip]="storesOpts.tooltip"
+      ></apx-chart>
+    </div>
+  </section>
+</div>

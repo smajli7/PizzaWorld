@@ -11,7 +11,7 @@ import { CommonModule }     from '@angular/common';
     <div class="kpi-label">{{ label }}</div>
   </div>`,
   imports   : [CommonModule],
-  styleUrls : ['./kpitilecomponent.scss']
+  styleUrls : ['./KpiTileComponent.scss']
 })
 export class KpiTileComponent {
   @Input() label = '';

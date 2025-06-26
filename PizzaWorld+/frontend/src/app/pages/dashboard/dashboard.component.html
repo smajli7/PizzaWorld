@@ -1,13 +1,12 @@
-
-
 <app-sidebar></app-sidebar>
-
-<!-- dashboard.component.html -->
-<app-sidebar></app-sidebar>
-
-<section class="home-section">
-  <div class="kpi-row">
-    <span class="kpi-label">Total Revenue</span>
-    <span class="kpi-value">{{ totalRevenue | number:'1.2-2' }} €</span>
-  </div>
-</section>
+<div class="app-bg">
+  <section class="home-section" *ngIf="kpis">
+    <div class="kpi-row">
+      <kpi-tile label="Revenue" [value]="'' + ((kpis?.revenue ?? 0) | number:'1.2-2':'en') + ' €'"></kpi-tile>
+      <kpi-tile label="Orders" [value]="kpis?.orders ?? 0"></kpi-tile>
+      <kpi-tile label="Avg. Order Value" [value]="'' + ((kpis?.avgOrder ?? 0) | number:'1.2-2':'en') + ' €'"></kpi-tile>
+      <kpi-tile label="Customers" [value]="kpis?.customers ?? 0"></kpi-tile>
+      <kpi-tile label="Products" [value]="kpis?.products ?? 0"></kpi-tile>
+    </div>
+  </section>
+</div>

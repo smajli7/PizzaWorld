@@ -206,4 +206,25 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
                      @Param("state") String state,
                      @Param("category") String category);
 
+                     @Query(value = """
+    SELECT 
+        DATE_TRUNC('week', o.orderdate) AS week_start,
+        SUM(o.total) AS revenue,
+        COUNT(*) AS orders
+    FROM orders o
+    JOIN stores s ON o.storeid = s.storeid
+    WHERE o.orderdate BETWEEN :from AND :to
+      AND (:state IS NULL OR s.state_abbr = :state)
+      AND (:storeId IS NULL OR o.storeid = :storeId)
+    GROUP BY week_start
+    ORDER BY week_start
+""", nativeQuery = true)
+List<Map<String, Object>> fetchWeeklyOrderTrend(
+    @Param("from") LocalDate from,
+    @Param("to") LocalDate to,
+    @Param("state") String state,
+    @Param("storeId") String storeId
+);
+
 }
+

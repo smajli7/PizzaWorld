@@ -181,4 +181,26 @@ public class PizzaService {
     public List<Map<String, Object>> getAllStores() {
         return pizzaRepo.findAllStores();
     }
+
+    public List<Map<String, Object>> fetchWeeklyOrderTrend(LocalDate from, LocalDate to, User user) {
+    String role = user.getRole();
+    String storeId = null;
+    String state = null;
+
+    switch (role) {
+        case "HQ_ADMIN":
+            break;
+        case "STATE_MANAGER":
+            state = user.getStateAbbr();
+            break;
+        case "STORE_MANAGER":
+            storeId = user.getStoreId();
+            break;
+        default:
+            throw new AccessDeniedException("Unbekannte Rolle");
+    }
+
+    return pizzaRepo.fetchWeeklyOrderTrend(from, to, state, storeId);
+}
+
 }

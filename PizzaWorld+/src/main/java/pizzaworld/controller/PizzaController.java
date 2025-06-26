@@ -172,4 +172,17 @@ public class PizzaController {
     public ResponseEntity<?> getProductDetail(@PathVariable String sku) {
         return ResponseEntity.ok(pizzaService.getProductDetails(sku));
     }
+
+    @GetMapping("/orders/trend")
+public ResponseEntity<?> getOrderTrend(
+    @RequestParam LocalDate from,
+    @RequestParam LocalDate to,
+    @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+    User user = userDetails.getUser();
+    return ResponseEntity.ok(
+        pizzaService.fetchWeeklyOrderTrend(from, to, user)
+    );
+}
+
 }

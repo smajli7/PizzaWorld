@@ -180,6 +180,17 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        Map<String, Object> fetchWorstProductByStore(@Param("storeId") String storeId);
 
        @Query(value = """
+                     SELECT p.name, COUNT(*) AS total_sold
+                     FROM order_items oi
+                     JOIN orders o ON o.orderid = oi.orderid
+                     JOIN products p ON p.sku = oi.sku
+                     WHERE o.storeid = :storeId
+                     GROUP BY p.name
+                     ORDER BY total_sold DESC
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchProductsByQuantitySold(@Param("storeId") String storeId);
+
+       @Query(value = """
                      SELECT
                          p.sku,
                          p.name,
@@ -234,6 +245,9 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
         ORDER BY revenue DESC
     """, nativeQuery = true)
     List<Map<String, Object>> fetchRevenueByStore();
+
+       @Query(value = "SELECT COUNT(*) FROM orders WHERE storeid = :storeId", nativeQuery = true)
+       Integer countOrdersByStore(@Param("storeId") String storeId);
 
 }
 

@@ -1,6 +1,7 @@
 package pizzaworld.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -56,10 +57,54 @@ public class PizzaService {
         Map<String, Object> best = pizzaRepo.fetchTopProductByStore(storeId);
         Map<String, Object> worst = pizzaRepo.fetchWorstProductByStore(storeId);
 
+        // Check if store has any orders first
+        Integer orderCount = pizzaRepo.countOrdersByStore(storeId);
+        System.out.println("📦 Store " + storeId + " has " + orderCount + " orders");
+
+        List<String> topProductNames = new ArrayList<>();
+        List<String> worstProductNames = new ArrayList<>();
+
+        if (orderCount != null && orderCount > 0) {
+            // Get all products by revenue for this store
+            List<Map<String, Object>> allProducts = pizzaRepo.fetchRevenuePerProductByStore(storeId);
+            System.out.println("🔍 Revenue products for store " + storeId + ": " + allProducts.size());
+            if (!allProducts.isEmpty()) {
+                System.out.println("🔍 First product: " + allProducts.get(0));
+            }
+            
+            // Get top 3 products by revenue
+            topProductNames = allProducts.stream()
+                    .limit(3)
+                    .map(product -> (String) product.get("name"))
+                    .toList();
+            System.out.println("🏆 Top products: " + topProductNames);
+
+            // Get products by quantity sold to determine worst performers
+            List<Map<String, Object>> productsByQuantity = pizzaRepo.fetchProductsByQuantitySold(storeId);
+            System.out.println("📊 Quantity products for store " + storeId + ": " + productsByQuantity.size());
+            if (!productsByQuantity.isEmpty()) {
+                System.out.println("📊 First quantity product: " + productsByQuantity.get(0));
+            }
+            
+            // Get worst 3 products (lowest quantity sold)
+            worstProductNames = productsByQuantity.stream()
+                    .skip(Math.max(0, productsByQuantity.size() - 3))
+                    .map(product -> (String) product.get("name"))
+                    .toList();
+            System.out.println("📉 Worst products: " + worstProductNames);
+        } else {
+            System.out.println("⚠️ Store has no orders, returning empty product lists");
+            // Add some sample data for stores with no orders
+            topProductNames = List.of("No data available");
+            worstProductNames = List.of("No data available");
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("kpis", kpis);
         result.put("best", best);
         result.put("worst", worst);
+        result.put("topProducts", topProductNames);
+        result.put("worstProducts", worstProductNames);
 
         return result;
     }

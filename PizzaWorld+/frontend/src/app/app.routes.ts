@@ -38,6 +38,14 @@ export const routes: Routes = [
     )
 },
 {
+  path: 'stores/:id',
+  canActivate: [AuthGuard],
+  loadComponent: () =>
+    import('./pages/stores/store-details/store-details.component').then(
+      (m) => m.StoreDetailsComponent
+    )
+},
+{
   path: 'sales',
   canActivate: [AuthGuard],
   loadComponent: () =>

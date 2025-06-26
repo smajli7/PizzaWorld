@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 import { KpiService, StoreInfo } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
@@ -92,7 +93,8 @@ export class StoresComponent implements OnInit {
 
   constructor(
     private kpi: KpiService,
-    private http: HttpClient
+    private http: HttpClient,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -310,5 +312,9 @@ export class StoresComponent implements OnInit {
   openInMaps(lat: number, lng: number): void {
     const url = `https://www.google.com/maps?q=${lat},${lng}`;
     window.open(url, '_blank');
+  }
+
+  navigateToStoreDetails(store: StoreInfo): void {
+    this.router.navigate(['/stores', store.storeid]);
   }
 }

@@ -142,7 +142,12 @@
                   <p-tableCheckbox [value]="store"></p-tableCheckbox>
                 </td>
                 <td class="store-id">
-                  <span class="store-id-text">{{ store.storeid }}</span>
+                  <span class="store-id-text clickable" 
+                        (click)="navigateToStoreDetails(store)"
+                        pTooltip="Click to view store details" 
+                        tooltipPosition="top">
+                    {{ store.storeid }}
+                  </span>
                 </td>
                 <td class="store-city">{{ store.name }}</td>
                 <td class="store-state">

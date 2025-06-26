@@ -87,5 +87,10 @@ export class KpiService {
     return this.http.get<any[]>('/api/dashboard/revenue-by-store', { headers });
   }
 
-  /* Platz für weitere Methoden – z. B. dailyRevenue(), storeKPIs() … */
+  /** Fetches store-specific statistics and performance data */
+  getStoreStats(storeId: string): Observable<any> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    return this.http.get<any>(`/api/store/${storeId}`, { headers });
+  }
 }

@@ -1,0 +1,152 @@
+<app-sidebar></app-sidebar>
+<div class="home-section">
+  <!-- Back Button -->
+  <div class="back-section">
+    <button pButton type="button" 
+            icon="pi pi-arrow-left" 
+            label="Back to Stores" 
+            class="p-button-outlined"
+            (click)="goBack()">
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+    <div>Loading store details...</div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
+    <div>Store not found or failed to load</div>
+    <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()" style="margin-top: 1rem;"></button>
+  </div>
+
+  <!-- Store Content -->
+  <div *ngIf="!loading && !error && store">
+    <!-- Store Header -->
+    <div class="store-header">
+      <div class="store-title">
+        <h1>Store {{ store.storeid }}</h1>
+        <span class="store-location">{{ store.name }}, {{ store.state }}</span>
+      </div>
+      <div class="store-actions">
+        <button pButton type="button" 
+                icon="pi pi-map-marker" 
+                label="Open in Maps" 
+                class="p-button-outlined"
+                (click)="openInMaps(store.latitude, store.longitude)">
+        </button>
+      </div>
+    </div>
+
+    <!-- Store Information Grid -->
+    <div class="store-info-grid">
+      <!-- Store Details Card -->
+      <p-card>
+        <ng-template pTemplate="header">
+          <h3>Store Information</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Store ID:</span>
+              <span class="info-value">{{ store.storeid }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">City:</span>
+              <span class="info-value">{{ store.name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">State:</span>
+              <span class="info-value">{{ store.state }} ({{ store.state_abbr }})</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Zip Code:</span>
+              <span class="info-value">{{ store.zipcode }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Coordinates:</span>
+              <span class="info-value coordinates-link" 
+                    (click)="openInMaps(store.latitude, store.longitude)"
+                    pTooltip="Click to open in Google Maps">
+                {{ formatCoordinates(store.latitude, store.longitude) }}
+              </span>
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+
+      <!-- Store Statistics Card -->
+      <p-card *ngIf="storeStats">
+        <ng-template pTemplate="header">
+          <h3>Store Performance</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-number">{{ storeStats.totalOrders.toLocaleString() }}</span>
+              <span class="stat-label">Total Orders</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${{ storeStats.totalRevenue.toLocaleString() }}</span>
+              <span class="stat-label">Total Revenue</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">${{ storeStats.avgOrderValue.toFixed(2) }}</span>
+              <span class="stat-label">Avg Order Value</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">{{ storeStats.uniqueCustomers.toLocaleString() }}</span>
+              <span class="stat-label">Unique Customers</span>
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+
+      <!-- Top Products Card -->
+      <p-card *ngIf="storeStats?.topProducts">
+        <ng-template pTemplate="header">
+          <h3>Top Products ({{ storeStats?.topProducts?.length || 0 }})</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div class="products-list">
+            <div class="product-item" *ngFor="let product of storeStats.topProducts; let i = index">
+              <span class="product-rank">#{{ i + 1 }}</span>
+              <span class="product-name" [class.no-data]="product === 'No data available'">{{ product }}</span>
+            </div>
+            <div *ngIf="!storeStats.topProducts || storeStats.topProducts.length === 0" class="no-data">
+              No top products data available
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+
+      <!-- Worst Products Card -->
+      <p-card *ngIf="storeStats?.worstProducts">
+        <ng-template pTemplate="header">
+          <h3>Worst Products ({{ storeStats?.worstProducts?.length || 0 }})</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div class="products-list">
+            <div class="product-item" *ngFor="let product of storeStats.worstProducts; let i = index">
+              <span class="product-rank worst">#{{ i + 1 }}</span>
+              <span class="product-name" [class.no-data]="product === 'No data available'">{{ product }}</span>
+            </div>
+            <div *ngIf="!storeStats.worstProducts || storeStats.worstProducts.length === 0" class="no-data">
+              No worst products data available
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+    </div>
+  </div>
+
+  <!-- Store Not Found -->
+  <div *ngIf="!loading && !error && !store" class="error-container">
+    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
+    <div>Store {{ storeId }} not found</div>
+    <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()" style="margin-top: 1rem;"></button>
+  </div>
+</div> 

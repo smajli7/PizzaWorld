@@ -1,0 +1,340 @@
+// Store details page styling
+.home-section {
+  margin-left: var(--sidebar-w);
+  padding: 40px;
+  transition: margin-left 0.3s ease;
+  
+  .sidebar.collapsed ~ & {
+    margin-left: var(--sidebar-w-collapsed);
+  }
+}
+
+.back-section {
+  margin-bottom: 2rem;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.error-container {
+  color: #f44336;
+}
+
+// Store header
+.store-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  border-radius: 12px;
+  color: white;
+  
+  .store-title {
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .store-location {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+  }
+  
+  .store-actions {
+    .p-button-outlined {
+      border-color: white;
+      color: white;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+// Store info grid
+.store-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+// Card styling
+.p-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: none;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+  
+  .p-card-header {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.5rem;
+    
+    h3 {
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+  
+  .p-card-content {
+    padding: 1.5rem;
+  }
+}
+
+// Info grid
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f4;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    .info-value {
+      color: #495057;
+      font-family: 'Courier New', monospace;
+      
+      &.coordinates-link {
+        cursor: pointer;
+        color: #ff6b35;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: #e55a2b;
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+// Stats grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    
+    .stat-number {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ff6b35;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Products list
+.products-list {
+  .product-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f4;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .product-rank {
+      background: #ff6b35;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 1rem;
+      
+      &.worst {
+        background: #6c757d;
+      }
+    }
+    
+    .product-name {
+      color: #495057;
+      font-weight: 500;
+      
+      &.no-data {
+        color: #6c757d;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+// Future features
+.future-features-section {
+  margin-top: 3rem;
+  
+  .section-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  .feature-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    
+    i {
+      font-size: 1.5rem;
+      color: #ff6b35;
+    }
+    
+    h3 {
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+  
+  .feature-content {
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      li {
+        padding: 0.5rem 0;
+        color: #495057;
+        position: relative;
+        padding-left: 1.5rem;
+        border-bottom: 1px solid #f1f3f4;
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        &:before {
+          content: "→";
+          position: absolute;
+          left: 0;
+          color: #ff6b35;
+          font-weight: bold;
+        }
+        
+        &:hover {
+          color: #ff6b35;
+          transform: translateX(5px);
+          transition: all 0.3s ease;
+        }
+      }
+    }
+  }
+}
+
+.future-features {
+  ul {
+    list-style: none;
+    padding: 0;
+    
+    li {
+      padding: 0.5rem 0;
+      color: #6c757d;
+      position: relative;
+      padding-left: 1.5rem;
+      
+      &:before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: #ff6b35;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .home-section {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .store-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+    
+    .store-title h1 {
+      font-size: 2rem;
+    }
+  }
+  
+  .store-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.no-data {
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+} 

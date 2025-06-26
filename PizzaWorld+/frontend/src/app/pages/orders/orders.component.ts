@@ -1,19 +1,9 @@
 import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule }   from '@angular/common';
 import { RouterModule }   from '@angular/router';
-import { HttpClient }     from '@angular/common/http';
-import { NgApexchartsModule } from 'ng-apexcharts';
+import { NgApexchartsModule, ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexDataLabels, ApexTooltip, ApexPlotOptions, ApexYAxis, ApexStroke } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-
-import {
-  ApexAxisChartSeries,
-  ApexChart,
-  ApexDataLabels,
-  ApexStroke,
-  ApexTooltip,
-  ApexXAxis,
-  ApexYAxis
-} from 'ng-apexcharts';
+import { KpiService } from '../../core/kpi.service';
 
 export interface ChartOptions {
   series: ApexAxisChartSeries;
@@ -32,7 +22,7 @@ export interface ChartOptions {
     CommonModule,
     RouterModule,
     NgApexchartsModule,
-    SidebarComponent,   // <apx-chart> is recognised here
+    SidebarComponent
   ],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss']
@@ -43,10 +33,10 @@ export class OrdersComponent implements OnInit {
   /** Filled after HTTP call; null until then */
   ordersOpts: ChartOptions | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private kpi: KpiService) {}
 
   ngOnInit(): void {
-    this.http.get<any[]>('/api/kpi/orders-per-day').subscribe(rows => {
+    this.kpi.getOrdersPerDay().subscribe(rows => {
       this.ordersOpts = {
         series: [
           {

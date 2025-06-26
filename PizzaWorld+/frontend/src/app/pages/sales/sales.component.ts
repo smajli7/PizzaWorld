@@ -1,9 +1,9 @@
 import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
 import { CommonModule }   from '@angular/common';
 import { RouterModule }   from '@angular/router';
-import { HttpClient }     from '@angular/common/http';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { KpiService } from '../../core/kpi.service';
 
 import {
   ApexAxisChartSeries,
@@ -32,7 +32,7 @@ export interface ChartOptions {
     SidebarComponent,
     CommonModule,
     RouterModule,
-    NgApexchartsModule      // <apx-chart> is recognised here
+    NgApexchartsModule
   ],
   templateUrl: './sales.component.html',
   styleUrls: ['./sales.component.scss']
@@ -43,10 +43,10 @@ export class SalesComponent implements OnInit {
   /** Filled after HTTP call; null until then */
   salesOpts: ChartOptions | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(private kpi: KpiService) {}
 
   ngOnInit(): void {
-    this.http.get<any[]>('/api/kpi/sales-per-day').subscribe(rows => {
+    this.kpi.getSalesPerDay().subscribe(rows => {
       this.salesOpts = {
         series: [
           {

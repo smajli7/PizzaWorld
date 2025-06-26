@@ -65,10 +65,14 @@ export class LoginComponent implements OnInit {
           this.auth.setToken(res.token);
           // Wait for user to be loaded before navigating
           this.auth.loadCurrentUser().subscribe({
-            next: () => {
-              this.successMsg = 'Login erfolgreich';
-              this.errorMsg   = null;
-              this.router.navigate(['/dashboard']);
+            next: (user) => {
+              if (user) {
+                this.successMsg = 'Login erfolgreich';
+                this.errorMsg   = null;
+                this.router.navigate(['/dashboard']);
+              } else {
+                this.errorMsg = 'Failed to load user after login';
+              }
             },
             error: () => {
               this.errorMsg = 'Failed to load user after login';

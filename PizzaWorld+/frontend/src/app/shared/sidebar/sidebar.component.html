@@ -50,10 +50,14 @@
       <a routerLink="/profile" class="profile-link" aria-label="View profile">
         <div class="profile-details">
           <img src="assets/images/avatar.png" alt="Profile" class="profile-img" />
-          <div class="name-job" *ngIf="user$ | async as u">
-            <div class="name">{{ u.username }}</div>
-            <div class="job">{{ u.role }}</div>
+          <div class="name-job" *ngIf="user$ | async as u; else loading">
+            <div class="name">{{ u?.username || '...' }}</div>
+            <div class="job">{{ u?.role || '' }}</div>
           </div>
+          <ng-template #loading>
+            <div class="name">Loading...</div>
+            <div class="job"></div>
+          </ng-template>
         </div>
       </a>
       <i class="bx bx-log-out" (click)="logout()" tabindex="0" role="button" aria-label="Log out"></i>

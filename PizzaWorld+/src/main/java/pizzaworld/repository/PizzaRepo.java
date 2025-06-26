@@ -19,7 +19,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        @Query(value = """
                      SELECT SUM(o.total) AS revenue,
                             COUNT(*) AS orders,
-                            AVG(o.total) AS avg_order,
+                            COALESCE(AVG(o.total), 0) AS avg_order,
                             COUNT(DISTINCT o.customerid) AS customers,
                             (SELECT COUNT(*) FROM products) AS products
                      FROM orders o
@@ -29,7 +29,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        @Query(value = """
                      SELECT SUM(o.total) AS revenue,
                             COUNT(*) AS orders,
-                            AVG(o.total) AS avg_order,
+                            COALESCE(AVG(o.total), 0) AS avg_order,
                             COUNT(DISTINCT o.customerid) AS customers,
                             (SELECT COUNT(*) FROM products) AS products
                      FROM orders o
@@ -41,7 +41,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        @Query(value = """
                      SELECT SUM(o.total) AS revenue,
                             COUNT(*) AS orders,
-                            AVG(o.total) AS avg_order,
+                            COALESCE(AVG(o.total), 0) AS avg_order,
                             COUNT(DISTINCT o.customerid) AS customers,
                             (SELECT COUNT(*) FROM products) AS products
                      FROM orders o
@@ -225,6 +225,15 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
     @Param("state") String state,
     @Param("storeId") String storeId
 );
+
+       @Query(value = """
+        SELECT s.city AS name, SUM(o.total) AS revenue
+        FROM orders o
+        JOIN stores s ON o.storeid = s.storeid
+        GROUP BY s.city
+        ORDER BY revenue DESC
+    """, nativeQuery = true)
+    List<Map<String, Object>> fetchRevenueByStore();
 
 }
 

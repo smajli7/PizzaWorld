@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 import pizzaworld.repository.PizzaRepo;
+import pizzaworld.dto.DashboardKpiDto;
 
 @Service
 public class PizzaService {
@@ -20,13 +21,20 @@ public class PizzaService {
     @Autowired
     private PizzaRepo pizzaRepo;
 
-    public Map<String, Object> getDashboardKPIs(User user) {
-        return switch (user.getRole()) {
+    public DashboardKpiDto getDashboardKPIs(User user) {
+        Map<String, Object> raw = switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchGlobalKPIs();
             case "STATE_MANAGER" -> pizzaRepo.fetchStateKPIs(user.getStateAbbr());
             case "STORE_MANAGER" -> pizzaRepo.fetchStoreKPIs(user.getStoreId());
             default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         };
+        return new DashboardKpiDto(
+            ((Number) raw.getOrDefault("revenue", 0)).doubleValue(),
+            ((Number) raw.getOrDefault("orders", 0)).intValue(),
+            ((Number) raw.getOrDefault("avg_order", 0)).doubleValue(),
+            ((Number) raw.getOrDefault("customers", 0)).intValue(),
+            ((Number) raw.getOrDefault("products", 0)).intValue()
+        );
     }
 
     public Map<String, Object> getStoreKPIs(String storeId, CustomUserDetails user) {
@@ -202,5 +210,20 @@ public class PizzaService {
 
     return pizzaRepo.fetchWeeklyOrderTrend(from, to, state, storeId);
 }
+
+    public List<Map<String, Object>> getRevenueByStore(User user) {
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+            case "STATE_MANAGER":
+                return pizzaRepo.fetchRevenueByStore();
+            case "STORE_MANAGER":
+                // Only return revenue for the manager's own store
+                String storeId = user.getStoreId();
+                List<Map<String, Object>> all = pizzaRepo.fetchRevenueByStore();
+                return all.stream().filter(m -> m.get("name") != null && m.get("name").equals(user.getStoreId())).toList();
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        }
+    }
 
 }

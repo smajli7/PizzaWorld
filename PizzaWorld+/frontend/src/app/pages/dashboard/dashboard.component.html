@@ -1,16 +1,66 @@
 <app-sidebar></app-sidebar>
-<div class="app-bg">
-  <section class="home-section" *ngIf="kpis">
-    <div class="dashboard-revenue">
-      <span class="revenue-label">Total Revenue</span>
-      <span class="revenue-value">{{ kpis.revenue | number:'1.2-2' }} €</span>
+<div class="layout-dashboard p-p-4">
+  <ng-container *ngIf="kpis; else loadingOrError">
+    <div class="p-grid p-nogutter p-mb-4">
+      <div class="p-col-12 p-md-12 p-lg-12">
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="dashboard-card sakai-card-orange dashboard-kpi-row p-d-flex p-ai-center">
+              <i class="pi pi-wallet dashboard-kpi-icon"></i>
+              <div class="dashboard-kpi-value">{{ kpis.revenue | number:'1.2-2' }} €</div>
+              <span class="kpi-label-under">Total Revenue</span>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
     </div>
-    <div class="kpi-row">
-      <kpi-tile label="Revenue" [value]="'' + ((kpis?.revenue ?? 0) | number:'1.2-2':'en') + ' €'"></kpi-tile>
-      <kpi-tile label="Orders" [value]="kpis?.orders ?? 0"></kpi-tile>
-      <kpi-tile label="Avg. Order Value" [value]="'' + ((kpis?.avgOrder ?? 0) | number:'1.2-2':'en') + ' €'"></kpi-tile>
-      <kpi-tile label="Customers" [value]="kpis?.customers ?? 0"></kpi-tile>
-      <kpi-tile label="Products" [value]="kpis?.products ?? 0"></kpi-tile>
+    <div class="kpi-row-4">
+      <div>
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="dashboard-card dashboard-kpi-row p-d-flex p-ai-center" style="flex-direction:column;align-items:flex-start;">
+              <div class="dashboard-kpi-value">{{ kpis.orders | number }}</div>
+              <span class="kpi-label-under">Orders</span>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+      <div>
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="dashboard-card dashboard-kpi-row p-d-flex p-ai-center" style="flex-direction:column;align-items:flex-start;">
+              <div class="dashboard-kpi-value">{{ kpis.avgOrder | number:'1.2-2' }} €</div>
+              <span class="kpi-label-under">Avg. Order</span>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+      <div>
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="dashboard-card dashboard-kpi-row p-d-flex p-ai-center" style="flex-direction:column;align-items:flex-start;">
+              <div class="dashboard-kpi-value">{{ kpis.customers | number }}</div>
+              <span class="kpi-label-under">Customers</span>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+      <div>
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="dashboard-card dashboard-kpi-row p-d-flex p-ai-center" style="flex-direction:column;align-items:flex-start;">
+              <div class="dashboard-kpi-value">{{ kpis.products | number }}</div>
+              <span class="kpi-label-under">Products</span>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
     </div>
-  </section>
+  </ng-container>
+  <ng-template #loadingOrError>
+    <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:180px;">
+      <i class="pi pi-spin pi-spinner dashboard-loading-icon"></i>
+      <div class="dashboard-loading-text">Dashboard is loading...</div>
+    </div>
+  </ng-template>
 </div>

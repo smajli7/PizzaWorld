@@ -61,22 +61,14 @@ export default class TreemapHelpers {
     let utils = new Utils()
 
     if (w.config.plotOptions[chartType].enableShades) {
-      // The shadeColor function may return either an RGB or a hex color value
-      // However, hexToRgba requires the input to be in hex format
-      // The ternary operator checks if the color is in RGB format, and if so, converts it to hex
       if (this.w.config.theme.mode === 'dark') {
-        const shadeColor = utils.shadeColor(
-          colorShadePercent * -1,
-          colorProps.color
-        )
         color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
+          utils.shadeColor(colorShadePercent * -1, colorProps.color),
           w.config.fill.opacity
         )
       } else {
-        const shadeColor = utils.shadeColor(colorShadePercent, colorProps.color)
         color = Utils.hexToRgba(
-          Utils.isColorHex(shadeColor) ? shadeColor : Utils.rgb2hex(shadeColor),
+          utils.shadeColor(colorShadePercent, colorProps.color),
           w.config.fill.opacity
         )
       }
@@ -140,7 +132,7 @@ export default class TreemapHelpers {
     return {
       color,
       foreColor,
-      percent,
+      percent
     }
   }
 
@@ -156,7 +148,7 @@ export default class TreemapHelpers {
 
     if (dataLabelsConfig.enabled) {
       elDataLabelsWrap = graphics.group({
-        class: 'apexcharts-data-labels',
+        class: 'apexcharts-data-labels'
       })
 
       const offX = dataLabelsConfig.offsetX
@@ -175,7 +167,7 @@ export default class TreemapHelpers {
         color: colorProps.foreColor,
         parent: elDataLabelsWrap,
         fontSize,
-        dataLabelsConfig,
+        dataLabelsConfig
       })
     }
 

@@ -24,11 +24,7 @@ export class AuthService {
   }
 
   /* ─────── User-Info ─────── */
-  private loaded = false;
   loadCurrentUser(): Observable<CurrentUser | null> {
-    if (this.loaded) return this.currentUser$;
-    this.loaded = true;
-
     const t = this.token;
     if (!t) return of(null);
 

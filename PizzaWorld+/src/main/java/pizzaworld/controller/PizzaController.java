@@ -15,6 +15,7 @@ import pizzaworld.service.UserService;
 import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 import pizzaworld.util.CsvExportUtil;
+import pizzaworld.dto.DashboardKpiDto;
 
 @RestController
 @RequestMapping("/api")
@@ -36,14 +37,14 @@ public class PizzaController {
     @GetMapping("/dashboard/export")
     public void exportDashboardCsv(@AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
-        Map<String, Object> data = pizzaService.getDashboardKPIs(userDetails.getUser());
+        DashboardKpiDto data = pizzaService.getDashboardKPIs(userDetails.getUser());
         List<String> headers = List.of("Revenue", "Orders", "AvgOrder", "Customers", "Products");
         List<List<String>> rows = List.of(List.of(
-                String.valueOf(data.get("revenue")),
-                String.valueOf(data.get("orders")),
-                String.valueOf(data.get("avg_order")),
-                String.valueOf(data.get("customers")),
-                String.valueOf(data.get("products"))));
+                String.valueOf(data.revenue),
+                String.valueOf(data.orders),
+                String.valueOf(data.avgOrder),
+                String.valueOf(data.customers),
+                String.valueOf(data.products)));
         CsvExportUtil.writeCsv(response, headers, rows, "dashboard.csv");
     }
 
@@ -184,5 +185,12 @@ public ResponseEntity<?> getOrderTrend(
         pizzaService.fetchWeeklyOrderTrend(from, to, user)
     );
 }
+
+    // 📊 Revenue by Store for Dashboard Chart
+    @GetMapping("/dashboard/revenue-by-store")
+    public ResponseEntity<?> getRevenueByStore(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRevenueByStore(user));
+    }
 
 }

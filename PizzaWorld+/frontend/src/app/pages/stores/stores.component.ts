@@ -10,8 +10,10 @@ import { DropdownModule } from 'primeng/dropdown';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
+import { CheckboxModule } from 'primeng/checkbox';
 import { catchError, finalize, map } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import {
   ApexAxisChartSeries,
@@ -22,6 +24,12 @@ import {
   ApexXAxis,
   ApexYAxis
 } from 'ng-apexcharts';
+
+// Define SortEvent interface locally
+interface SortEvent {
+  field: string;
+  order: number;
+}
 
 export interface ChartOptions {
   series: ApexAxisChartSeries;
@@ -46,7 +54,8 @@ export interface ChartOptions {
     DropdownModule,
     ButtonModule,
     TableModule,
-    TooltipModule
+    TooltipModule,
+    CheckboxModule
   ],
   templateUrl: './stores.component.html',
   styleUrls: ['./stores.component.scss']
@@ -69,8 +78,22 @@ export class StoresComponent implements OnInit {
   // Table settings
   first = 0;
   rows = 10;
+  totalRecords = 0;
+  
+  // Sorting
+  sortField: string = '';
+  sortOrder: number = 1;
+  
+  // Row selection
+  selectedStores: StoreInfo[] = [];
+  
+  // Export
+  exportLoading = false;
 
-  constructor(private kpi: KpiService) {}
+  constructor(
+    private kpi: KpiService,
+    private http: HttpClient
+  ) {}
 
   ngOnInit(): void {
     this.loadStoresData();
@@ -95,6 +118,7 @@ export class StoresComponent implements OnInit {
       .subscribe(stores => {
         this.allStores = stores;
         this.filteredStores = [...stores];
+        this.totalRecords = stores.length;
         this.extractStates();
         console.log('Extracted states:', this.states);
         this.applyFilters();
@@ -139,23 +163,132 @@ export class StoresComponent implements OnInit {
 
       return matchesSearch && matchesState;
     });
+    
+    this.totalRecords = this.filteredStores.length;
+    this.first = 0; // Reset to first page when filtering
   }
 
   onSearchChange(): void {
     this.applyFilters();
-    this.first = 0; // Reset to first page
   }
 
   onStateChange(): void {
     this.applyFilters();
-    this.first = 0; // Reset to first page
   }
 
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedState = '';
     this.applyFilters();
-    this.first = 0;
+  }
+
+  // Sorting functionality
+  onSort(event: SortEvent): void {
+    this.sortField = event.field || '';
+    this.sortOrder = event.order || 1;
+    
+    if (this.sortField) {
+      this.filteredStores.sort((a: any, b: any) => {
+        let valueA = a[this.sortField];
+        let valueB = b[this.sortField];
+        
+        // Handle string comparison
+        if (typeof valueA === 'string') {
+          valueA = valueA.toLowerCase();
+          valueB = valueB.toLowerCase();
+        }
+        
+        if (valueA < valueB) {
+          return this.sortOrder === 1 ? -1 : 1;
+        }
+        if (valueA > valueB) {
+          return this.sortOrder === 1 ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+  }
+
+  // Pagination
+  onPageChange(event: any): void {
+    this.first = event.first;
+    this.rows = event.rows;
+  }
+
+  // Row selection
+  onRowSelect(event: any): void {
+    console.log('Selected store:', event.data);
+  }
+
+  onRowUnselect(event: any): void {
+    console.log('Unselected store:', event.data);
+  }
+
+  // Export functionality
+  exportStores(): void {
+    this.exportLoading = true;
+    
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    this.http.get('/api/store/export', { 
+      headers, 
+      responseType: 'blob' 
+    }).subscribe(
+      (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'stores.csv';
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.exportLoading = false;
+      },
+      (error) => {
+        console.error('Export error:', error);
+        this.exportLoading = false;
+      }
+    );
+  }
+
+  // Export filtered stores
+  exportFilteredStores(): void {
+    if (this.filteredStores.length === 0) {
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Store ID', 'City', 'State', 'State Abbr', 'Zip Code', 'Latitude', 'Longitude'];
+    const csvContent = [
+      headers.join(','),
+      ...this.filteredStores.map(store => [
+        store.storeid,
+        store.name,
+        store.state,
+        store.state_abbr,
+        store.zipcode,
+        store.latitude,
+        store.longitude
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `filtered_stores_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Bulk actions
+  getSelectedCount(): number {
+    return this.selectedStores.length;
+  }
+
+  clearSelection(): void {
+    this.selectedStores = [];
   }
 
   getStoreCount(): number {

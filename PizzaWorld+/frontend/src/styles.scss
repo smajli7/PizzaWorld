@@ -22,3 +22,36 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .sidebar.collapsed ~ .home-section {
   margin-left: var(--sidebar-w-collapsed);
 }
+
+/* Global tooltip styling */
+.p-tooltip .p-tooltip-text {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
+  color: white !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 8px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  white-space: nowrap !important;
+  max-width: none !important;
+  min-width: 200px !important;
+  text-align: center !important;
+  letter-spacing: 0.3px !important;
+}
+
+.p-tooltip.p-tooltip-top .p-tooltip-arrow {
+  border-top-color: transparent !important;
+}
+
+.p-tooltip.p-tooltip-bottom .p-tooltip-arrow {
+  border-bottom-color: transparent !important;
+}
+
+.p-tooltip.p-tooltip-left .p-tooltip-arrow {
+  border-left-color: transparent !important;
+}
+
+.p-tooltip.p-tooltip-right .p-tooltip-arrow {
+  border-right-color: transparent !important;
+}

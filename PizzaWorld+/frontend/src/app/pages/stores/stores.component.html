@@ -18,11 +18,29 @@
     <div class="stores-filter-card">
       <div class="stores-filter-header">
         <span class="filter-title">Search & Filter Stores</span>
-        <button pButton type="button" label="Clear Filters" 
-                class="p-button-outlined p-button-sm" 
-                (click)="clearFilters()"
-                [disabled]="!searchTerm && !selectedState">
-        </button>
+        <div class="filter-actions">
+          <button pButton type="button" 
+                  label="Export All" 
+                  icon="pi pi-download"
+                  class="p-button-outlined p-button-sm" 
+                  (click)="exportStores()"
+                  [loading]="exportLoading"
+                  [disabled]="allStores.length === 0">
+          </button>
+          <button pButton type="button" 
+                  label="Export Filtered" 
+                  icon="pi pi-filter"
+                  class="p-button-outlined p-button-sm" 
+                  (click)="exportFilteredStores()"
+                  [disabled]="filteredStores.length === 0">
+          </button>
+          <button pButton type="button" 
+                  label="Clear Filters" 
+                  class="p-button-outlined p-button-sm" 
+                  (click)="clearFilters()"
+                  [disabled]="!searchTerm && !selectedState">
+          </button>
+        </div>
       </div>
       <div class="stores-filter-fields">
         <div class="filter-field">
@@ -61,23 +79,68 @@
   <!-- Stores Table -->
   <p-card>
     <ng-template pTemplate="header">
-      <h3>Store Locations ({{ getStoreCount() }} stores)</h3>
+      <div class="table-header">
+        <h3>Store Locations ({{ getStoreCount() }} stores)</h3>
+        <div class="table-actions" *ngIf="getSelectedCount() > 0">
+          <span class="selected-count">{{ getSelectedCount() }} selected</span>
+          <button pButton type="button" 
+                  label="Clear Selection" 
+                  icon="pi pi-times"
+                  class="p-button-text p-button-sm" 
+                  (click)="clearSelection()">
+          </button>
+        </div>
+      </div>
     </ng-template>
     <ng-template pTemplate="content">
       <ng-container *ngIf="!loading && !error; else loadingOrError">
         <div class="modern-table-container">
-          <table class="modern-table">
-            <thead>
+          <p-table 
+            [value]="filteredStores" 
+            [selectionMode]="'multiple'"
+            [(selection)]="selectedStores"
+            (onRowSelect)="onRowSelect($event)"
+            (onRowUnselect)="onRowUnselect($event)"
+            (onSort)="onSort($event)"
+            [sortMode]="'single'"
+            [sortField]="sortField"
+            [sortOrder]="sortOrder"
+            [scrollable]="true"
+            scrollHeight="600px"
+            styleClass="modern-table">
+            
+            <ng-template pTemplate="header">
               <tr>
-                <th>Store ID</th>
-                <th>City</th>
-                <th>State</th>
-                <th>Zip Code</th>
-                <th>Coordinates</th>
+                <th style="width: 4rem">
+                  <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+                </th>
+                <th pSortableColumn="storeid" style="width: 120px">
+                  Store ID
+                  <p-sortIcon field="storeid"></p-sortIcon>
+                </th>
+                <th pSortableColumn="name" style="width: 200px">
+                  City
+                  <p-sortIcon field="name"></p-sortIcon>
+                </th>
+                <th pSortableColumn="state" style="width: 150px">
+                  State
+                  <p-sortIcon field="state"></p-sortIcon>
+                </th>
+                <th pSortableColumn="zipcode" style="width: 120px">
+                  Zip Code
+                  <p-sortIcon field="zipcode"></p-sortIcon>
+                </th>
+                <th style="width: 150px">
+                  Coordinates
+                </th>
               </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let store of filteredStores" class="store-row">
+            </ng-template>
+            
+            <ng-template pTemplate="body" let-store>
+              <tr class="store-row">
+                <td>
+                  <p-tableCheckbox [value]="store"></p-tableCheckbox>
+                </td>
                 <td class="store-id">
                   <span class="store-id-text">{{ store.storeid }}</span>
                 </td>
@@ -96,13 +159,17 @@
                   </span>
                 </td>
               </tr>
-            </tbody>
-          </table>
-          
-          <div *ngIf="filteredStores.length === 0" class="no-results">
-            <i class="pi pi-search"></i>
-            <p>No stores found matching your criteria</p>
-          </div>
+            </ng-template>
+            
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="6" class="no-results">
+                  <i class="pi pi-search"></i>
+                  <p>No stores found matching your criteria</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
         </div>
       </ng-container>
       

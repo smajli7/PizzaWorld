@@ -1,6 +1,6 @@
 <app-sidebar></app-sidebar>
 <div class="layout-dashboard p-p-4">
-  <ng-container *ngIf="kpis; else loadingOrError">
+  <ng-container *ngIf="!loading && !error && kpis; else loadingOrError">
     <div class="p-grid p-nogutter p-mb-4">
       <div class="p-col-12 p-md-12 p-lg-12">
         <p-card>
@@ -59,8 +59,15 @@
   </ng-container>
   <ng-template #loadingOrError>
     <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:180px;">
-      <i class="pi pi-spin pi-spinner dashboard-loading-icon"></i>
-      <div class="dashboard-loading-text">Dashboard is loading...</div>
+      <ng-container *ngIf="loading; else errorState">
+        <i class="pi pi-spin pi-spinner dashboard-loading-icon"></i>
+        <div class="dashboard-loading-text">Dashboard is loading...</div>
+      </ng-container>
+      <ng-template #errorState>
+        <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
+        <div class="dashboard-loading-text">Failed to load dashboard data</div>
+        <button pButton type="button" label="Retry" class="p-button-outlined" (click)="ngOnInit()" style="margin-top: 1rem;"></button>
+      </ng-template>
     </div>
   </ng-template>
 </div>

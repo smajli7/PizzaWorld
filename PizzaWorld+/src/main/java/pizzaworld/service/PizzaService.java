@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ public class PizzaService {
     @Autowired
     private PizzaRepo pizzaRepo;
 
+    @Cacheable(value = "dashboardKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
     public DashboardKpiDto getDashboardKPIs(User user) {
         Map<String, Object> raw = switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchGlobalKPIs();

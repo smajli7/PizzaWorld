@@ -26,6 +26,7 @@ export class SidebarComponent {
 
   logout(): void {
     this.auth.logout();
+    sessionStorage.setItem('logoutMsg', 'You have been successfully logged out.');
     this.router.navigate(['/login']);
   }
 }

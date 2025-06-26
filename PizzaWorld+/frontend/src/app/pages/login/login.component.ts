@@ -27,6 +27,7 @@ export class LoginComponent implements OnInit {
   showPassword = false;
   successMsg: string | null = null;   // grüne Info-Box
   errorMsg:   string | null = null;   // rote Fehler-Box
+  showLogoutPopup = false; // for logout toast
 
   constructor(
     private fb: FormBuilder,
@@ -40,6 +41,14 @@ export class LoginComponent implements OnInit {
       username: ['', Validators.required],
       password: ['', Validators.required]
     });
+    // Show logout message as popup if present in sessionStorage
+    const logoutMsg = sessionStorage.getItem('logoutMsg');
+    if (logoutMsg) {
+      this.successMsg = logoutMsg;
+      this.showLogoutPopup = true;
+      setTimeout(() => { this.showLogoutPopup = false; }, 3000);
+      sessionStorage.removeItem('logoutMsg');
+    }
   }
 
   togglePassword(): void {

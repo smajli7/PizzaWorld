@@ -1,6 +1,10 @@
 <app-sidebar></app-sidebar>
 <div class="app-bg">
   <section class="home-section" *ngIf="kpis">
+    <div class="dashboard-revenue">
+      <span class="revenue-label">Total Revenue</span>
+      <span class="revenue-value">{{ kpis.revenue | number:'1.2-2' }} €</span>
+    </div>
     <div class="kpi-row">
       <kpi-tile label="Revenue" [value]="'' + ((kpis?.revenue ?? 0) | number:'1.2-2':'en') + ' €'"></kpi-tile>
       <kpi-tile label="Orders" [value]="kpis?.orders ?? 0"></kpi-tile>

@@ -19,7 +19,10 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column(name = "store_id")
     private String storeId;
+
+    @Column(name = "state_abbr")
     private String stateAbbr;
 
     public User() {}

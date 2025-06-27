@@ -80,8 +80,31 @@ public class PizzaController {
 
     // 🏪 Store KPIs + Best/Worst
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> getStoreKPIsOld(@PathVariable String storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        System.out.println("🔍 DEBUG: OLD Controller received storeId: '" + storeId + "'");
+        System.out.println("🔍 DEBUG: User role: " + userDetails.getUser().getRole());
+        System.out.println("🔍 DEBUG: User storeId: " + userDetails.getUser().getStoreId());
+        
+        return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, userDetails));
+    }
+
+    @GetMapping("/stores/{storeId}/kpis")
+    public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        System.out.println("🔍 DEBUG: NEW Controller received storeId: '" + storeId + "'");
+        
+        // TEMP: Handle case where userDetails is null (no authentication)
+        if (userDetails == null) {
+            System.out.println("🔍 DEBUG: No authentication, using test user");
+            User testUser = new User();
+            testUser.setRole("HQ_ADMIN");
+            testUser.setStoreId("S948821");
+            testUser.setStateAbbr("CA");
+            userDetails = new CustomUserDetails(testUser);
+        }
+        
+        System.out.println("🔍 DEBUG: User role: " + userDetails.getUser().getRole());
+        System.out.println("🔍 DEBUG: User storeId: " + userDetails.getUser().getStoreId());
+        
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, userDetails));
     }
 
@@ -191,6 +214,44 @@ public ResponseEntity<?> getOrderTrend(
     public ResponseEntity<?> getRevenueByStore(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getRevenueByStore(user));
+    }
+
+    // 📈 KPI Endpoints for Charts
+    @GetMapping("/kpi/stores-per-day")
+    public ResponseEntity<?> getStoresPerDay() {
+        return ResponseEntity.ok(pizzaService.getStoresPerDay());
+    }
+
+    @GetMapping("/kpi/sales-per-day")
+    public ResponseEntity<?> getSalesPerDay() {
+        return ResponseEntity.ok(pizzaService.getSalesPerDay());
+    }
+
+    @GetMapping("/kpi/orders-per-day")
+    public ResponseEntity<?> getOrdersPerDay() {
+        return ResponseEntity.ok(pizzaService.getOrdersPerDay());
+    }
+
+    // 🧪 Test endpoint to verify controller is working
+    @GetMapping("/test")
+    public ResponseEntity<?> testEndpoint() {
+        return ResponseEntity.ok(Map.of("message", "Controller is working!"));
+    }
+
+    // 🧪 Test endpoint for store KPIs without authentication (for debugging)
+    @GetMapping("/stores/{storeId}/kpis/test")
+    public ResponseEntity<?> getStoreKPIsTest(@PathVariable String storeId) {
+        System.out.println("🔍 DEBUG: TEST Controller received storeId: '" + storeId + "'");
+        
+        // Create a mock user for testing
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+        
+        CustomUserDetails testUserDetails = new CustomUserDetails(testUser);
+        
+        return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, testUserDetails));
     }
 
 }

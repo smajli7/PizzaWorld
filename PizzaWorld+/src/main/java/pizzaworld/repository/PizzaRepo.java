@@ -39,10 +39,10 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        Map<String, Object> fetchStateKPIs(@Param("state") String state);
 
        @Query(value = """
-                     SELECT SUM(o.total) AS revenue,
-                            COUNT(*) AS orders,
+                     SELECT COALESCE(SUM(o.total), 0) AS revenue,
+                            COALESCE(COUNT(*), 0) AS orders,
                             COALESCE(AVG(o.total), 0) AS avg_order,
-                            COUNT(DISTINCT o.customerid) AS customers,
+                            COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers,
                             (SELECT COUNT(*) FROM products) AS products
                      FROM orders o
                      WHERE o.storeid = :storeId
@@ -144,48 +144,48 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        Map<String, Object> fetchProductDetails(@Param("sku") String sku);
 
        @Query(value = """
-                     SELECT p.name, SUM(oi.quantity * p.price) AS revenue
+                     SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue
                      FROM order_items oi
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN products p ON p.sku = oi.sku
                      WHERE o.storeid = :storeId
-                     GROUP BY p.name
+                     GROUP BY p.sku, p.name, p.size
                      ORDER BY revenue DESC
                      """, nativeQuery = true)
        List<Map<String, Object>> fetchRevenuePerProductByStore(@Param("storeId") String storeId);
 
        // --------- STORE: Best & Worst Product ---------
        @Query(value = """
-                     SELECT p.name, COUNT(*) AS total_sold
+                     SELECT p.sku, p.name, p.size, SUM(oi.quantity) AS total_sold
                      FROM order_items oi
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN products p ON p.sku = oi.sku
                      WHERE o.storeid = :storeId
-                     GROUP BY p.name
+                     GROUP BY p.sku, p.name, p.size
                      ORDER BY total_sold DESC
                      LIMIT 1
                      """, nativeQuery = true)
        Map<String, Object> fetchTopProductByStore(@Param("storeId") String storeId);
 
        @Query(value = """
-                     SELECT p.name, COUNT(*) AS total_sold
+                     SELECT p.sku, p.name, p.size, SUM(oi.quantity) AS total_sold
                      FROM order_items oi
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN products p ON p.sku = oi.sku
                      WHERE o.storeid = :storeId
-                     GROUP BY p.name
+                     GROUP BY p.sku, p.name, p.size
                      ORDER BY total_sold ASC
                      LIMIT 1
                      """, nativeQuery = true)
        Map<String, Object> fetchWorstProductByStore(@Param("storeId") String storeId);
 
        @Query(value = """
-                     SELECT p.name, COUNT(*) AS total_sold
+                     SELECT p.sku, p.name, p.size, SUM(oi.quantity) AS total_sold
                      FROM order_items oi
                      JOIN orders o ON o.orderid = oi.orderid
                      JOIN products p ON p.sku = oi.sku
                      WHERE o.storeid = :storeId
-                     GROUP BY p.name
+                     GROUP BY p.sku, p.name, p.size
                      ORDER BY total_sold DESC
                      """, nativeQuery = true)
        List<Map<String, Object>> fetchProductsByQuantitySold(@Param("storeId") String storeId);
@@ -248,6 +248,44 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
 
        @Query(value = "SELECT COUNT(*) FROM orders WHERE storeid = :storeId", nativeQuery = true)
        Integer countOrdersByStore(@Param("storeId") String storeId);
+
+       // Debug query to check orders table structure
+       @Query(value = """
+                     SELECT storeid, COUNT(*) as order_count, SUM(total) as total_revenue
+                     FROM orders 
+                     WHERE storeid = :storeId
+                     GROUP BY storeid
+                     """, nativeQuery = true)
+       Map<String, Object> debugStoreOrders(@Param("storeId") String storeId);
+
+       // Simple test query to check if the basic SQL works
+       @Query(value = "SELECT COUNT(*) FROM orders WHERE storeid = :storeId", nativeQuery = true)
+       Long simpleOrderCount(@Param("storeId") String storeId);
+
+       // 📈 KPI Repository Methods for Charts
+       @Query(value = """
+                     SELECT DATE(o.orderdate) AS day, COUNT(DISTINCT o.storeid) AS count
+                     FROM orders o
+                     GROUP BY DATE(o.orderdate)
+                     ORDER BY day
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchStoresPerDay();
+
+       @Query(value = """
+                     SELECT DATE(o.orderdate) AS day, SUM(o.total) AS sales
+                     FROM orders o
+                     GROUP BY DATE(o.orderdate)
+                     ORDER BY day
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchSalesPerDay();
+
+       @Query(value = """
+                     SELECT DATE(o.orderdate) AS day, COUNT(*) AS orders
+                     FROM orders o
+                     GROUP BY DATE(o.orderdate)
+                     ORDER BY day
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchOrdersPerDay();
 
 }
 

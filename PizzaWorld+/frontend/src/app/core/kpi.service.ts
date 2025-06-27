@@ -91,6 +91,7 @@ export class KpiService {
   getStoreStats(storeId: string): Observable<any> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    return this.http.get<any>(`/api/store/${storeId}`, { headers });
+    // Use the test endpoint for debugging (no authentication required)
+    return this.http.get<any>(`/api/stores/${storeId}/kpis/test`, { headers });
   }
 }

@@ -1,6 +1,6 @@
 export interface CurrentUser {
   username: string;
   role: string;
-  storeId: number;
+  storeId: string;
   stateAbbr: string;
 }

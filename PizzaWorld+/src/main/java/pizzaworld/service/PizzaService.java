@@ -25,12 +25,30 @@ public class PizzaService {
 
     @Cacheable(value = "dashboardKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
     public DashboardKpiDto getDashboardKPIs(User user) {
-        Map<String, Object> raw = switch (user.getRole()) {
-            case "HQ_ADMIN" -> pizzaRepo.fetchGlobalKPIs();
-            case "STATE_MANAGER" -> pizzaRepo.fetchStateKPIs(user.getStateAbbr());
-            case "STORE_MANAGER" -> pizzaRepo.fetchStoreKPIs(user.getStoreId());
-            default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
-        };
+        Map<String, Object> raw;
+        if ("STORE_MANAGER".equals(user.getRole())) {
+            Map<String, Object> arr = pizzaRepo.fetchStoreKPIs(user.getStoreId());
+            raw = new HashMap<>();
+            if (arr != null && !arr.isEmpty()) {
+                raw.put("revenue", arr.get("revenue"));
+                raw.put("orders", arr.get("orders"));
+                raw.put("avg_order", arr.get("avg_order"));
+                raw.put("customers", arr.get("customers"));
+                raw.put("products", arr.get("products"));
+            } else {
+                raw.put("revenue", 0);
+                raw.put("orders", 0);
+                raw.put("avg_order", 0);
+                raw.put("customers", 0);
+                raw.put("products", 0);
+            }
+        } else if ("HQ_ADMIN".equals(user.getRole())) {
+            raw = pizzaRepo.fetchGlobalKPIs();
+        } else if ("STATE_MANAGER".equals(user.getRole())) {
+            raw = pizzaRepo.fetchStateKPIs(user.getStateAbbr());
+        } else {
+            throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        }
         return new DashboardKpiDto(
             ((Number) raw.getOrDefault("revenue", 0)).doubleValue(),
             ((Number) raw.getOrDefault("orders", 0)).intValue(),
@@ -45,6 +63,10 @@ public class PizzaService {
         String role = realUser.getRole();
         String storeState = pizzaRepo.getStoreState(storeId);
 
+        if (storeState == null) {
+            throw new IllegalArgumentException("Store with ID '" + storeId + "' does not exist.");
+        }
+
         boolean isHQ = role.equals("HQ_ADMIN");
         boolean isStateManagerOfStore = role.equals("STATE_MANAGER") && realUser.getStateAbbr().equals(storeState);
         boolean isOwnStore = role.equals("STORE_MANAGER") && realUser.getStoreId().equals(storeId);
@@ -53,58 +75,142 @@ public class PizzaService {
             throw new AccessDeniedException("Zugriff auf diese Filiale nicht erlaubt");
         }
 
-        Map<String, Object> kpis = pizzaRepo.fetchStoreKPIs(storeId);
-        Map<String, Object> best = pizzaRepo.fetchTopProductByStore(storeId);
-        Map<String, Object> worst = pizzaRepo.fetchWorstProductByStore(storeId);
-
-        // Check if store has any orders first
-        Integer orderCount = pizzaRepo.countOrdersByStore(storeId);
-        System.out.println("📦 Store " + storeId + " has " + orderCount + " orders");
-
-        List<String> topProductNames = new ArrayList<>();
-        List<String> worstProductNames = new ArrayList<>();
-
-        if (orderCount != null && orderCount > 0) {
-            // Get all products by revenue for this store
-            List<Map<String, Object>> allProducts = pizzaRepo.fetchRevenuePerProductByStore(storeId);
-            System.out.println("🔍 Revenue products for store " + storeId + ": " + allProducts.size());
-            if (!allProducts.isEmpty()) {
-                System.out.println("🔍 First product: " + allProducts.get(0));
+        System.out.println("🔍 DEBUG: Querying store KPIs for storeId: '" + storeId + "'");
+        System.out.println("🔍 DEBUG: Store state: " + storeState);
+        System.out.println("🔍 DEBUG: User role: " + role);
+        System.out.println("🔍 DEBUG: User storeId: " + realUser.getStoreId());
+        
+        // Test query to see if there are any orders at all
+        try {
+            Integer totalOrders = pizzaRepo.countOrdersByStore(storeId);
+            System.out.println("🔍 DEBUG: Total orders for store " + storeId + ": " + totalOrders);
+            
+            // Check if there are any orders at all in the database
+            List<Map<String, Object>> allStores = pizzaRepo.findAllStores();
+            System.out.println("🔍 DEBUG: Total stores in database: " + allStores.size());
+            
+            // Check if the store exists in the stores table
+            boolean storeExists = allStores.stream().anyMatch(s -> s.get("storeid").equals(storeId));
+            System.out.println("🔍 DEBUG: Store exists in stores table: " + storeExists);
+            
+            // Check a few sample orders to see the data structure
+            List<Map<String, Object>> sampleOrders = pizzaRepo.dynamicOrderFilter(storeId, null, null, null, null, null, null);
+            System.out.println("🔍 DEBUG: Sample orders for store " + storeId + ": " + sampleOrders.size());
+            if (!sampleOrders.isEmpty()) {
+                System.out.println("🔍 DEBUG: First order sample: " + sampleOrders.get(0));
             }
             
-            // Get top 3 products by revenue
-            topProductNames = allProducts.stream()
-                    .limit(3)
-                    .map(product -> (String) product.get("name"))
-                    .toList();
-            System.out.println("🏆 Top products: " + topProductNames);
-
-            // Get products by quantity sold to determine worst performers
-            List<Map<String, Object>> productsByQuantity = pizzaRepo.fetchProductsByQuantitySold(storeId);
-            System.out.println("📊 Quantity products for store " + storeId + ": " + productsByQuantity.size());
-            if (!productsByQuantity.isEmpty()) {
-                System.out.println("📊 First quantity product: " + productsByQuantity.get(0));
-            }
+            // Debug query to check actual orders data
+            Map<String, Object> debugOrders = pizzaRepo.debugStoreOrders(storeId);
+            System.out.println("🔍 DEBUG: Debug orders data: " + debugOrders);
             
-            // Get worst 3 products (lowest quantity sold)
-            worstProductNames = productsByQuantity.stream()
-                    .skip(Math.max(0, productsByQuantity.size() - 3))
-                    .map(product -> (String) product.get("name"))
-                    .toList();
-            System.out.println("📉 Worst products: " + worstProductNames);
+            // Direct check of the KPI query components
+            System.out.println("🔍 DEBUG: About to execute fetchStoreKPIs with storeId: '" + storeId + "'");
+            
+            // Simple test query
+            Long simpleCount = pizzaRepo.simpleOrderCount(storeId);
+            System.out.println("🔍 DEBUG: Simple order count: " + simpleCount);
+            
+        } catch (Exception e) {
+            System.err.println("🔍 DEBUG: Error in debug queries: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        Map<String, Object> rawKpis = pizzaRepo.fetchStoreKPIs(storeId);
+        System.out.println("🔍 DEBUG: Raw KPI result: " + rawKpis);
+        
+        Map<String, Object> kpis = new HashMap<>();
+        if (rawKpis != null && !rawKpis.isEmpty()) {
+            kpis.put("revenue", ((Number) rawKpis.get("revenue")).doubleValue());
+            kpis.put("orders", ((Number) rawKpis.get("orders")).intValue());
+            kpis.put("avg_order", ((Number) rawKpis.get("avg_order")).doubleValue());
+            kpis.put("customers", ((Number) rawKpis.get("customers")).intValue());
+            kpis.put("products", ((Number) rawKpis.get("products")).intValue());
         } else {
-            System.out.println("⚠️ Store has no orders, returning empty product lists");
-            // Add some sample data for stores with no orders
-            topProductNames = List.of("No data available");
-            worstProductNames = List.of("No data available");
+            kpis.put("revenue", 0);
+            kpis.put("orders", 0);
+            kpis.put("avg_order", 0);
+            kpis.put("customers", 0);
+            kpis.put("products", 0);
+        }
+        
+        System.out.println("🔍 DEBUG: Final KPIs map: " + kpis);
+
+        Map<String, Object> best = null;
+        Map<String, Object> worst = null;
+        List<Map<String, Object>> topProductList = new ArrayList<>();
+        List<Map<String, Object>> worstProductList = new ArrayList<>();
+
+        // Try to fetch product stats, but bypass errors
+        try {
+            best = pizzaRepo.fetchTopProductByStore(storeId);
+            if (best == null) best = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            else best = Map.of(
+                "sku", best.get("sku"),
+                "name", best.get("name"),
+                "size", best.get("size"),
+                "total_sold", best.get("total_sold")
+            );
+            worst = pizzaRepo.fetchWorstProductByStore(storeId);
+            if (worst == null) worst = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            else worst = Map.of(
+                "sku", worst.get("sku"),
+                "name", worst.get("name"),
+                "size", worst.get("size"),
+                "total_sold", worst.get("total_sold")
+            );
+
+            // Check if store has any orders first
+            Integer orderCount = pizzaRepo.countOrdersByStore(storeId);
+            System.out.println("\uD83D\uDCE6 Store " + storeId + " has " + orderCount + " orders");
+
+            if (orderCount != null && orderCount > 0) {
+                // Get all products by revenue for this store
+                List<Map<String, Object>> allProducts = pizzaRepo.fetchRevenuePerProductByStore(storeId);
+                if (allProducts != null && !allProducts.isEmpty()) {
+                    topProductList = allProducts.stream()
+                            .limit(3)
+                            .map(product -> Map.of(
+                                "sku", product.getOrDefault("sku", ""),
+                                "name", product.getOrDefault("name", "No data available"),
+                                "size", product.getOrDefault("size", "")
+                            ))
+                            .toList();
+                } else {
+                    topProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
+                }
+                // Get products by quantity sold to determine worst performers
+                List<Map<String, Object>> productsByQuantity = pizzaRepo.fetchProductsByQuantitySold(storeId);
+                if (productsByQuantity != null && !productsByQuantity.isEmpty()) {
+                    worstProductList = productsByQuantity.stream()
+                            .skip(Math.max(0, productsByQuantity.size() - 3))
+                            .map(product -> Map.of(
+                                "sku", product.getOrDefault("sku", ""),
+                                "name", product.getOrDefault("name", "No data available"),
+                                "size", product.getOrDefault("size", "")
+                            ))
+                            .toList();
+                } else {
+                    worstProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
+                }
+            } else {
+                topProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
+                worstProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
+            }
+        } catch (Exception e) {
+            System.err.println("[WARN] Could not fetch product stats for store " + storeId + ": " + e.getMessage());
+            best = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            worst = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            topProductList = List.of();
+            worstProductList = List.of();
         }
 
         Map<String, Object> result = new HashMap<>();
         result.put("kpis", kpis);
         result.put("best", best);
         result.put("worst", worst);
-        result.put("topProducts", topProductNames);
-        result.put("worstProducts", worstProductNames);
+        result.put("topProducts", topProductList);
+        result.put("worstProducts", worstProductList);
 
         return result;
     }
@@ -271,6 +377,19 @@ public class PizzaService {
             default:
                 throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         }
+    }
+
+    // 📈 KPI Methods for Charts
+    public List<Map<String, Object>> getStoresPerDay() {
+        return pizzaRepo.fetchStoresPerDay();
+    }
+
+    public List<Map<String, Object>> getSalesPerDay() {
+        return pizzaRepo.fetchSalesPerDay();
+    }
+
+    public List<Map<String, Object>> getOrdersPerDay() {
+        return pizzaRepo.fetchOrdersPerDay();
     }
 
 }

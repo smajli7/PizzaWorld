@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT = stateless
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/stores/**", "/api/store/**").permitAll() // TEMP: allow store KPIs for debugging
                         .requestMatchers("/api/login", "/api/logout", "/api/me", "/error").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)

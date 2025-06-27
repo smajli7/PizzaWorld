@@ -27,6 +27,10 @@ export class StoreDetailsComponent implements OnInit {
   error = false;
   storeStats: any = null;
 
+  // New: track errors separately
+  detailsError = false;
+  statsError = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -43,13 +47,15 @@ export class StoreDetailsComponent implements OnInit {
 
   loadStoreDetails(): void {
     this.loading = true;
+    this.detailsError = false;
     this.error = false;
 
     this.kpi.getAllStores()
       .pipe(
         catchError(err => {
           console.error('Store loading error:', err);
-          this.error = true;
+          this.detailsError = true;
+          this.updateErrorState();
           return of([]);
         }),
         finalize(() => {
@@ -59,46 +65,66 @@ export class StoreDetailsComponent implements OnInit {
       .subscribe(stores => {
         this.store = stores.find(s => s.storeid === this.storeId) || null;
         if (!this.store) {
-          this.error = true;
+          this.detailsError = true;
+          this.updateErrorState();
+        } else {
+          this.detailsError = false;
+          this.updateErrorState();
         }
       });
   }
 
   loadStoreStats(): void {
-    console.log('Loading store stats for storeId:', this.storeId);
-    // Load store-specific statistics from backend API
+    this.statsError = false;
     this.kpi.getStoreStats(this.storeId)
       .pipe(
         catchError(err => {
           console.error('Store stats loading error:', err);
-          console.error('Error details:', err.status, err.message);
-          this.error = true;
+          this.statsError = true;
+          this.updateErrorState();
           return of(null);
         })
       )
       .subscribe({
         next: (stats) => {
-          console.log('Raw stats from backend:', stats);
           if (stats) {
             this.storeStats = {
               totalOrders: stats.kpis?.orders || 0,
               totalRevenue: stats.kpis?.revenue || 0,
               avgOrderValue: stats.kpis?.avg_order || 0,
               uniqueCustomers: stats.kpis?.customers || 0,
-              topProducts: stats.topProducts || [],
-              worstProducts: stats.worstProducts || []
+              topProducts: Array.isArray(stats.topProducts)
+                ? stats.topProducts.map((p: any) => ({
+                    name: p.name || 'No data available',
+                    size: p.size || '',
+                    sku: p.sku || ''
+                  }))
+                : [],
+              worstProducts: Array.isArray(stats.worstProducts)
+                ? stats.worstProducts.map((p: any) => ({
+                    name: p.name || 'No data available',
+                    size: p.size || '',
+                    sku: p.sku || ''
+                  }))
+                : []
             };
-            console.log('Processed storeStats:', this.storeStats);
-            console.log('Top products length:', this.storeStats.topProducts?.length);
-            console.log('Worst products length:', this.storeStats.worstProducts?.length);
+            this.statsError = false;
+            this.updateErrorState();
           } else {
-            console.log('No stats returned from backend');
+            this.statsError = true;
+            this.updateErrorState();
           }
         },
         error: (err) => {
-          console.error('Subscription error:', err);
+          this.statsError = true;
+          this.updateErrorState();
         }
       });
+  }
+
+  // New: update error state based on both requests
+  updateErrorState(): void {
+    this.error = this.detailsError && this.statsError;
   }
 
   goBack(): void {

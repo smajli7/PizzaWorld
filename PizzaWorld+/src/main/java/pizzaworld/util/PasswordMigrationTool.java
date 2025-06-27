@@ -5,7 +5,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import pizzaworld.repository.UserRepo;
 
-@Component
+@Component  // Re-enabled for security
 public class PasswordMigrationTool implements CommandLineRunner {
 
     private final UserRepo repo;

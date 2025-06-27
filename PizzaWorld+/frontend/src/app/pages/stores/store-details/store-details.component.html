@@ -114,7 +114,10 @@
           <div class="products-list">
             <div class="product-item" *ngFor="let product of storeStats.topProducts; let i = index">
               <span class="product-rank">#{{ i + 1 }}</span>
-              <span class="product-name" [class.no-data]="product === 'No data available'">{{ product }}</span>
+              <span class="product-name" [class.no-data]="product.name === 'No data available'">
+                {{ product.name }}<span *ngIf="product.size"> ({{ product.size }})</span>
+                <span *ngIf="product.total_sold !== undefined && product.total_sold !== null"> - Sold: {{ product.total_sold }}</span>
+              </span>
             </div>
             <div *ngIf="!storeStats.topProducts || storeStats.topProducts.length === 0" class="no-data">
               No top products data available
@@ -132,7 +135,10 @@
           <div class="products-list">
             <div class="product-item" *ngFor="let product of storeStats.worstProducts; let i = index">
               <span class="product-rank worst">#{{ i + 1 }}</span>
-              <span class="product-name" [class.no-data]="product === 'No data available'">{{ product }}</span>
+              <span class="product-name" [class.no-data]="product.name === 'No data available'">
+                {{ product.name }}<span *ngIf="product.size"> ({{ product.size }})</span>
+                <span *ngIf="product.total_sold !== undefined && product.total_sold !== null"> - Sold: {{ product.total_sold }}</span>
+              </span>
             </div>
             <div *ngIf="!storeStats.worstProducts || storeStats.worstProducts.length === 0" class="no-data">
               No worst products data available

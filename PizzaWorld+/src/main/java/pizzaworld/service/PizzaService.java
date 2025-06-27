@@ -339,9 +339,20 @@ public class PizzaService {
         return Map.of("best", best, "worst", worst);
     }
 
-    public List<Map<String, Object>> getAllStores() {
-        return pizzaRepo.findAllStores();
-    }
+    public List<Map<String, Object>> getAllStores(User user) {
+    String role = user.getRole();
+    String storeId = user.getStoreId();
+    String state = user.getStateAbbr();
+
+    return switch (role) {
+        case "HQ_ADMIN" -> pizzaRepo.findAllStores();
+        case "STATE_MANAGER" -> pizzaRepo.findStoresByState(state);
+        case "STORE_MANAGER" -> List.of(pizzaRepo.findStoreById(storeId));
+        default -> throw new AccessDeniedException("Unbekannte Rolle: " + role);
+    };
+}
+
+
 
     public List<Map<String, Object>> fetchWeeklyOrderTrend(LocalDate from, LocalDate to, User user) {
     String role = user.getRole();

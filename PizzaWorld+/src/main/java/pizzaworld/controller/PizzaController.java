@@ -60,23 +60,31 @@ public class PizzaController {
 
     // 📍 Alle Stores
     @GetMapping("/stores")
-    public ResponseEntity<?> getAllStores() {
-        return ResponseEntity.ok(pizzaService.getAllStores());
-    }
+public ResponseEntity<?> getAllStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
+    return ResponseEntity.ok(pizzaService.getAllStores(userDetails.getUser()));
+}
+
 
     @GetMapping("/store/export")
-    public void exportStores(HttpServletResponse response) {
-        List<Map<String, Object>> data = pizzaService.getAllStores();
-        if (data.isEmpty()) {
-            CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "stores.csv");
-            return;
-        }
-        List<String> headers = List.copyOf(data.get(0).keySet());
-        List<List<String>> rows = data.stream()
-                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
-                .toList();
-        CsvExportUtil.writeCsv(response, headers, rows, "stores.csv");
+public void exportStores(@AuthenticationPrincipal CustomUserDetails userDetails,
+                         HttpServletResponse response) {
+
+    User user = userDetails.getUser();
+    List<Map<String, Object>> data = pizzaService.getAllStores(user);
+
+    if (data.isEmpty()) {
+        CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "stores.csv");
+        return;
     }
+
+    List<String> headers = List.copyOf(data.get(0).keySet());
+    List<List<String>> rows = data.stream()
+            .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+            .toList();
+
+    CsvExportUtil.writeCsv(response, headers, rows, "stores.csv");
+}
+
 
     // 🏪 Store KPIs + Best/Worst
     @GetMapping("/store/{storeId}")

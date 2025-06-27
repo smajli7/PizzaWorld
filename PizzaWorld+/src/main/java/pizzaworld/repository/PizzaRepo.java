@@ -287,5 +287,12 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
                      """, nativeQuery = true)
        List<Map<String, Object>> fetchOrdersPerDay();
 
+       @Query(value = "SELECT * FROM stores WHERE state_abbr = :state", nativeQuery = true)
+List<Map<String, Object>> findStoresByState(@Param("state") String state);
+
+@Query(value = "SELECT * FROM stores WHERE storeid = :storeId", nativeQuery = true)
+Map<String, Object> findStoreById(@Param("storeId") String storeId);
+
+
 }
 

@@ -50,12 +50,11 @@ public class PizzaService {
             throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         }
         return new DashboardKpiDto(
-            ((Number) raw.getOrDefault("revenue", 0)).doubleValue(),
-            ((Number) raw.getOrDefault("orders", 0)).intValue(),
-            ((Number) raw.getOrDefault("avg_order", 0)).doubleValue(),
-            ((Number) raw.getOrDefault("customers", 0)).intValue(),
-            ((Number) raw.getOrDefault("products", 0)).intValue()
-        );
+                ((Number) raw.getOrDefault("revenue", 0)).doubleValue(),
+                ((Number) raw.getOrDefault("orders", 0)).intValue(),
+                ((Number) raw.getOrDefault("avg_order", 0)).doubleValue(),
+                ((Number) raw.getOrDefault("customers", 0)).intValue(),
+                ((Number) raw.getOrDefault("products", 0)).intValue());
     }
 
     public Map<String, Object> getStoreKPIs(String storeId, CustomUserDetails user) {
@@ -79,46 +78,48 @@ public class PizzaService {
         System.out.println("🔍 DEBUG: Store state: " + storeState);
         System.out.println("🔍 DEBUG: User role: " + role);
         System.out.println("🔍 DEBUG: User storeId: " + realUser.getStoreId());
-        
+
         // Test query to see if there are any orders at all
         try {
             Integer totalOrders = pizzaRepo.countOrdersByStore(storeId);
             System.out.println("🔍 DEBUG: Total orders for store " + storeId + ": " + totalOrders);
-            
+
             // Check if there are any orders at all in the database
-            List<Map<String, Object>> allStores = pizzaRepo.findAllStores();
+            List<Map<String, Object>> allStores = pizzaRepo.dynamicStoreFilter(null, null, null, null, null, null,
+                    null);
             System.out.println("🔍 DEBUG: Total stores in database: " + allStores.size());
-            
+
             // Check if the store exists in the stores table
             boolean storeExists = allStores.stream().anyMatch(s -> s.get("storeid").equals(storeId));
             System.out.println("🔍 DEBUG: Store exists in stores table: " + storeExists);
-            
+
             // Check a few sample orders to see the data structure
-            List<Map<String, Object>> sampleOrders = pizzaRepo.dynamicOrderFilter(storeId, null, null, null, null, null, null);
+            List<Map<String, Object>> sampleOrders = pizzaRepo.dynamicOrderFilter(storeId, null, null, null, null, null,
+                    null);
             System.out.println("🔍 DEBUG: Sample orders for store " + storeId + ": " + sampleOrders.size());
             if (!sampleOrders.isEmpty()) {
                 System.out.println("🔍 DEBUG: First order sample: " + sampleOrders.get(0));
             }
-            
+
             // Debug query to check actual orders data
             Map<String, Object> debugOrders = pizzaRepo.debugStoreOrders(storeId);
             System.out.println("🔍 DEBUG: Debug orders data: " + debugOrders);
-            
+
             // Direct check of the KPI query components
             System.out.println("🔍 DEBUG: About to execute fetchStoreKPIs with storeId: '" + storeId + "'");
-            
+
             // Simple test query
             Long simpleCount = pizzaRepo.simpleOrderCount(storeId);
             System.out.println("🔍 DEBUG: Simple order count: " + simpleCount);
-            
+
         } catch (Exception e) {
             System.err.println("🔍 DEBUG: Error in debug queries: " + e.getMessage());
             e.printStackTrace();
         }
-        
+
         Map<String, Object> rawKpis = pizzaRepo.fetchStoreKPIs(storeId);
         System.out.println("🔍 DEBUG: Raw KPI result: " + rawKpis);
-        
+
         Map<String, Object> kpis = new HashMap<>();
         if (rawKpis != null && !rawKpis.isEmpty()) {
             kpis.put("revenue", ((Number) rawKpis.get("revenue")).doubleValue());
@@ -133,7 +134,7 @@ public class PizzaService {
             kpis.put("customers", 0);
             kpis.put("products", 0);
         }
-        
+
         System.out.println("🔍 DEBUG: Final KPIs map: " + kpis);
 
         Map<String, Object> best = null;
@@ -144,21 +145,23 @@ public class PizzaService {
         // Try to fetch product stats, but bypass errors
         try {
             best = pizzaRepo.fetchTopProductByStore(storeId);
-            if (best == null) best = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
-            else best = Map.of(
-                "sku", best.get("sku"),
-                "name", best.get("name"),
-                "size", best.get("size"),
-                "total_sold", best.get("total_sold")
-            );
+            if (best == null)
+                best = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            else
+                best = Map.of(
+                        "sku", best.get("sku"),
+                        "name", best.get("name"),
+                        "size", best.get("size"),
+                        "total_sold", best.get("total_sold"));
             worst = pizzaRepo.fetchWorstProductByStore(storeId);
-            if (worst == null) worst = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
-            else worst = Map.of(
-                "sku", worst.get("sku"),
-                "name", worst.get("name"),
-                "size", worst.get("size"),
-                "total_sold", worst.get("total_sold")
-            );
+            if (worst == null)
+                worst = Map.of("sku", "", "name", "No data", "size", "", "total_sold", 0);
+            else
+                worst = Map.of(
+                        "sku", worst.get("sku"),
+                        "name", worst.get("name"),
+                        "size", worst.get("size"),
+                        "total_sold", worst.get("total_sold"));
 
             // Check if store has any orders first
             Integer orderCount = pizzaRepo.countOrdersByStore(storeId);
@@ -171,10 +174,9 @@ public class PizzaService {
                     topProductList = allProducts.stream()
                             .limit(3)
                             .map(product -> Map.of(
-                                "sku", product.getOrDefault("sku", ""),
-                                "name", product.getOrDefault("name", "No data available"),
-                                "size", product.getOrDefault("size", "")
-                            ))
+                                    "sku", product.getOrDefault("sku", ""),
+                                    "name", product.getOrDefault("name", "No data available"),
+                                    "size", product.getOrDefault("size", "")))
                             .toList();
                 } else {
                     topProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
@@ -185,10 +187,9 @@ public class PizzaService {
                     worstProductList = productsByQuantity.stream()
                             .skip(Math.max(0, productsByQuantity.size() - 3))
                             .map(product -> Map.of(
-                                "sku", product.getOrDefault("sku", ""),
-                                "name", product.getOrDefault("name", "No data available"),
-                                "size", product.getOrDefault("size", "")
-                            ))
+                                    "sku", product.getOrDefault("sku", ""),
+                                    "name", product.getOrDefault("name", "No data available"),
+                                    "size", product.getOrDefault("size", "")))
                             .toList();
                 } else {
                     worstProductList = List.of(Map.of("sku", "", "name", "No data available", "size", ""));
@@ -339,41 +340,82 @@ public class PizzaService {
         return Map.of("best", best, "worst", worst);
     }
 
-    public List<Map<String, Object>> getAllStores(User user) {
-    String role = user.getRole();
-    String storeId = user.getStoreId();
-    String state = user.getStateAbbr();
+    public List<Map<String, Object>> filterStores(Map<String, String> params, User user) {
+        String requestedStoreId = params.get("storeId");
+        String zipcode = params.get("zipcode");
+        String stateAbbr = params.get("state_abbr");
+        String city = params.get("city");
+        String state = params.get("state");
+        String minDistance = params.get("minDistance");
+        String maxDistance = params.get("maxDistance");
 
-    return switch (role) {
-        case "HQ_ADMIN" -> pizzaRepo.findAllStores();
-        case "STATE_MANAGER" -> pizzaRepo.findStoresByState(state);
-        case "STORE_MANAGER" -> List.of(pizzaRepo.findStoreById(storeId));
-        default -> throw new AccessDeniedException("Unbekannte Rolle: " + role);
-    };
-}
+        System.out.println("📋 USER: " + user.getUsername());
+        System.out.println("🔐 ROLLE: " + user.getRole());
+        System.out.println("🧾 PARAMS: " + params);
 
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                // HQ darf alles sehen – vollständiger Filter erlaubt
+                return pizzaRepo.dynamicStoreFilter(
+                        requestedStoreId,
+                        zipcode,
+                        stateAbbr,
+                        city,
+                        state,
+                        minDistance,
+                        maxDistance);
 
+            case "STATE_MANAGER":
+                if (stateAbbr != null && !stateAbbr.equals(user.getStateAbbr())) {
+                    throw new AccessDeniedException("Keine Berechtigung für dieses Bundesland");
+                }
+                return pizzaRepo.dynamicStoreFilter(
+                        requestedStoreId,
+                        zipcode,
+                        user.getStateAbbr(),
+                        city,
+                        state,
+                        minDistance,
+                        maxDistance);
 
-    public List<Map<String, Object>> fetchWeeklyOrderTrend(LocalDate from, LocalDate to, User user) {
-    String role = user.getRole();
-    String storeId = null;
-    String state = null;
+            case "STORE_MANAGER":
+                if (requestedStoreId != null && !requestedStoreId.equals(user.getStoreId())) {
+                    throw new AccessDeniedException("Du darfst nur deine eigene Filiale sehen");
+                }
+                return pizzaRepo.dynamicStoreFilter(
+                        user.getStoreId(),
+                        zipcode,
+                        null,
+                        city,
+                        state,
+                        minDistance,
+                        maxDistance);
 
-    switch (role) {
-        case "HQ_ADMIN":
-            break;
-        case "STATE_MANAGER":
-            state = user.getStateAbbr();
-            break;
-        case "STORE_MANAGER":
-            storeId = user.getStoreId();
-            break;
-        default:
-            throw new AccessDeniedException("Unbekannte Rolle");
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle");
+        }
     }
 
-    return pizzaRepo.fetchWeeklyOrderTrend(from, to, state, storeId);
-}
+    public List<Map<String, Object>> fetchWeeklyOrderTrend(LocalDate from, LocalDate to, User user) {
+        String role = user.getRole();
+        String storeId = null;
+        String state = null;
+
+        switch (role) {
+            case "HQ_ADMIN":
+                break;
+            case "STATE_MANAGER":
+                state = user.getStateAbbr();
+                break;
+            case "STORE_MANAGER":
+                storeId = user.getStoreId();
+                break;
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle");
+        }
+
+        return pizzaRepo.fetchWeeklyOrderTrend(from, to, state, storeId);
+    }
 
     public List<Map<String, Object>> getRevenueByStore(User user) {
         switch (user.getRole()) {
@@ -384,7 +426,8 @@ public class PizzaService {
                 // Only return revenue for the manager's own store
                 String storeId = user.getStoreId();
                 List<Map<String, Object>> all = pizzaRepo.fetchRevenueByStore();
-                return all.stream().filter(m -> m.get("name") != null && m.get("name").equals(user.getStoreId())).toList();
+                return all.stream().filter(m -> m.get("name") != null && m.get("name").equals(user.getStoreId()))
+                        .toList();
             default:
                 throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         }

@@ -90,17 +90,32 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
                      @Param("to") LocalDate to);
 
        @Query(value = """
-                     SELECT storeid,
-                            zipcode,
-                            state_abbr,
-                            latitude,
-                            longitude,
-                            city AS name,  -- Alias für Frontend-Kompatibilität
-                            state,
-                            distance
+                     SELECT
+                         storeid,
+                         zipcode,
+                         state_abbr,
+                         latitude,
+                         longitude,
+                         city,
+                         state,
+                         distance
                      FROM stores
+                     WHERE (:storeId IS NULL OR storeid = :storeId)
+                       AND (:zipcode IS NULL OR zipcode = :zipcode)
+                       AND (:stateAbbr IS NULL OR state_abbr = :stateAbbr)
+                       AND (:city IS NULL OR city = :city)
+                       AND (:state IS NULL OR state = :state)
+                       AND (:minDistance IS NULL OR distance >= CAST(:minDistance AS DOUBLE PRECISION))
+                       AND (:maxDistance IS NULL OR distance <= CAST(:maxDistance AS DOUBLE PRECISION))
                      """, nativeQuery = true)
-       List<Map<String, Object>> findAllStores();
+       List<Map<String, Object>> dynamicStoreFilter(
+                     @Param("storeId") String storeId,
+                     @Param("zipcode") String zipcode,
+                     @Param("stateAbbr") String stateAbbr,
+                     @Param("city") String city,
+                     @Param("state") String state,
+                     @Param("minDistance") String minDistance,
+                     @Param("maxDistance") String maxDistance);
 
        @Query(value = """
                      SELECT o.* FROM orders o
@@ -217,34 +232,33 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
                      @Param("state") String state,
                      @Param("category") String category);
 
-                     @Query(value = """
-    SELECT 
-        DATE_TRUNC('week', o.orderdate) AS week_start,
-        SUM(o.total) AS revenue,
-        COUNT(*) AS orders
-    FROM orders o
-    JOIN stores s ON o.storeid = s.storeid
-    WHERE o.orderdate BETWEEN :from AND :to
-      AND (:state IS NULL OR s.state_abbr = :state)
-      AND (:storeId IS NULL OR o.storeid = :storeId)
-    GROUP BY week_start
-    ORDER BY week_start
-""", nativeQuery = true)
-List<Map<String, Object>> fetchWeeklyOrderTrend(
-    @Param("from") LocalDate from,
-    @Param("to") LocalDate to,
-    @Param("state") String state,
-    @Param("storeId") String storeId
-);
+       @Query(value = """
+                         SELECT
+                             DATE_TRUNC('week', o.orderdate) AS week_start,
+                             SUM(o.total) AS revenue,
+                             COUNT(*) AS orders
+                         FROM orders o
+                         JOIN stores s ON o.storeid = s.storeid
+                         WHERE o.orderdate BETWEEN :from AND :to
+                           AND (:state IS NULL OR s.state_abbr = :state)
+                           AND (:storeId IS NULL OR o.storeid = :storeId)
+                         GROUP BY week_start
+                         ORDER BY week_start
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchWeeklyOrderTrend(
+                     @Param("from") LocalDate from,
+                     @Param("to") LocalDate to,
+                     @Param("state") String state,
+                     @Param("storeId") String storeId);
 
        @Query(value = """
-        SELECT s.city AS name, SUM(o.total) AS revenue
-        FROM orders o
-        JOIN stores s ON o.storeid = s.storeid
-        GROUP BY s.city
-        ORDER BY revenue DESC
-    """, nativeQuery = true)
-    List<Map<String, Object>> fetchRevenueByStore();
+                         SELECT s.city AS name, SUM(o.total) AS revenue
+                         FROM orders o
+                         JOIN stores s ON o.storeid = s.storeid
+                         GROUP BY s.city
+                         ORDER BY revenue DESC
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchRevenueByStore();
 
        @Query(value = "SELECT COUNT(*) FROM orders WHERE storeid = :storeId", nativeQuery = true)
        Integer countOrdersByStore(@Param("storeId") String storeId);
@@ -252,7 +266,7 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
        // Debug query to check orders table structure
        @Query(value = """
                      SELECT storeid, COUNT(*) as order_count, SUM(total) as total_revenue
-                     FROM orders 
+                     FROM orders
                      WHERE storeid = :storeId
                      GROUP BY storeid
                      """, nativeQuery = true)
@@ -288,11 +302,9 @@ List<Map<String, Object>> fetchWeeklyOrderTrend(
        List<Map<String, Object>> fetchOrdersPerDay();
 
        @Query(value = "SELECT * FROM stores WHERE state_abbr = :state", nativeQuery = true)
-List<Map<String, Object>> findStoresByState(@Param("state") String state);
+       List<Map<String, Object>> findStoresByState(@Param("state") String state);
 
-@Query(value = "SELECT * FROM stores WHERE storeid = :storeId", nativeQuery = true)
-Map<String, Object> findStoreById(@Param("storeId") String storeId);
-
+       @Query(value = "SELECT * FROM stores WHERE storeid = :storeId", nativeQuery = true)
+       Map<String, Object> findStoreById(@Param("storeId") String storeId);
 
 }
-

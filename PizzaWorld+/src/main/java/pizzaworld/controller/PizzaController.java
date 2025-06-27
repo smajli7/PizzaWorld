@@ -53,53 +53,53 @@ public class PizzaController {
         User user = userDetails.getUser();
         return ResponseEntity.ok(Map.of(
                 "username", user.getUsername(),
-                "role", user.getRole(),
-                "storeId", user.getStoreId(),
-                "stateAbbr", user.getStateAbbr()));
+                "role", user.getRole()));
     }
 
-    // 📍 Alle Stores
     @GetMapping("/stores")
-public ResponseEntity<?> getAllStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
-    return ResponseEntity.ok(pizzaService.getAllStores(userDetails.getUser()));
-}
-
-
-    @GetMapping("/store/export")
-public void exportStores(@AuthenticationPrincipal CustomUserDetails userDetails,
-                         HttpServletResponse response) {
-
-    User user = userDetails.getUser();
-    List<Map<String, Object>> data = pizzaService.getAllStores(user);
-
-    if (data.isEmpty()) {
-        CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "stores.csv");
-        return;
+    public ResponseEntity<?> getFilteredStores(@RequestParam Map<String, String> params,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.filterStores(params, user));
     }
 
-    List<String> headers = List.copyOf(data.get(0).keySet());
-    List<List<String>> rows = data.stream()
-            .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
-            .toList();
+    @GetMapping("/stores/export")
+    public void exportFilteredStores(@RequestParam Map<String, String> params,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
 
-    CsvExportUtil.writeCsv(response, headers, rows, "stores.csv");
-}
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.filterStores(params, user);
 
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("Keine Daten"), List.of(), "stores.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "stores.csv");
+    }
 
     // 🏪 Store KPIs + Best/Worst
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<?> getStoreKPIsOld(@PathVariable String storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> getStoreKPIsOld(@PathVariable String storeId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         System.out.println("🔍 DEBUG: OLD Controller received storeId: '" + storeId + "'");
         System.out.println("🔍 DEBUG: User role: " + userDetails.getUser().getRole());
         System.out.println("🔍 DEBUG: User storeId: " + userDetails.getUser().getStoreId());
-        
+
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, userDetails));
     }
 
     @GetMapping("/stores/{storeId}/kpis")
-    public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> getStoreKPIs(@PathVariable String storeId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         System.out.println("🔍 DEBUG: NEW Controller received storeId: '" + storeId + "'");
-        
+
         // TEMP: Handle case where userDetails is null (no authentication)
         if (userDetails == null) {
             System.out.println("🔍 DEBUG: No authentication, using test user");
@@ -109,10 +109,10 @@ public void exportStores(@AuthenticationPrincipal CustomUserDetails userDetails,
             testUser.setStateAbbr("CA");
             userDetails = new CustomUserDetails(testUser);
         }
-        
+
         System.out.println("🔍 DEBUG: User role: " + userDetails.getUser().getRole());
         System.out.println("🔍 DEBUG: User storeId: " + userDetails.getUser().getStoreId());
-        
+
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, userDetails));
     }
 
@@ -206,16 +206,15 @@ public void exportStores(@AuthenticationPrincipal CustomUserDetails userDetails,
     }
 
     @GetMapping("/orders/trend")
-public ResponseEntity<?> getOrderTrend(
-    @RequestParam LocalDate from,
-    @RequestParam LocalDate to,
-    @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> getOrderTrend(
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-    User user = userDetails.getUser();
-    return ResponseEntity.ok(
-        pizzaService.fetchWeeklyOrderTrend(from, to, user)
-    );
-}
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(
+                pizzaService.fetchWeeklyOrderTrend(from, to, user));
+    }
 
     // 📊 Revenue by Store for Dashboard Chart
     @GetMapping("/dashboard/revenue-by-store")
@@ -250,15 +249,15 @@ public ResponseEntity<?> getOrderTrend(
     @GetMapping("/stores/{storeId}/kpis/test")
     public ResponseEntity<?> getStoreKPIsTest(@PathVariable String storeId) {
         System.out.println("🔍 DEBUG: TEST Controller received storeId: '" + storeId + "'");
-        
+
         // Create a mock user for testing
         User testUser = new User();
         testUser.setRole("HQ_ADMIN");
         testUser.setStoreId("S948821");
         testUser.setStateAbbr("CA");
-        
+
         CustomUserDetails testUserDetails = new CustomUserDetails(testUser);
-        
+
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, testUserDetails));
     }
 

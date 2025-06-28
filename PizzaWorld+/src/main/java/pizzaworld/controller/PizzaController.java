@@ -265,6 +265,14 @@ public class PizzaController {
     @GetMapping("/dashboard/performance-data")
     public ResponseEntity<?> getPerformanceData(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
+        System.out.println("🚀 Using optimized performance data method for user: " + user.getUsername());
+        return ResponseEntity.ok(pizzaService.getPerformanceDataOptimized(user));
+    }
+
+    @GetMapping("/dashboard/performance-data/legacy")
+    public ResponseEntity<?> getPerformanceDataLegacy(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        System.out.println("🐌 Using legacy sequential performance data method for user: " + user.getUsername());
         return ResponseEntity.ok(pizzaService.getPerformanceData(user));
     }
 

@@ -12,7 +12,7 @@
 .layout-stores {
   margin-left: var(--sidebar-w);
   transition: margin-left 0.3s ease;
-  
+
   .sidebar.collapsed ~ & {
     margin-left: var(--sidebar-w-collapsed);
   }
@@ -23,7 +23,7 @@
   margin-left: var(--sidebar-w);
   padding: 40px;
   transition: margin-left 0.3s ease;
-  
+
   .sidebar.collapsed ~ & {
     margin-left: var(--sidebar-w-collapsed);
   }
@@ -84,26 +84,26 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: none;
   transition: all 0.3s ease;
-  
+
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
   }
-  
+
   .p-card-body {
     padding: 1.5rem;
   }
-  
+
   .p-card-content {
     padding: 0;
   }
-  
+
   .p-card-header {
     background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
     color: white;
     border-radius: 12px 12px 0 0;
     padding: 1rem 1.5rem;
-    
+
     h3 {
       margin: 0;
       font-weight: 600;
@@ -115,7 +115,7 @@
 .p-grid .p-col-12 .p-card {
   .p-d-flex {
     align-items: center;
-    
+
     i {
       background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
       -webkit-background-clip: text;
@@ -123,13 +123,13 @@
       background-clip: text;
       margin-right: 1rem;
     }
-    
+
     .p-text-2xl {
       color: #2c3e50;
       font-weight: 700;
       margin-bottom: 0.25rem;
     }
-    
+
     .p-text-600 {
       color: #7f8c8d;
       font-size: 0.875rem;
@@ -140,7 +140,7 @@
 // Search and filter section
 .p-input-icon-left {
   position: relative;
-  
+
   i {
     position: absolute;
     left: 0.7rem;
@@ -149,13 +149,13 @@
     color: #6c757d;
     z-index: 1;
   }
-  
+
   input {
     padding-left: 0.5rem !important;
     border-radius: 8px;
     border: 1px solid #e1e8ed;
     transition: border-color 0.3s ease;
-    
+
     &:focus {
       border-color: #ff6b35;
       box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
@@ -169,21 +169,21 @@
   border: 1px solid #e1e8ed;
   transition: border-color 0.3s ease;
   width: 200px;
-  
+
   &:not(.p-disabled):hover {
     border-color: #ff6b35;
   }
-  
+
   &.p-focus {
     border-color: #ff6b35;
     box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
   }
-  
+
   .p-multiselect-label {
     padding: 0.5rem;
     padding-right: 0.5rem;
   }
-  
+
   .p-multiselect-dropdown {
     color: #6c757d;
     margin-right: 0.5rem;
@@ -197,36 +197,36 @@
     border-start-end-radius: var(--p-multiselect-border-radius);
     border-end-end-radius: var(--p-multiselect-border-radius);
     margin-right: 0.5em;
-    
+
   }
-  
+
   .p-multiselect-panel {
     .p-multiselect-filter-container {
       display: none !important;
     }
-    
+
     .p-multiselect-filter {
       display: none !important;
     }
-    
+
     .p-multiselect-filter-icon {
       display: none !important;
     }
-    
+
     .p-multiselect-filter-input {
       display: none !important;
     }
-    
+
     .p-multiselect-header {
       display: none !important;
     }
-    
+
     .p-multiselect-items-wrapper {
       margin: 0 !important;
       margin-top: -1.4em !important;
       padding: 0 !important;
     }
-    
+
     .p-multiselect-item {
       margin: 0 !important;
       padding: 0.5rem 1rem !important;
@@ -238,11 +238,11 @@
 .p-dropdown {
   border-radius: 8px;
   border: 1px solid #e1e8ed;
-  
+
   &:not(.p-disabled):hover {
     border-color: #ff6b35;
   }
-  
+
   &.p-focus {
     border-color: #ff6b35;
     box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
@@ -254,6 +254,16 @@
   overflow-x: auto;
   border-radius: 8px;
   background: white;
+  transform: translateZ(0);
+  will-change: scroll-position;
+
+  .p-datatable {
+    contain: layout style paint;
+
+    .p-datatable-tbody {
+      contain: layout style;
+    }
+  }
 }
 
 .modern-table {
@@ -263,10 +273,10 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
+
   thead {
     background: linear-gradient(50deg, #c14f25 -70%, #f5793a 30%);
-    
+
     th {
       color: white;
       font-weight: 600;
@@ -277,32 +287,32 @@
       text-align: left;
       border: none;
       position: relative;
-      
+
       &:first-child {
         border-top-left-radius: 8px;
       }
-      
+
       &:last-child {
         border-top-right-radius: 8px;
       }
     }
   }
-  
+
   tbody {
     tr {
       transition: all 0.2s ease;
       border-bottom: 1px solid #f1f3f4;
-      
+
       &:hover {
         background: #f8f9fa;
-        transform: translateY(-1px);
+        transform: translateZ(0) translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
-      
+
       &:last-child {
         border-bottom: none;
       }
-      
+
       td {
         padding: 1.25rem 1rem;
         vertical-align: middle;
@@ -323,11 +333,11 @@
       padding: 0.5rem 0.75rem;
       border-radius: 6px;
       border: 1px solid #e9ecef;
-      
+
       &.clickable {
         cursor: pointer;
         transition: all 0.3s ease;
-        
+
         &:hover {
           background: #ff6b35;
           color: white;
@@ -337,17 +347,17 @@
       }
     }
   }
-  
+
   .store-city {
     font-weight: 600;
     color: #495057;
   }
-  
+
   .store-state {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    
+
     .state-badge {
       background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
       color: white;
@@ -357,19 +367,19 @@
       font-weight: 600;
       letter-spacing: 0.5px;
     }
-    
+
     .state-name {
       color: #6c757d;
       font-weight: 500;
     }
   }
-  
+
   .store-zip {
     font-family: 'Courier New', monospace;
     color: #6c757d;
     font-weight: 500;
   }
-  
+
   .store-coordinates {
     .coordinates-link {
       cursor: pointer;
@@ -382,7 +392,7 @@
       padding: 0.5rem 0.75rem;
       border-radius: 6px;
       border: 1px solid #e9ecef;
-      
+
       &:hover {
         color: #e55a2b;
         background: #e9ecef;
@@ -397,13 +407,13 @@
   text-align: center;
   padding: 3rem 1rem;
   color: #6c757d;
-  
+
   i {
     font-size: 2rem;
     margin-bottom: 1rem;
     color: #adb5bd;
   }
-  
+
   p {
     margin: 0;
     font-size: 1.1rem;
@@ -417,7 +427,7 @@
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
-  
+
   &:hover {
     color: #e55a2b;
     text-decoration: underline;
@@ -432,14 +442,14 @@
   font-weight: 500;
   transition: all 0.3s ease;
   background: transparent;
-  
+
   &:hover:not(:disabled) {
     background: #ff6b35;
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -451,12 +461,12 @@
 // Loading and error states
 .p-d-flex.p-flex-column {
   min-height: 200px;
-  
+
   .pi-spinner {
     margin-bottom: 1rem;
     color: #ff6b35;
   }
-  
+
   .pi-exclamation-triangle {
     margin-bottom: 1rem;
     color: #e74c3c;
@@ -474,22 +484,22 @@
       margin-bottom: 1rem;
     }
   }
-  
+
   .modern-table {
     font-size: 0.875rem;
-    
+
     thead th,
     tbody td {
       padding: 0.75rem 0.5rem;
     }
-    
+
     .store-state {
       flex-direction: column;
       align-items: flex-start;
       gap: 0.25rem;
     }
   }
-  
+
   h1 {
     font-size: 1.75rem;
   }
@@ -525,7 +535,7 @@ apx-chart {
   text-align: left;
   padding-left: 0.5rem;
   border: 1px solid #9b4e17;
-  
+
   &:hover {
     color: #ff6b35;
   }
@@ -536,7 +546,7 @@ apx-chart {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  
+
   .state-checkmark {
     color: #ff6b35;
     font-size: 0.8rem;
@@ -722,35 +732,35 @@ apx-chart {
     border-radius: 8px;
     overflow: hidden;
   }
-  
+
   .p-datatable-header {
     background: #ff6b35;
     color: white;
     border: none;
     padding: 1rem 1.5rem;
     border-radius: 8px 8px 0 0;
-    
+
     h3 {
       margin: 0;
       font-weight: 600;
     }
-    
+
     .table-actions {
       .selected-count {
         color: white;
         opacity: 0.9;
       }
-      
+
       .p-button-text {
         color: white;
-        
+
         &:hover {
           background: rgba(255, 255, 255, 0.1);
         }
       }
     }
   }
-  
+
   .p-datatable-thead > tr > th {
     background: linear-gradient(50deg, #c14f25 -70%, #f5793a 30%);
     color: white;
@@ -761,94 +771,94 @@ apx-chart {
     padding: 1.25rem 1rem;
     border: none;
     position: relative;
-    
+
     &:first-child {
       border-top-left-radius: 8px;
     }
-    
+
     &:last-child {
       border-top-right-radius: 8px;
     }
-    
+
     .p-sortable-column-icon {
       color: white;
     }
-    
+
     .p-sortable-column-icon.p-sortable-column-icon-active {
       color: #fff;
     }
   }
-  
+
   .p-datatable-tbody > tr {
     transition: all 0.2s ease;
     border-bottom: 1px solid #f1f3f4;
-    
+
     &:hover {
       background: #f8f9fa;
       transform: translateY(-1px);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
     &:last-child {
       border-bottom: none;
     }
-    
+
     &.p-highlight {
       background: #fff3e6;
     }
-    
+
     > td {
       padding: 1.25rem 1rem;
       vertical-align: middle;
       border: none;
     }
   }
-  
+
   .p-paginator {
     background: #f8f9fa;
     border: none;
     border-radius: 0 0 8px 8px;
     padding: 1rem;
-    
+
     .p-paginator-pages .p-paginator-page {
       border-radius: 6px;
       margin: 0 0.25rem;
-      
+
       &.p-highlight {
         background: #ff6b35;
         border-color: #ff6b35;
       }
-      
+
       &:hover:not(.p-highlight) {
         background: #fff3e6;
         border-color: #ff6b35;
       }
     }
-    
+
     .p-paginator-first,
     .p-paginator-prev,
     .p-paginator-next,
     .p-paginator-last {
       border-radius: 6px;
       margin: 0 0.25rem;
-      
+
       &:hover {
         background: #fff3e6;
         border-color: #ff6b35;
       }
     }
   }
-  
+
   .p-checkbox {
     .p-checkbox-box {
       border-radius: 4px;
       border-color: #dee2e6;
-      
+
       &.p-highlight {
         background: #ff6b35;
         border-color: #ff6b35;
       }
-      
+
       &:hover {
         border-color: #ff6b35;
       }

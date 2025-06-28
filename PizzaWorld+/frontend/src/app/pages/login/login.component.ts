@@ -10,6 +10,8 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { finalize } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { AuthService } from '../../core/auth.service';
 import { KpiService } from '../../core/kpi.service';
@@ -36,7 +38,7 @@ export class LoginComponent implements OnInit {
   // Loading popup properties
   showLoadingPopup = false;
   loadingProgress = 0;
-  loadingMessage = 'Preparing your dashboard...';
+  loadingMessage = 'Using parallel processing for faster loading...';
 
   constructor(
     private fb: FormBuilder,
@@ -99,7 +101,7 @@ export class LoginComponent implements OnInit {
                 this.successMsg = 'Login erfolgreich';
                 this.errorMsg = null;
                 this.loadingProgress = 50;
-                this.loadingMessage = 'Loading performance data...';
+                this.loadingMessage = 'Loading performance data with optimized queries...';
 
                 // Load performance data after successful login
                 this.loadAllData();
@@ -123,39 +125,61 @@ export class LoginComponent implements OnInit {
   }
 
   private loadAllData(): void {
-    // Load performance data
+    // Load performance data with detailed progress
     this.loadingProgress = 60;
-    this.loadingMessage = 'Loading store performance...';
+    this.loadingMessage = 'Using parallel processing for faster data loading...';
 
-    this.kpi.loadPerformanceData()
+    const performanceData$ = this.kpi.loadPerformanceData();
+    const storesData$ = this.kpi.getAllStores();
+
+    forkJoin([performanceData$, storesData$])
+      .pipe(
+        catchError((error) => {
+          console.error('Error loading data:', error);
+          this.loadingProgress = 100;
+          this.loadingMessage = 'Warning: Some data may be incomplete';
+          this.showLoadingPopup = false;
+          this.router.navigate(['/dashboard']);
+          return of(null);
+        })
+      )
       .subscribe({
-        next: (data) => {
-          console.log('Performance data loaded successfully');
-          this.loadingProgress = 80;
-          this.loadingMessage = 'Loading store locations...';
+        next: (result) => {
+          if (!result) return; // Handle null case from catchError
 
-          // Load stores data
-          this.kpi.getAllStores().subscribe({
-            next: (stores) => {
-              console.log('Stores data loaded successfully');
+          const [performanceData, storesData] = result;
+          console.log('Performance data loaded successfully:', performanceData);
+          console.log('Stores data loaded successfully:', storesData);
+          this.loadingProgress = 85;
+          this.loadingMessage = `Processed ${Object.keys(performanceData.storePerformance).length} stores with optimized queries`;
+
+          // Verify data is cached
+          const cachedPerformance = this.kpi.getCachedPerformanceData();
+          const cachedStores = this.kpi.getCachedStoresData();
+          console.log('Cached performance data:', cachedPerformance);
+          console.log('Cached stores data:', cachedStores);
+
+          // Show final preparation message
+          setTimeout(() => {
+            this.loadingProgress = 95;
+            this.loadingMessage = 'Setting up your dashboard...';
+
+            setTimeout(() => {
               this.loadingProgress = 100;
-              this.loadingMessage = 'Finalizing...';
+              this.loadingMessage = 'Welcome to PizzaWorld! 🍕';
 
-              // Small delay to show 100% completion
+              // Final delay to show completion
               setTimeout(() => {
                 this.showLoadingPopup = false;
                 this.router.navigate(['/dashboard']);
-              }, 500);
-            },
-            error: (error) => {
-              console.error('Stores loading error:', error);
-              this.showLoadingPopup = false;
-              this.router.navigate(['/dashboard']);
-            }
-          });
+              }, 800);
+            }, 300);
+          }, 300);
         },
         error: (error) => {
-          console.error('Performance data loading error:', error);
+          console.error('Error loading data:', error);
+          this.loadingProgress = 100;
+          this.loadingMessage = 'Warning: Some data may be incomplete';
           this.showLoadingPopup = false;
           this.router.navigate(['/dashboard']);
         }

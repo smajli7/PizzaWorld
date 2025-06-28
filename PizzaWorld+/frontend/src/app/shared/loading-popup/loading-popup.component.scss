@@ -83,11 +83,16 @@
     margin: 0 0 0.5rem;
   }
 
-  p {
+  .loading-message {
     color: #6c757d;
     font-size: 1rem;
     margin: 0 0 1.5rem;
+    min-height: 1.5rem;
   }
+}
+
+.progress-container {
+  margin-bottom: 1.5rem;
 }
 
 .progress-bar {
@@ -120,4 +125,56 @@
   color: #ff6b35;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.loading-details {
+  text-align: left;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+
+  .detail-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+
+    i {
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+
+    span {
+      color: #6c757d;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    &.completed {
+      background: rgba(40, 167, 69, 0.1);
+
+      i {
+        color: #28a745;
+      }
+
+      span {
+        color: #28a745;
+        font-weight: 600;
+      }
+    }
+
+    &:not(.completed) {
+      i {
+        color: #dee2e6;
+      }
+
+      span {
+        color: #adb5bd;
+      }
+    }
+  }
 }

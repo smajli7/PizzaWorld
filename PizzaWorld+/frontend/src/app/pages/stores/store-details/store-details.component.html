@@ -41,6 +41,78 @@
       </div>
     </div>
 
+    <!-- Charts Section -->
+    <div class="charts-section" *ngIf="storePerformance && chartsReady">
+      <h2>Store Performance Charts</h2>
+      <div class="charts-grid">
+        <!-- Revenue Chart -->
+        <p-card class="chart-card" *ngIf="revenueChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="revenueChartOptions.series!"
+              [chart]="revenueChartOptions.chart!"
+              [plotOptions]="revenueChartOptions.plotOptions!"
+              [dataLabels]="revenueChartOptions.dataLabels!"
+              [stroke]="revenueChartOptions.stroke!"
+              [xaxis]="revenueChartOptions.xaxis!"
+              [yaxis]="revenueChartOptions.yaxis!"
+              [fill]="revenueChartOptions.fill!"
+              [tooltip]="revenueChartOptions.tooltip!"
+              [title]="revenueChartOptions.title!"
+              [colors]="revenueChartOptions.colors!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+
+        <!-- Orders Chart -->
+        <p-card class="chart-card" *ngIf="ordersChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="ordersChartOptions.series!"
+              [chart]="ordersChartOptions.chart!"
+              [stroke]="ordersChartOptions.stroke!"
+              [xaxis]="ordersChartOptions.xaxis!"
+              [yaxis]="ordersChartOptions.yaxis!"
+              [tooltip]="ordersChartOptions.tooltip!"
+              [title]="ordersChartOptions.title!"
+              [colors]="ordersChartOptions.colors!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+
+        <!-- Performance Metrics Chart -->
+        <p-card class="chart-card full-width" *ngIf="performanceChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="performanceChartOptions.series!"
+              [chart]="performanceChartOptions.chart!"
+              [labels]="performanceChartOptions.labels!"
+              [dataLabels]="performanceChartOptions.dataLabels!"
+              [plotOptions]="performanceChartOptions.plotOptions!"
+              [colors]="performanceChartOptions.colors!"
+              [title]="performanceChartOptions.title!"
+              [legend]="performanceChartOptions.legend!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Charts Loading Placeholder -->
+    <div class="charts-section" *ngIf="storePerformance && !chartsReady">
+      <h2>Store Performance Charts</h2>
+      <div class="charts-grid">
+        <p-card class="chart-card" *ngFor="let i of [1,2,3]">
+          <ng-template pTemplate="content">
+            <div class="chart-loading">
+              <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #ff6b35;"></i>
+              <div>Loading chart...</div>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+    </div>
+
     <!-- Store Information Grid -->
     <div class="store-info-grid">
       <!-- Store Details Card -->
@@ -86,21 +158,24 @@
         <ng-template pTemplate="content">
           <div class="stats-grid">
             <div class="stat-item">
-              <span class="stat-number">{{ storeStats.totalOrders.toLocaleString() }}</span>
+              <span class="stat-number">{{ formatNumber(storeStats.totalOrders) }}</span>
               <span class="stat-label">Total Orders</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">${{ storeStats.totalRevenue.toLocaleString() }}</span>
+              <span class="stat-number">{{ formatCurrency(storeStats.totalRevenue) }}</span>
               <span class="stat-label">Total Revenue</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">${{ storeStats.avgOrderValue.toFixed(2) }}</span>
+              <span class="stat-number">{{ formatCurrency(storeStats.avgOrderValue) }}</span>
               <span class="stat-label">Avg Order Value</span>
             </div>
             <div class="stat-item">
-              <span class="stat-number">{{ storeStats.uniqueCustomers.toLocaleString() }}</span>
+              <span class="stat-number">{{ formatNumber(storeStats.uniqueCustomers) }}</span>
               <span class="stat-label">Unique Customers</span>
             </div>
+          </div>
+          <div class="last-updated" *ngIf="storeStats.lastUpdated">
+            <small>Last updated: {{ storeStats.lastUpdated | date:'medium' }}</small>
           </div>
         </ng-template>
       </p-card>

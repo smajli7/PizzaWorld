@@ -2,6 +2,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { LoadingPopupComponent } from '../../shared/loading-popup/loading-popup.component';
 import { KpiService, DashboardKpiDto, PerformanceData } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { CardModule } from 'primeng/card';
@@ -38,6 +39,7 @@ interface ChartOptions {
   imports: [
     CommonModule,
     SidebarComponent,
+    LoadingPopupComponent,
     NgApexchartsModule,
     CardModule,
     ButtonModule
@@ -50,6 +52,11 @@ export class DashboardComponent implements OnInit {
   loading = true;
   error = false;
   dataLastUpdated: string | null = null;
+
+  // Loading popup properties
+  showLoadingPopup = false;
+  loadingProgress = 0;
+  loadingMessage = 'Refreshing dashboard data...';
 
   // Chart data
   revenueChartOpts: ChartOptions | null = null;
@@ -65,11 +72,12 @@ export class DashboardComponent implements OnInit {
     this.loading = true;
     this.error = false;
 
-    // First, try to load from cache
+    // First, try to load from cache - be more lenient with cached data
     const cachedData = this.kpi.getCachedPerformanceData();
     const cachedStores = this.kpi.getCachedStoresData();
 
-    if (cachedData && this.kpi.isCachedDataFresh() && cachedStores) {
+    if (cachedData && cachedStores) {
+      // Use cached data if available, regardless of freshness
       this.performanceData = cachedData;
       this.dataLastUpdated = cachedData.globalKPIs.lastUpdated;
       this.loading = false;
@@ -78,7 +86,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // If no cache or stale data, load from API
+    // If no cache, load from API
     this.kpi.loadPerformanceData()
       .pipe(
         catchError(err => {
@@ -96,13 +104,68 @@ export class DashboardComponent implements OnInit {
           this.dataLastUpdated = data.globalKPIs.lastUpdated;
           this.setupCharts();
           console.log('Dashboard loaded from API');
+        } else {
+          this.error = true;
         }
       });
   }
 
   refreshData(): void {
+    this.showLoadingPopup = true;
+    this.loadingProgress = 10;
+    this.loadingMessage = 'Clearing cached data...';
+
+    // Clear cache
     this.kpi.clearPerformanceCache();
-    this.loadDashboardData();
+
+    setTimeout(() => {
+      this.loadingProgress = 30;
+      this.loadingMessage = 'Loading fresh performance data...';
+
+      this.kpi.loadPerformanceData()
+        .pipe(
+          catchError(err => {
+            console.error('Dashboard refresh error:', err);
+            this.error = true;
+            return of(null);
+          }),
+          finalize(() => {
+            this.loading = false;
+          })
+        )
+        .subscribe(data => {
+          if (data) {
+            this.loadingProgress = 85;
+            this.loadingMessage = `Processed ${Object.keys(data.storePerformance).length} stores with optimized queries`;
+
+            setTimeout(() => {
+              this.loadingProgress = 95;
+              this.loadingMessage = 'Updating dashboard...';
+
+              setTimeout(() => {
+                this.loadingProgress = 100;
+                this.loadingMessage = 'Data refresh complete!';
+
+                setTimeout(() => {
+                  this.showLoadingPopup = false;
+                  this.performanceData = data;
+                  this.dataLastUpdated = data.globalKPIs.lastUpdated;
+                  this.setupCharts();
+                  this.error = false;
+                  console.log('Dashboard data refreshed successfully');
+                }, 500);
+              }, 300);
+            }, 300);
+          } else {
+            this.loadingProgress = 100;
+            this.loadingMessage = 'Error: Failed to refresh data';
+            setTimeout(() => {
+              this.showLoadingPopup = false;
+              this.error = true;
+            }, 1000);
+          }
+        });
+    }, 500);
   }
 
   setupCharts(): void {

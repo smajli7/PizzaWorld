@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,8 +12,8 @@ import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { CheckboxModule } from 'primeng/checkbox';
-import { catchError, finalize, map } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { catchError, finalize, map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { of, Subject, Subscription } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import {
@@ -61,7 +61,7 @@ export interface ChartOptions {
   templateUrl: './stores.component.html',
   styleUrls: ['./stores.component.scss']
 })
-export class StoresComponent implements OnInit {
+export class StoresComponent implements OnInit, OnDestroy {
   // Store data
   allStores: StoreInfo[] = [];
   filteredStores: StoreInfo[] = [];
@@ -91,21 +91,60 @@ export class StoresComponent implements OnInit {
   // Export
   exportLoading = false;
 
+  // Performance optimization
+  private searchSubject = new Subject<string>();
+  private subscriptions = new Subscription();
+
   constructor(
     private kpi: KpiService,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.setupSearchDebouncing();
     this.loadStoresData();
     this.loadStoresChart();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private setupSearchDebouncing(): void {
+    // Debounce search input to avoid excessive filtering
+    const searchSubscription = this.searchSubject
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      )
+      .subscribe(() => {
+        this.applyFilters();
+        this.cdr.detectChanges();
+      });
+
+    this.subscriptions.add(searchSubscription);
   }
 
   loadStoresData(): void {
     this.loading = true;
     this.error = false;
 
+    // Try to load from cache first for instant display
+    const cachedStores = this.kpi.getCachedStoresData();
+    if (cachedStores && cachedStores.length > 0) {
+      this.allStores = cachedStores;
+      this.filteredStores = [...cachedStores];
+      this.totalRecords = cachedStores.length;
+      this.extractStates();
+      this.applyFilters();
+      this.loading = false;
+      this.cdr.detectChanges();
+      console.log('Stores loaded from cache');
+    }
+
+    // Load fresh data from API
     this.kpi.getAllStores()
       .pipe(
         catchError(err => {
@@ -115,15 +154,18 @@ export class StoresComponent implements OnInit {
         }),
         finalize(() => {
           this.loading = false;
+          this.cdr.detectChanges();
         })
       )
       .subscribe(stores => {
-        this.allStores = stores;
-        this.filteredStores = [...stores];
-        this.totalRecords = stores.length;
-        this.extractStates();
-        console.log('Extracted states:', this.states);
-        this.applyFilters();
+        if (stores.length > 0) {
+          this.allStores = stores;
+          this.filteredStores = [...stores];
+          this.totalRecords = stores.length;
+          this.extractStates();
+          this.applyFilters();
+          console.log('Stores loaded from API');
+        }
       });
   }
 
@@ -143,6 +185,7 @@ export class StoresComponent implements OnInit {
         dataLabels: { enabled: false },
         tooltip: { shared: true }
       };
+      this.cdr.detectChanges();
     });
   }
 
@@ -154,16 +197,29 @@ export class StoresComponent implements OnInit {
   }
 
   private applyFilters(): void {
+    // Optimize filtering for better performance
+    const searchLower = this.searchTerm.toLowerCase();
+    const hasSearch = searchLower.length > 0;
+    const hasStateFilter = this.selectedStates.length > 0;
+
     this.filteredStores = this.allStores.filter(store => {
-      const matchesSearch = !this.searchTerm ||
-        store.city.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        store.storeid.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        store.zipcode.includes(this.searchTerm) ||
-        store.state.toLowerCase().includes(this.searchTerm.toLowerCase());
+      // Search filtering
+      if (hasSearch) {
+        const matchesSearch =
+          store.city.toLowerCase().includes(searchLower) ||
+          store.storeid.toLowerCase().includes(searchLower) ||
+          store.zipcode.includes(this.searchTerm) ||
+          store.state.toLowerCase().includes(searchLower);
 
-      const matchesState = this.selectedStates.length === 0 || this.selectedStates.includes(store.state);
+        if (!matchesSearch) return false;
+      }
 
-      return matchesSearch && matchesState;
+      // State filtering
+      if (hasStateFilter) {
+        if (!this.selectedStates.includes(store.state)) return false;
+      }
+
+      return true;
     });
 
     this.totalRecords = this.filteredStores.length;
@@ -171,17 +227,19 @@ export class StoresComponent implements OnInit {
   }
 
   onSearchChange(): void {
-    this.applyFilters();
+    this.searchSubject.next(this.searchTerm);
   }
 
   onStateChange(): void {
     this.applyFilters();
+    this.cdr.detectChanges();
   }
 
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedStates = [];
     this.applyFilters();
+    this.cdr.detectChanges();
   }
 
   // Sorting functionality
@@ -316,5 +374,10 @@ export class StoresComponent implements OnInit {
 
   navigateToStoreDetails(store: StoreInfo): void {
     this.router.navigate(['/stores', store.storeid]);
+  }
+
+  // Performance optimization: trackBy function for ngFor
+  trackByStoreId(index: number, store: StoreInfo): string {
+    return store.storeid;
   }
 }

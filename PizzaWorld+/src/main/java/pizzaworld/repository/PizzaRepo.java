@@ -307,4 +307,46 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
        @Query(value = "SELECT * FROM stores WHERE storeid = :storeId", nativeQuery = true)
        Map<String, Object> findStoreById(@Param("storeId") String storeId);
 
+       // 🚀 Optimized query to fetch all store KPIs in a single database call
+       @Query(value = """
+                     SELECT
+                         o.storeid,
+                         COALESCE(SUM(o.total), 0) AS revenue,
+                         COALESCE(COUNT(*), 0) AS orders,
+                         COALESCE(AVG(o.total), 0) AS avg_order,
+                         COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers
+                     FROM orders o
+                     WHERE o.storeid IN (:storeIds)
+                     GROUP BY o.storeid
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchAllStoreKPIs(@Param("storeIds") List<String> storeIds);
+
+       // 🚀 Optimized query to fetch all store KPIs for a specific state
+       @Query(value = """
+                     SELECT
+                         o.storeid,
+                         COALESCE(SUM(o.total), 0) AS revenue,
+                         COALESCE(COUNT(*), 0) AS orders,
+                         COALESCE(AVG(o.total), 0) AS avg_order,
+                         COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers
+                     FROM orders o
+                     JOIN stores s ON o.storeid = s.storeid
+                     WHERE s.state_abbr = :state
+                     GROUP BY o.storeid
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchAllStoreKPIsByState(@Param("state") String state);
+
+       // 🚀 Optimized query to fetch all store KPIs for HQ admin (all stores)
+       @Query(value = """
+                     SELECT
+                         o.storeid,
+                         COALESCE(SUM(o.total), 0) AS revenue,
+                         COALESCE(COUNT(*), 0) AS orders,
+                         COALESCE(AVG(o.total), 0) AS avg_order,
+                         COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers
+                     FROM orders o
+                     GROUP BY o.storeid
+                     """, nativeQuery = true)
+       List<Map<String, Object>> fetchAllStoreKPIsForHQ();
+
 }

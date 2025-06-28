@@ -6,12 +6,17 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
 import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 import pizzaworld.repository.PizzaRepo;
@@ -22,6 +27,16 @@ public class PizzaService {
 
     @Autowired
     private PizzaRepo pizzaRepo;
+
+    // Create a thread pool for parallel processing
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+    @PreDestroy
+    public void cleanup() {
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
+    }
 
     @Cacheable(value = "dashboardKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
     public DashboardKpiDto getDashboardKPIs(User user) {
@@ -447,50 +462,81 @@ public class PizzaService {
     }
 
     public Map<String, Object> getPerformanceData(User user) {
+        long startTime = System.currentTimeMillis();
         Map<String, Object> performanceData = new HashMap<>();
 
         try {
             // Get all stores based on user role
             List<Map<String, Object>> stores = filterStores(new HashMap<>(), user);
+            long storesTime = System.currentTimeMillis();
+            System.out.println("🐌 Stores fetched in: " + (storesTime - startTime) + "ms");
 
-            // Get performance data for each store
+            // Process stores in parallel using CompletableFuture
+            List<CompletableFuture<Map.Entry<String, Map<String, Object>>>> futures = stores.stream()
+                    .map(store -> {
+                        String storeId = (String) store.get("storeid");
+                        return CompletableFuture.supplyAsync(() -> {
+                            try {
+                                Map<String, Object> storeKPIs = getStoreKPIs(storeId, new CustomUserDetails(user));
+                                Map<String, Object> kpis = (Map<String, Object>) storeKPIs.get("kpis");
+
+                                if (kpis != null) {
+                                    Map<String, Object> performance = new HashMap<>();
+                                    performance.put("totalOrders", kpis.get("orders"));
+                                    performance.put("totalRevenue", kpis.get("revenue"));
+                                    performance.put("avgOrderValue", kpis.get("avg_order"));
+                                    performance.put("uniqueCustomers", kpis.get("customers"));
+                                    performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                                    return Map.entry(storeId, performance);
+                                } else {
+                                    // Return default values if no KPIs found
+                                    Map<String, Object> performance = new HashMap<>();
+                                    performance.put("totalOrders", 0);
+                                    performance.put("totalRevenue", 0.0);
+                                    performance.put("avgOrderValue", 0.0);
+                                    performance.put("uniqueCustomers", 0);
+                                    performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                                    return Map.entry(storeId, performance);
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Error getting KPIs for store " + storeId + ": " + e.getMessage());
+                                // Return default values on error
+                                Map<String, Object> performance = new HashMap<>();
+                                performance.put("totalOrders", 0);
+                                performance.put("totalRevenue", 0.0);
+                                performance.put("avgOrderValue", 0.0);
+                                performance.put("uniqueCustomers", 0);
+                                performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                                return Map.entry(storeId, performance);
+                            }
+                        }, executorService);
+                    })
+                    .collect(Collectors.toList());
+
+            // Wait for all futures to complete and collect results
+            List<Map.Entry<String, Map<String, Object>>> results = futures.stream()
+                    .map(CompletableFuture::join)
+                    .collect(Collectors.toList());
+
+            long parallelTime = System.currentTimeMillis();
+            System.out.println("🐌 Parallel processing completed in: " + (parallelTime - storesTime) + "ms");
+
+            // Build store performance map and calculate totals
             Map<String, Object> storePerformance = new HashMap<>();
             double totalRevenue = 0;
             int totalOrders = 0;
             int totalCustomers = 0;
 
-            for (Map<String, Object> store : stores) {
-                String storeId = (String) store.get("storeid");
-                try {
-                    Map<String, Object> storeKPIs = getStoreKPIs(storeId, new CustomUserDetails(user));
-                    Map<String, Object> kpis = (Map<String, Object>) storeKPIs.get("kpis");
+            for (Map.Entry<String, Map<String, Object>> entry : results) {
+                String storeId = entry.getKey();
+                Map<String, Object> performance = entry.getValue();
 
-                    if (kpis != null) {
-                        Map<String, Object> performance = new HashMap<>();
-                        performance.put("totalOrders", kpis.get("orders"));
-                        performance.put("totalRevenue", kpis.get("revenue"));
-                        performance.put("avgOrderValue", kpis.get("avg_order"));
-                        performance.put("uniqueCustomers", kpis.get("customers"));
-                        performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                storePerformance.put(storeId, performance);
 
-                        storePerformance.put(storeId, performance);
-
-                        // Accumulate global totals
-                        totalRevenue += ((Number) kpis.get("revenue")).doubleValue();
-                        totalOrders += ((Number) kpis.get("orders")).intValue();
-                        totalCustomers += ((Number) kpis.get("customers")).intValue();
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error getting KPIs for store " + storeId + ": " + e.getMessage());
-                    // Add default values for this store
-                    Map<String, Object> performance = new HashMap<>();
-                    performance.put("totalOrders", 0);
-                    performance.put("totalRevenue", 0.0);
-                    performance.put("avgOrderValue", 0.0);
-                    performance.put("uniqueCustomers", 0);
-                    performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
-                    storePerformance.put(storeId, performance);
-                }
+                // Accumulate global totals
+                totalRevenue += ((Number) performance.get("totalRevenue")).doubleValue();
+                totalOrders += ((Number) performance.get("totalOrders")).intValue();
+                totalCustomers += ((Number) performance.get("uniqueCustomers")).intValue();
             }
 
             // Calculate global KPIs
@@ -504,8 +550,126 @@ public class PizzaService {
             performanceData.put("storePerformance", storePerformance);
             performanceData.put("globalKPIs", globalKPIs);
 
+            long endTime = System.currentTimeMillis();
+            System.out.println("🐌 Total legacy processing time: " + (endTime - startTime) + "ms");
+            System.out.println("🐌 Processed " + stores.size() + " stores with parallel queries");
+
         } catch (Exception e) {
             System.err.println("Error in getPerformanceData: " + e.getMessage());
+            e.printStackTrace();
+
+            // Return empty data structure on error
+            Map<String, Object> globalKPIs = new HashMap<>();
+            globalKPIs.put("totalRevenue", 0.0);
+            globalKPIs.put("totalOrders", 0);
+            globalKPIs.put("avgOrderValue", 0.0);
+            globalKPIs.put("totalCustomers", 0);
+            globalKPIs.put("lastUpdated", java.time.LocalDateTime.now().toString());
+
+            performanceData.put("storePerformance", new HashMap<>());
+            performanceData.put("globalKPIs", globalKPIs);
+        }
+
+        return performanceData;
+    }
+
+    /**
+     * 🚀 Optimized version of getPerformanceData using single database queries
+     * This method is much faster as it fetches all store KPIs in one query instead
+     * of individual queries
+     */
+    public Map<String, Object> getPerformanceDataOptimized(User user) {
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> performanceData = new HashMap<>();
+
+        try {
+            // Get all stores based on user role
+            List<Map<String, Object>> stores = filterStores(new HashMap<>(), user);
+            long storesTime = System.currentTimeMillis();
+            System.out.println("🚀 Stores fetched in: " + (storesTime - startTime) + "ms");
+
+            // Extract store IDs
+            List<String> storeIds = stores.stream()
+                    .map(store -> (String) store.get("storeid"))
+                    .collect(Collectors.toList());
+
+            // Fetch all store KPIs in a single optimized query based on user role
+            List<Map<String, Object>> allStoreKPIs;
+            switch (user.getRole()) {
+                case "HQ_ADMIN":
+                    allStoreKPIs = pizzaRepo.fetchAllStoreKPIsForHQ();
+                    break;
+                case "STATE_MANAGER":
+                    allStoreKPIs = pizzaRepo.fetchAllStoreKPIsByState(user.getStateAbbr());
+                    break;
+                case "STORE_MANAGER":
+                    // For store managers, we still need to filter to their specific store
+                    allStoreKPIs = pizzaRepo.fetchAllStoreKPIs(List.of(user.getStoreId()));
+                    break;
+                default:
+                    throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+            }
+
+            long kpisTime = System.currentTimeMillis();
+            System.out.println("🚀 All store KPIs fetched in: " + (kpisTime - storesTime) + "ms");
+            System.out.println("🚀 Total stores processed: " + allStoreKPIs.size());
+
+            // Create a map for quick lookup
+            Map<String, Map<String, Object>> kpisByStoreId = allStoreKPIs.stream()
+                    .collect(Collectors.toMap(
+                            kpi -> (String) kpi.get("storeid"),
+                            kpi -> kpi));
+
+            // Build store performance map and calculate totals
+            Map<String, Object> storePerformance = new HashMap<>();
+            double totalRevenue = 0;
+            int totalOrders = 0;
+            int totalCustomers = 0;
+
+            for (String storeId : storeIds) {
+                Map<String, Object> kpis = kpisByStoreId.get(storeId);
+
+                Map<String, Object> performance = new HashMap<>();
+                if (kpis != null) {
+                    performance.put("totalOrders", kpis.get("orders"));
+                    performance.put("totalRevenue", kpis.get("revenue"));
+                    performance.put("avgOrderValue", kpis.get("avg_order"));
+                    performance.put("uniqueCustomers", kpis.get("customers"));
+
+                    // Accumulate global totals
+                    totalRevenue += ((Number) kpis.get("revenue")).doubleValue();
+                    totalOrders += ((Number) kpis.get("orders")).intValue();
+                    totalCustomers += ((Number) kpis.get("customers")).intValue();
+                } else {
+                    // Store has no orders, use default values
+                    performance.put("totalOrders", 0);
+                    performance.put("totalRevenue", 0.0);
+                    performance.put("avgOrderValue", 0.0);
+                    performance.put("uniqueCustomers", 0);
+                }
+
+                performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                storePerformance.put(storeId, performance);
+            }
+
+            // Calculate global KPIs
+            Map<String, Object> globalKPIs = new HashMap<>();
+            globalKPIs.put("totalRevenue", totalRevenue);
+            globalKPIs.put("totalOrders", totalOrders);
+            globalKPIs.put("avgOrderValue", totalOrders > 0 ? totalRevenue / totalOrders : 0);
+            globalKPIs.put("totalCustomers", totalCustomers);
+            globalKPIs.put("lastUpdated", java.time.LocalDateTime.now().toString());
+
+            performanceData.put("storePerformance", storePerformance);
+            performanceData.put("globalKPIs", globalKPIs);
+
+            long endTime = System.currentTimeMillis();
+            System.out.println("🚀 Total optimized processing time: " + (endTime - startTime) + "ms");
+            System.out
+                    .println("🚀 Performance improvement: Single query vs " + storeIds.size() + " individual queries");
+
+        } catch (Exception e) {
+            System.err.println("Error in getPerformanceDataOptimized: " + e.getMessage());
             e.printStackTrace();
 
             // Return empty data structure on error

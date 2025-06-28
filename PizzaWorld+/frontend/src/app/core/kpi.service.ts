@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders }         from '@angular/common/http';
-import { Observable, shareReplay, map }         from 'rxjs';
+import { Observable, shareReplay, map, catchError }         from 'rxjs';
 
 /** Entspricht DashboardKpiDto im Backend */
 export interface DashboardKpiDto {
@@ -57,6 +57,10 @@ export class KpiService {
   // Cache for stores data - cache for 10 minutes
   private storesCache$: Observable<StoreInfo[]> | null = null;
 
+  // In-memory cache for faster access
+  private storesDataCache: StoreInfo[] | null = null;
+  private performanceDataCache: PerformanceData | null = null;
+
   /** Holt alle KPI‐Zahlen für das Dashboard */
   getDashboard(): Observable<DashboardKpiDto> {
     if (!this.dashboardCache$) {
@@ -78,12 +82,22 @@ export class KpiService {
     if (!this.storesCache$) {
       const token = localStorage.getItem('authToken');
       const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+      console.log('🔄 Loading stores data from API...');
+
       this.storesCache$ = this.http.get<StoreInfo[]>('/api/stores', { headers })
         .pipe(
           map(stores => {
-            // Cache the stores data
+            // Cache the stores data in both memory and localStorage
+            this.storesDataCache = stores;
             localStorage.setItem('pizzaWorld_stores', JSON.stringify(stores));
+
+            console.log(`✅ Stores data loaded: ${stores.length} locations`);
             return stores;
+          }),
+          catchError(error => {
+            console.error('❌ Stores data loading failed:', error);
+            throw error;
           }),
           shareReplay(1, 600000) // Cache for 10 minutes
         );
@@ -91,15 +105,35 @@ export class KpiService {
     return this.storesCache$;
   }
 
-  /** Get cached stores data */
+  /** Get cached stores data - optimized for speed */
   getCachedStoresData(): StoreInfo[] | null {
+    // First try in-memory cache (fastest)
+    if (this.storesDataCache) {
+      console.log('Stores data found in memory cache');
+      return this.storesDataCache;
+    }
+
+    // Fallback to localStorage
     const cached = localStorage.getItem('pizzaWorld_stores');
-    return cached ? JSON.parse(cached) : null;
+    if (cached) {
+      try {
+        this.storesDataCache = JSON.parse(cached);
+        console.log('Stores data loaded from localStorage');
+        return this.storesDataCache;
+      } catch (error) {
+        console.error('Error parsing cached stores data:', error);
+        localStorage.removeItem('pizzaWorld_stores');
+      }
+    }
+
+    console.log('No cached stores data found');
+    return null;
   }
 
   /** Clear stores cache when needed */
   clearStoresCache(): void {
     this.storesCache$ = null;
+    this.storesDataCache = null;
   }
 
   /** Holt Orders-per-Day KPI */
@@ -137,24 +171,55 @@ export class KpiService {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
+    console.log('🔄 Processing store performance data (this may take a moment for 32 stores)...');
+
     return this.http.get<PerformanceData>('/api/dashboard/performance-data', { headers })
       .pipe(
         map(data => {
-          // Cache the data
+          // Cache the data in both memory and localStorage
+          this.performanceDataCache = data;
           localStorage.setItem('pizzaWorld_performance', JSON.stringify(data));
+
+          const storeCount = Object.keys(data.storePerformance).length;
+          console.log(`✅ Store performance data processed: ${storeCount} stores, $${data.globalKPIs.totalRevenue.toLocaleString()} total revenue`);
+
           return data;
+        }),
+        catchError(error => {
+          console.error('❌ Store performance data processing failed:', error);
+          throw error;
         })
       );
   }
 
-  /** Get cached performance data */
+  /** Get cached performance data - optimized for speed */
   getCachedPerformanceData(): PerformanceData | null {
+    // First try in-memory cache (fastest)
+    if (this.performanceDataCache) {
+      console.log('Performance data found in memory cache');
+      return this.performanceDataCache;
+    }
+
+    // Fallback to localStorage
     const cached = localStorage.getItem('pizzaWorld_performance');
-    return cached ? JSON.parse(cached) : null;
+    if (cached) {
+      try {
+        this.performanceDataCache = JSON.parse(cached);
+        console.log('Performance data loaded from localStorage');
+        return this.performanceDataCache;
+      } catch (error) {
+        console.error('Error parsing cached performance data:', error);
+        localStorage.removeItem('pizzaWorld_performance');
+      }
+    }
+
+    console.log('No cached performance data found');
+    return null;
   }
 
   /** Clear cached performance data */
   clearPerformanceCache(): void {
+    this.performanceDataCache = null;
     localStorage.removeItem('pizzaWorld_performance');
   }
 
@@ -168,5 +233,11 @@ export class KpiService {
     const hoursDiff = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
 
     return hoursDiff < 24;
+  }
+
+  /** Get specific store performance data - optimized for speed */
+  getStorePerformance(storeId: string): StorePerformance | null {
+    const performanceData = this.getCachedPerformanceData();
+    return performanceData?.storePerformance[storeId] || null;
   }
 }

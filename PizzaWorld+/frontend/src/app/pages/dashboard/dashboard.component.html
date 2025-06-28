@@ -1,4 +1,14 @@
 <app-sidebar></app-sidebar>
+
+<!-- Loading Popup for Refresh -->
+<app-loading-popup
+  [isVisible]="showLoadingPopup"
+  title="Refreshing Dashboard Data"
+  [message]="loadingMessage"
+  [progress]="loadingProgress"
+  [showDetails]="false">
+</app-loading-popup>
+
 <div class="home-section">
   <!-- Dashboard Header -->
   <div class="dashboard-header">
@@ -14,7 +24,7 @@
                 label="Refresh Data"
                 class="p-button-outlined"
                 (click)="refreshData()"
-                [disabled]="loading">
+                [disabled]="loading || showLoadingPopup">
         </button>
       </div>
     </div>

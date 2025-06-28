@@ -125,14 +125,15 @@ export class LoginComponent implements OnInit {
   }
 
   private loadAllData(): void {
-    // Load performance data with detailed progress
+    // Load all data with detailed progress
     this.loadingProgress = 60;
-    this.loadingMessage = 'Using parallel processing for faster data loading...';
+    this.loadingMessage = 'Loading all dashboard data...';
 
     const performanceData$ = this.kpi.loadPerformanceData();
     const storesData$ = this.kpi.getAllStores();
+    const productsData$ = this.kpi.getAllProducts();
 
-    forkJoin([performanceData$, storesData$])
+    forkJoin([performanceData$, storesData$, productsData$])
       .pipe(
         catchError((error) => {
           console.error('Error loading data:', error);
@@ -147,17 +148,17 @@ export class LoginComponent implements OnInit {
         next: (result) => {
           if (!result) return; // Handle null case from catchError
 
-          const [performanceData, storesData] = result;
-          console.log('Performance data loaded successfully:', performanceData);
-          console.log('Stores data loaded successfully:', storesData);
-          this.loadingProgress = 85;
-          this.loadingMessage = `Processed ${Object.keys(performanceData.storePerformance).length} stores with optimized queries`;
+          const [performanceData, storesData, productsData] = result;
+          this.loadingProgress = 80;
+          this.loadingMessage = `Loaded ${storesData.length} stores, ${productsData.length} products.`;
 
           // Verify data is cached
           const cachedPerformance = this.kpi.getCachedPerformanceData();
           const cachedStores = this.kpi.getCachedStoresData();
+          const cachedProducts = this.kpi.getCachedProducts();
           console.log('Cached performance data:', cachedPerformance);
           console.log('Cached stores data:', cachedStores);
+          console.log('Cached products data:', cachedProducts);
 
           // Show final preparation message
           setTimeout(() => {

@@ -1,4 +1,8 @@
-// Products page background wrapper
+// Orange theme for Products Page
+$app-orange: #ff6b35;
+$app-orange-light: #f7931e;
+
+// Products Page Styles
 .app-bg {
   min-height: 100vh;
   width: 100vw;
@@ -7,4 +11,561 @@
   align-items: center;
   justify-content: center;
 }
-// ...existing products styles...
+
+.home-section {
+  margin-left: var(--sidebar-w);
+  padding: 40px;
+  transition: margin-left 0.3s ease;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e9e4d0 0%, #f2f8fa 100%);
+
+  .sidebar.collapsed ~ & {
+    margin-left: var(--sidebar-w-collapsed);
+  }
+}
+
+// Products upper section
+.products-upper-section {
+  margin-bottom: 2rem;
+}
+
+.products-stats-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  align-items: center;
+}
+
+.fancy-total-products-box {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.13);
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  width: fit-content;
+}
+
+.fancy-total-products-icon {
+  font-size: 2.2rem;
+  color: #fff;
+  background: rgba(255,255,255,0.18);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fancy-total-products-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.fancy-total-products-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.fancy-total-products-label {
+  font-size: 1rem;
+  color: #fff;
+  opacity: 0.85;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.filtered-results-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+}
+
+.filtered-results-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff6b35;
+  line-height: 1;
+}
+
+.filtered-results-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-weight: 500;
+  text-align: center;
+}
+
+// Products filter card
+.products-filter-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.products-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.products-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.875rem;
+}
+
+// Input styling
+:host ::ng-deep .p-inputtext {
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+  transition: border-color 0.3s ease;
+  padding: 0.75rem;
+
+  &:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+  }
+}
+
+:host ::ng-deep .p-dropdown {
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+  transition: border-color 0.3s ease;
+
+  &:not(.p-disabled):hover {
+    border-color: #ff6b35;
+  }
+
+  &.p-focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+  }
+}
+
+// Card styling
+:host ::ng-deep .p-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: none;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .p-card-header {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.5rem;
+
+    h3 {
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+
+  .p-card-content {
+    padding: 1.5rem;
+  }
+}
+
+// Table styling
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  h3 {
+    margin: 0;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .table-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .results-count {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  }
+}
+
+.modern-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+}
+
+:host ::ng-deep .modern-table {
+  .p-datatable-header {
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .p-datatable-thead > tr > th {
+    background: #f8f9fa;
+    border: none;
+    border-bottom: 2px solid #e9ecef;
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    text-align: left;
+  }
+
+  .p-datatable-tbody > tr {
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f1f3f4;
+
+    &:hover {
+      background-color: #f8f9fa;
+    }
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .p-datatable-tbody > tr > td {
+    padding: 1rem;
+    border: none;
+    vertical-align: middle;
+  }
+}
+
+// Product row styling
+.product-sku {
+  .sku-text {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #ff6b35;
+    font-size: 0.875rem;
+  }
+}
+
+.product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-category {
+  .category-badge {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.product-size {
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.product-price {
+  font-weight: 600;
+  color: #ff6b35;
+}
+
+.product-orders,
+.product-customers {
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: right;
+}
+
+.product-revenue {
+  font-weight: 700;
+  color: #ff6b35;
+  text-align: right;
+}
+
+.product-actions {
+  text-align: center;
+
+  button {
+    color: #ff6b35;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #f7931e;
+    }
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+
+  i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+// Charts section
+.charts-section {
+  margin-top: 2rem;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+
+  ::ng-deep .p-card-header {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.5rem;
+
+    h3 {
+      margin: 0;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+
+  ::ng-deep .p-card-content {
+    padding: 1.5rem;
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .home-section {
+    padding: 20px;
+  }
+
+  .products-stats-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .fancy-total-products-box {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filtered-results-box {
+    width: 100%;
+  }
+
+  .products-filter-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-actions {
+    justify-content: center;
+  }
+
+  .products-filter-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-section {
+    padding: 1rem;
+    margin-left: 0;
+  }
+
+  .fancy-total-products-box {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .fancy-total-products-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.8rem;
+  }
+
+  .fancy-total-products-number {
+    font-size: 1.8rem;
+  }
+
+  .products-filter-card {
+    padding: 1rem;
+  }
+
+  .modern-table-container {
+    font-size: 0.875rem;
+  }
+
+  :host ::ng-deep .modern-table {
+    .p-datatable-thead > tr > th,
+    .p-datatable-tbody > tr > td {
+      padding: 0.5rem;
+    }
+  }
+
+  .product-name {
+    max-width: 120px;
+  }
+}
+
+// Utility classes
+.p-w-full {
+  width: 100%;
+}
+
+// Animation for loading states
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.home-section > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+// Performance optimizations
+.modern-table-container {
+  contain: layout style paint;
+}
+
+.chart-card {
+  contain: layout style paint;
+}
+
+// Focus states for accessibility
+button:focus,
+input:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+// Dark mode support (if needed)
+@media (prefers-color-scheme: dark) {
+  .app-bg {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  }
+
+  .header,
+  .filters-section,
+  .summary-card,
+  .chart-card,
+  .table-container {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .products-table {
+    background: #374151;
+
+    th {
+      background: #4b5563;
+      color: #f9fafb;
+      border-color: #6b7280;
+    }
+
+    td {
+      border-color: #4b5563;
+      color: #f9fafb;
+    }
+
+    .product-row:hover {
+      background-color: #4b5563;
+    }
+  }
+}
+

@@ -19,7 +19,8 @@ export class AuthService {
   setToken(token: string): void { localStorage.setItem(this.tokenKey, token); }
   get token(): string | null     { return localStorage.getItem(this.tokenKey); }
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
+    // Clear all localStorage data for security
+    localStorage.clear();
     this.currentUserSubject.next(null);
   }
 

@@ -313,6 +313,11 @@ public class PizzaService {
         System.out.println("🎭 ROLLE: " + user.getRole());
         System.out.println("📦 PARAMS: " + params);
 
+        // If no filters are applied, return all products
+        if (requestedStoreId == null && category == null) {
+            return getAllProducts(user);
+        }
+
         switch (user.getRole()) {
             case "HQ_ADMIN":
                 // HQ sieht alles – keine Einschränkung
@@ -339,6 +344,11 @@ public class PizzaService {
             default:
                 throw new AccessDeniedException("Unbekannte Rolle");
         }
+    }
+
+    public List<Map<String, Object>> getAllProducts(User user) {
+        System.out.println("🧾 Getting all products for user: " + user.getUsername());
+        return pizzaRepo.getAllProducts();
     }
 
     public Map<String, Object> getProductDetails(String sku) {

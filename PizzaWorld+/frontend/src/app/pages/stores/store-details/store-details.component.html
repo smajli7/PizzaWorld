@@ -43,40 +43,39 @@
 
     <!-- Charts Section -->
     <div class="charts-section" *ngIf="storePerformance && chartsReady">
-      <h2>Store Performance Charts</h2>
+      <h2>Store Performance Overview</h2>
       <div class="charts-grid">
-        <!-- Revenue Chart -->
-        <p-card class="chart-card" *ngIf="revenueChartOptions">
+        <!-- Revenue Display -->
+        <p-card class="chart-card fancy-number-card">
           <ng-template pTemplate="content">
-            <apx-chart
-              [series]="revenueChartOptions.series!"
-              [chart]="revenueChartOptions.chart!"
-              [plotOptions]="revenueChartOptions.plotOptions!"
-              [dataLabels]="revenueChartOptions.dataLabels!"
-              [stroke]="revenueChartOptions.stroke!"
-              [xaxis]="revenueChartOptions.xaxis!"
-              [yaxis]="revenueChartOptions.yaxis!"
-              [fill]="revenueChartOptions.fill!"
-              [tooltip]="revenueChartOptions.tooltip!"
-              [title]="revenueChartOptions.title!"
-              [colors]="revenueChartOptions.colors!">
-            </apx-chart>
+            <div class="fancy-number-display">
+              <div class="fancy-number-icon">
+                <i class="pi pi-dollar"></i>
+              </div>
+              <div class="fancy-number-content">
+                <div class="fancy-number-value">
+                  {{ formatCurrency(storePerformance.totalRevenue) }}
+                </div>
+                <div class="fancy-number-label">Total Revenue</div>
+              </div>
+            </div>
           </ng-template>
         </p-card>
 
-        <!-- Orders Chart -->
-        <p-card class="chart-card" *ngIf="ordersChartOptions">
+        <!-- Orders Display -->
+        <p-card class="chart-card fancy-number-card">
           <ng-template pTemplate="content">
-            <apx-chart
-              [series]="ordersChartOptions.series!"
-              [chart]="ordersChartOptions.chart!"
-              [stroke]="ordersChartOptions.stroke!"
-              [xaxis]="ordersChartOptions.xaxis!"
-              [yaxis]="ordersChartOptions.yaxis!"
-              [tooltip]="ordersChartOptions.tooltip!"
-              [title]="ordersChartOptions.title!"
-              [colors]="ordersChartOptions.colors!">
-            </apx-chart>
+            <div class="fancy-number-display">
+              <div class="fancy-number-icon">
+                <i class="pi pi-shopping-cart"></i>
+              </div>
+              <div class="fancy-number-content">
+                <div class="fancy-number-value">
+                  {{ formatNumber(storePerformance.totalOrders) }}
+                </div>
+                <div class="fancy-number-label">Total Orders</div>
+              </div>
+            </div>
           </ng-template>
         </p-card>
 
@@ -92,6 +91,82 @@
               [colors]="performanceChartOptions.colors!"
               [title]="performanceChartOptions.title!"
               [legend]="performanceChartOptions.legend!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+      </div>
+    </div>
+
+    <!-- Store Comparison Charts Section -->
+    <div class="charts-section" *ngIf="storePerformance && chartsReady">
+      <h2>Store Comparison Charts</h2>
+      <div class="comparison-legend">
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #10B981;"></span>
+          <span>Top Performers (Green)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #F59E0B;"></span>
+          <span>Average Performers (Yellow)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #EF4444;"></span>
+          <span>Poor Performers (Red)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #3B82F6;"></span>
+          <span>Current Store (Blue)</span>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <!-- Revenue Comparison Chart -->
+        <p-card class="chart-card" *ngIf="revenueComparisonChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="revenueComparisonChartOptions.series!"
+              [chart]="revenueComparisonChartOptions.chart!"
+              [xaxis]="revenueComparisonChartOptions.xaxis!"
+              [yaxis]="revenueComparisonChartOptions.yaxis!"
+              [dataLabels]="revenueComparisonChartOptions.dataLabels!"
+              [tooltip]="revenueComparisonChartOptions.tooltip!"
+              [title]="revenueComparisonChartOptions.title!"
+              [colors]="revenueComparisonChartOptions.colors!"
+              [plotOptions]="revenueComparisonChartOptions.plotOptions!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+
+        <!-- Orders Comparison Chart -->
+        <p-card class="chart-card" *ngIf="ordersComparisonChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="ordersComparisonChartOptions.series!"
+              [chart]="ordersComparisonChartOptions.chart!"
+              [xaxis]="ordersComparisonChartOptions.xaxis!"
+              [yaxis]="ordersComparisonChartOptions.yaxis!"
+              [dataLabels]="ordersComparisonChartOptions.dataLabels!"
+              [tooltip]="ordersComparisonChartOptions.tooltip!"
+              [title]="ordersComparisonChartOptions.title!"
+              [colors]="ordersComparisonChartOptions.colors!"
+              [plotOptions]="ordersComparisonChartOptions.plotOptions!">
+            </apx-chart>
+          </ng-template>
+        </p-card>
+
+        <!-- Performance Comparison Chart -->
+        <p-card class="chart-card full-width" *ngIf="performanceComparisonChartOptions">
+          <ng-template pTemplate="content">
+            <apx-chart
+              [series]="performanceComparisonChartOptions.series!"
+              [chart]="performanceComparisonChartOptions.chart!"
+              [xaxis]="performanceComparisonChartOptions.xaxis!"
+              [yaxis]="performanceComparisonChartOptions.yaxis!"
+              [dataLabels]="performanceComparisonChartOptions.dataLabels!"
+              [stroke]="performanceComparisonChartOptions.stroke!"
+              [fill]="performanceComparisonChartOptions.fill!"
+              [tooltip]="performanceComparisonChartOptions.tooltip!"
+              [title]="performanceComparisonChartOptions.title!"
+              [colors]="performanceComparisonChartOptions.colors!">
             </apx-chart>
           </ng-template>
         </p-card>

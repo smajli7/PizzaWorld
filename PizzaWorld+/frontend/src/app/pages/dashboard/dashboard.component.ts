@@ -29,6 +29,8 @@ interface ChartOptions {
   dataLabels: ApexDataLabels;
   stroke: ApexStroke;
   tooltip: ApexTooltip;
+  colors?: string[];
+  plotOptions?: any;
 }
 
 @Component({
@@ -182,25 +184,61 @@ export class DashboardComponent implements OnInit {
         height: 350,
         toolbar: {
           show: false
-        }
+        },
+        background: '#ffffff',
+        foreColor: '#ff6b35'
       },
       xaxis: {
-        categories: Object.keys(this.performanceData.storePerformance)
+        categories: Object.keys(this.performanceData.storePerformance),
+        labels: {
+          style: {
+            colors: '#ff6b35',
+            fontSize: '12px'
+          }
+        }
       },
       yaxis: {
         title: {
-          text: 'Revenue ($)'
+          text: 'Revenue ($)',
+          style: {
+            color: '#ff6b35',
+            fontSize: '14px',
+            fontWeight: '600'
+          }
+        },
+        labels: {
+          style: {
+            colors: '#ff6b35',
+            fontSize: '12px'
+          }
         }
       },
       dataLabels: {
-        enabled: false
+        enabled: true,
+        style: {
+          colors: ['#ff6b35'],
+          fontSize: '12px',
+          fontWeight: 'bold'
+        },
+        formatter: (val: number) => '$' + (val / 1000).toFixed(0) + 'k'
       },
       stroke: {
         width: 2
       },
       tooltip: {
+        theme: 'light',
+        style: {
+          fontSize: '12px'
+        },
         y: {
           formatter: (value: number) => `$${value.toLocaleString()}`
+        }
+      },
+      colors: ['#ff6b35'],
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          columnWidth: '70%'
         }
       }
     };
@@ -216,27 +254,57 @@ export class DashboardComponent implements OnInit {
         height: 350,
         toolbar: {
           show: false
-        }
+        },
+        background: '#ffffff',
+        foreColor: '#ff6b35'
       },
       xaxis: {
-        categories: Object.keys(this.performanceData.storePerformance)
+        categories: Object.keys(this.performanceData.storePerformance),
+        labels: {
+          style: {
+            colors: '#ff6b35',
+            fontSize: '12px'
+          }
+        }
       },
       yaxis: {
         title: {
-          text: 'Total Orders'
+          text: 'Total Orders',
+          style: {
+            color: '#ff6b35',
+            fontSize: '14px',
+            fontWeight: '600'
+          }
+        },
+        labels: {
+          style: {
+            colors: '#ff6b35',
+            fontSize: '12px'
+          }
         }
       },
       dataLabels: {
-        enabled: false
+        enabled: true,
+        style: {
+          colors: ['#ff6b35'],
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }
       },
       stroke: {
-        width: 3
+        width: 4,
+        colors: ['#ff6b35']
       },
       tooltip: {
+        theme: 'light',
+        style: {
+          fontSize: '12px'
+        },
         y: {
           formatter: (value: number) => value.toLocaleString()
         }
-      }
+      },
+      colors: ['#ff6b35']
     };
   }
 

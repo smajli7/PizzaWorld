@@ -1,9 +1,326 @@
 <!-- Sidebar links -->
 <app-sidebar></app-sidebar>
-<div class="app-bg">
-  <section class="home-section">
-    <!-- Existing products content here -->
-    <ng-content></ng-content>
-  </section>
+
+<!-- Loading Popup -->
+<app-loading-popup
+  [isVisible]="showLoadingPopup"
+  title="Loading Product Data"
+  [message]="loadingMessage"
+  [progress]="loadingProgress"
+  [showDetails]="false">
+</app-loading-popup>
+
+<div class="home-section">
+  <!-- Modern Upper Section -->
+  <div class="products-upper-section">
+    <div class="products-stats-row">
+      <div class="fancy-total-products-box">
+        <span class="fancy-total-products-icon"><i class="pi pi-box"></i></span>
+        <span class="fancy-total-products-info">
+          <span class="fancy-total-products-number">{{ products.length }}</span>
+          <span class="fancy-total-products-label">Total Products</span>
+        </span>
+      </div>
+      <div class="filtered-results-box">
+        <span class="filtered-results-number">{{ filteredProducts.length }}</span>
+        <span class="filtered-results-label">Filtered Results</span>
+      </div>
+    </div>
+    <div class="products-filter-card">
+      <div class="products-filter-header">
+        <span class="filter-title">Search & Filter Products</span>
+        <div class="filter-actions">
+          <button pButton type="button"
+                  label="Export All"
+                  icon="pi pi-download"
+                  class="p-button-outlined p-button-sm"
+                  (click)="exportProducts()"
+                  [disabled]="products.length === 0">
+          </button>
+          <button pButton type="button"
+                  label="Export Filtered"
+                  icon="pi pi-filter"
+                  class="p-button-outlined p-button-sm"
+                  (click)="exportFilteredProducts()"
+                  [disabled]="filteredProducts.length === 0">
+          </button>
+          <button pButton type="button"
+                  label="Clear Filters"
+                  class="p-button-outlined p-button-sm"
+                  (click)="clearFilters()"
+                  [disabled]="!searchTerm && !categoryFilter && !sizeFilter && !priceRangeFilter">
+          </button>
+        </div>
+      </div>
+      <div class="products-filter-fields">
+        <div class="filter-field">
+          <label for="search" class="filter-label">Search Products</label>
+          <span class="p-input-icon-left p-w-full">
+            <i class="pi pi-search"></i>
+            <input pInputText id="search"
+                   [(ngModel)]="searchTerm"
+                   (input)="applyFilters()"
+                   placeholder="Search by name, SKU, or category..."
+                   class="p-w-full" />
+          </span>
+        </div>
+        <div class="filter-field">
+          <label for="category" class="filter-label">Category</label>
+          <p-dropdown id="category"
+                     [options]="categories"
+                     [(ngModel)]="categoryFilter"
+                     (onChange)="applyFilters()"
+                     placeholder="All Categories"
+                     [showClear]="true"
+                     class="p-w-full">
+          </p-dropdown>
+        </div>
+        <div class="filter-field">
+          <label for="size" class="filter-label">Size</label>
+          <p-dropdown id="size"
+                     [options]="sizes"
+                     [(ngModel)]="sizeFilter"
+                     (onChange)="applyFilters()"
+                     placeholder="All Sizes"
+                     [showClear]="true"
+                     class="p-w-full">
+          </p-dropdown>
+        </div>
+        <div class="filter-field">
+          <label for="priceRange" class="filter-label">Price Range</label>
+          <p-dropdown id="priceRange"
+                     [options]="priceRanges"
+                     [(ngModel)]="priceRangeFilter"
+                     (onChange)="applyFilters()"
+                     placeholder="All Prices"
+                     optionLabel="label"
+                     optionValue="value"
+                     class="p-w-full">
+          </p-dropdown>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Products Table -->
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="table-header">
+        <h3>Product Details ({{ filteredProducts.length }} products)</h3>
+        <div class="table-actions">
+          <span class="results-count">Total Revenue: {{ formatCurrency(totalFilteredRevenue) }}</span>
+        </div>
+      </div>
+    </ng-template>
+    <ng-template pTemplate="content">
+      <ng-container *ngIf="!loading && !error; else loadingOrError">
+        <div class="modern-table-container">
+          <p-table
+            [value]="filteredProducts"
+            (onSort)="onSort($event)"
+            [sortMode]="'single'"
+            [sortField]="sortBy"
+            [sortOrder]="sortOrder"
+            [scrollable]="true"
+            scrollHeight="600px"
+            [lazy]="false"
+            [virtualScroll]="false"
+            styleClass="modern-table">
+
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="sku" style="width: 120px">
+                  SKU
+                  <p-sortIcon field="sku"></p-sortIcon>
+                </th>
+                <th pSortableColumn="name" style="width: 200px">
+                  Name
+                  <p-sortIcon field="name"></p-sortIcon>
+                </th>
+                <th pSortableColumn="category" style="width: 120px">
+                  Category
+                  <p-sortIcon field="category"></p-sortIcon>
+                </th>
+                <th pSortableColumn="size" style="width: 100px">
+                  Size
+                  <p-sortIcon field="size"></p-sortIcon>
+                </th>
+                <th pSortableColumn="price" style="width: 100px">
+                  Price
+                  <p-sortIcon field="price"></p-sortIcon>
+                </th>
+                <th pSortableColumn="totalOrders" style="width: 100px">
+                  Orders
+                  <p-sortIcon field="totalOrders"></p-sortIcon>
+                </th>
+                <th pSortableColumn="uniqueCustomers" style="width: 100px">
+                  Customers
+                  <p-sortIcon field="uniqueCustomers"></p-sortIcon>
+                </th>
+                <th pSortableColumn="revenue" style="width: 120px">
+                  Revenue
+                  <p-sortIcon field="revenue"></p-sortIcon>
+                </th>
+                <th style="width: 80px">
+                  Actions
+                </th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-product>
+              <tr class="product-row">
+                <td class="product-sku">
+                  <span class="sku-text">{{ product.sku }}</span>
+                </td>
+                <td class="product-name">{{ product.name }}</td>
+                <td class="product-category">
+                  <span class="category-badge">{{ product.category }}</span>
+                </td>
+                <td class="product-size">{{ product.size }}</td>
+                <td class="product-price">{{ formatCurrency(product.price) }}</td>
+                <td class="product-orders">{{ formatNumber(product.totalOrders) }}</td>
+                <td class="product-customers">{{ formatNumber(product.uniqueCustomers) }}</td>
+                <td class="product-revenue">{{ formatCurrency(product.revenue) }}</td>
+                <td class="product-actions">
+                  <button pButton
+                          type="button"
+                          icon="pi pi-eye"
+                          class="p-button-text p-button-sm"
+                          (click)="getProductDetails(product.sku)"
+                          pTooltip="View Details"
+                          tooltipPosition="top">
+                  </button>
+                </td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="9" class="no-results">
+                  <i class="pi pi-search"></i>
+                  <p>No products found matching your criteria</p>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </ng-container>
+
+      <ng-template #loadingOrError>
+        <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:200px;">
+          <ng-container *ngIf="loading; else errorState">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <div>Loading products data...</div>
+          </ng-container>
+          <ng-template #errorState>
+            <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
+            <div>Failed to load products data</div>
+            <button pButton type="button" label="Retry" class="p-button-outlined" (click)="loadProducts()" style="margin-top: 1rem;"></button>
+          </ng-template>
+        </div>
+      </ng-template>
+    </ng-template>
+  </p-card>
+
+  <!-- Products Charts -->
+  <div class="charts-section" *ngIf="!loading && !error && products.length > 0">
+    <div class="charts-grid">
+      <!-- Revenue Chart -->
+      <p-card class="chart-card" *ngIf="revenueChartOptions">
+        <ng-template pTemplate="header">
+          <h3>Revenue by Product</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <apx-chart
+            [series]="revenueChartOptions.series!"
+            [chart]="revenueChartOptions.chart!"
+            [xaxis]="revenueChartOptions.xaxis!"
+            [yaxis]="revenueChartOptions.yaxis!"
+            [title]="revenueChartOptions.title!"
+            [dataLabels]="revenueChartOptions.dataLabels!"
+            [tooltip]="revenueChartOptions.tooltip!"
+            [plotOptions]="revenueChartOptions.plotOptions!"
+            [stroke]="revenueChartOptions.stroke!"
+            [responsive]="revenueChartOptions.responsive!"
+            [legend]="revenueChartOptions.legend!"
+            [colors]="revenueChartOptions.colors!"
+            [fill]="revenueChartOptions.fill!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Orders Chart -->
+      <p-card class="chart-card" *ngIf="ordersChartOptions">
+        <ng-template pTemplate="header">
+          <h3>Orders by Product</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <apx-chart
+            [series]="ordersChartOptions.series!"
+            [chart]="ordersChartOptions.chart!"
+            [xaxis]="ordersChartOptions.xaxis!"
+            [yaxis]="ordersChartOptions.yaxis!"
+            [title]="ordersChartOptions.title!"
+            [dataLabels]="ordersChartOptions.dataLabels!"
+            [tooltip]="ordersChartOptions.tooltip!"
+            [plotOptions]="ordersChartOptions.plotOptions!"
+            [stroke]="ordersChartOptions.stroke!"
+            [responsive]="ordersChartOptions.responsive!"
+            [legend]="ordersChartOptions.legend!"
+            [colors]="ordersChartOptions.colors!"
+            [fill]="ordersChartOptions.fill!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Category Chart -->
+      <p-card class="chart-card" *ngIf="categoryChartOptions">
+        <ng-template pTemplate="header">
+          <h3>Products by Category</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <apx-chart
+            [series]="categoryChartOptions.series!"
+            [chart]="categoryChartOptions.chart!"
+            [xaxis]="categoryChartOptions.xaxis!"
+            [yaxis]="categoryChartOptions.yaxis!"
+            [title]="categoryChartOptions.title!"
+            [dataLabels]="categoryChartOptions.dataLabels!"
+            [tooltip]="categoryChartOptions.tooltip!"
+            [plotOptions]="categoryChartOptions.plotOptions!"
+            [stroke]="categoryChartOptions.stroke!"
+            [responsive]="categoryChartOptions.responsive!"
+            [legend]="categoryChartOptions.legend!"
+            [colors]="categoryChartOptions.colors!"
+            [fill]="categoryChartOptions.fill!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Top Products Chart -->
+      <p-card class="chart-card" *ngIf="topProductsChartOptions">
+        <ng-template pTemplate="header">
+          <h3>Top Products by Revenue</h3>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <apx-chart
+            [series]="topProductsChartOptions.series!"
+            [chart]="topProductsChartOptions.chart!"
+            [xaxis]="topProductsChartOptions.xaxis!"
+            [yaxis]="topProductsChartOptions.yaxis!"
+            [title]="topProductsChartOptions.title!"
+            [dataLabels]="topProductsChartOptions.dataLabels!"
+            [tooltip]="topProductsChartOptions.tooltip!"
+            [plotOptions]="topProductsChartOptions.plotOptions!"
+            [stroke]="topProductsChartOptions.stroke!"
+            [responsive]="topProductsChartOptions.responsive!"
+            [legend]="topProductsChartOptions.legend!"
+            [colors]="topProductsChartOptions.colors!"
+            [fill]="topProductsChartOptions.fill!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+    </div>
+  </div>
 </div>
 

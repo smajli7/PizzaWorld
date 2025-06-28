@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders }         from '@angular/common/http';
 import { Observable, shareReplay, map, catchError }         from 'rxjs';
+import { ProductsComponent, ProductInfo } from '../pages/products/products.component';
 
 /** Entspricht DashboardKpiDto im Backend */
 export interface DashboardKpiDto {
@@ -60,6 +61,10 @@ export class KpiService {
   // In-memory cache for faster access
   private storesDataCache: StoreInfo[] | null = null;
   private performanceDataCache: PerformanceData | null = null;
+
+  // Product data cache
+  private productsCache$: Observable<ProductInfo[]> | null = null;
+  private productsDataCache: ProductInfo[] | null = null;
 
   /** Holt alle KPI‐Zahlen für das Dashboard */
   getDashboard(): Observable<DashboardKpiDto> {
@@ -239,5 +244,72 @@ export class KpiService {
   getStorePerformance(storeId: string): StorePerformance | null {
     const performanceData = this.getCachedPerformanceData();
     return performanceData?.storePerformance[storeId] || null;
+  }
+
+  /** Load all products from backend API */
+  getAllProducts(): Observable<ProductInfo[]> {
+    if (!this.productsCache$) {
+      const token = localStorage.getItem('authToken');
+      const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+      console.log('🔄 Loading products data from API...');
+
+      this.productsCache$ = this.http.get<any[]>('/api/products', { headers })
+        .pipe(
+          map(backendProducts => {
+            // Transform backend data to frontend format
+            const products = backendProducts.map(backendProduct => ({
+              sku: backendProduct.sku,
+              name: backendProduct.name,
+              category: backendProduct.category,
+              price: Number(backendProduct.price),
+              size: backendProduct.size,
+              ingredients: backendProduct.ingredients,
+              launch: backendProduct.launch,
+              totalOrders: Number(backendProduct.total_orders),
+              uniqueCustomers: Number(backendProduct.customers),
+              revenue: Number(backendProduct.revenue),
+              avgOrder: Number(backendProduct.avg_order || backendProduct.price)
+            }));
+
+            // Cache the products data in both memory and localStorage
+            this.productsDataCache = products;
+            localStorage.setItem('pizzaWorld_products', JSON.stringify(products));
+
+            console.log(`✅ Products data loaded: ${products.length} products`);
+            return products;
+          }),
+          catchError(error => {
+            console.error('❌ Products data loading failed:', error);
+            throw error;
+          }),
+          shareReplay(1, 600000) // Cache for 10 minutes
+        );
+    }
+    return this.productsCache$;
+  }
+
+  /** Get cached products data */
+  getCachedProducts(): ProductInfo[] | null {
+    if (this.productsDataCache) {
+      return this.productsDataCache;
+    }
+    const cached = localStorage.getItem('pizzaWorld_products');
+    if (cached) {
+      try {
+        this.productsDataCache = JSON.parse(cached);
+        return this.productsDataCache;
+      } catch (error) {
+        localStorage.removeItem('pizzaWorld_products');
+      }
+    }
+    return null;
+  }
+
+  /** Clear products cache */
+  clearProductsCache(): void {
+    this.productsCache$ = null;
+    this.productsDataCache = null;
+    localStorage.removeItem('pizzaWorld_products');
   }
 }

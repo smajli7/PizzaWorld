@@ -3,6 +3,14 @@
   {{ successMsg }}
 </div>
 
+<!-- Loading Popup -->
+<app-loading-popup
+  [isVisible]="showLoadingPopup"
+  [title]="'Loading PizzaWorld Data'"
+  [message]="loadingMessage"
+  [progress]="loadingProgress">
+</app-loading-popup>
+
 <!-- Hintergrund-Layer: animierte Pizza-Slices -->
 <ul class="bg-pizzas" aria-hidden="true">
   <li></li><li></li><li></li><li></li><li></li>
@@ -15,9 +23,9 @@
     <img class="form-logo" src="assets/images/logo.png" alt="PizzaWorld Logo" />
   </div>
 
-  
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+  <form [formGroup]="form" (ngSubmit)="login()" novalidate>
     <!-- Benutzername -->
     <div class="input-box">
       <input type="text" formControlName="username" placeholder="Username" />

@@ -19,24 +19,24 @@
       <div class="stores-filter-header">
         <span class="filter-title">Search & Filter Stores</span>
         <div class="filter-actions">
-          <button pButton type="button" 
-                  label="Export All" 
+          <button pButton type="button"
+                  label="Export All"
                   icon="pi pi-download"
-                  class="p-button-outlined p-button-sm" 
+                  class="p-button-outlined p-button-sm"
                   (click)="exportStores()"
                   [loading]="exportLoading"
                   [disabled]="allStores.length === 0">
           </button>
-          <button pButton type="button" 
-                  label="Export Filtered" 
+          <button pButton type="button"
+                  label="Export Filtered"
                   icon="pi pi-filter"
-                  class="p-button-outlined p-button-sm" 
+                  class="p-button-outlined p-button-sm"
                   (click)="exportFilteredStores()"
                   [disabled]="filteredStores.length === 0">
           </button>
-          <button pButton type="button" 
-                  label="Clear Filters" 
-                  class="p-button-outlined p-button-sm" 
+          <button pButton type="button"
+                  label="Clear Filters"
+                  class="p-button-outlined p-button-sm"
                   (click)="clearFilters()"
                   [disabled]="!searchTerm && selectedStates.length === 0">
           </button>
@@ -47,8 +47,8 @@
           <label for="search" class="filter-label">Search Stores</label>
           <span class="p-input-icon-left p-w-full">
             <i class="pi pi-search"></i>
-            <input pInputText id="search" 
-                   [(ngModel)]="searchTerm" 
+            <input pInputText id="search"
+                   [(ngModel)]="searchTerm"
                    (input)="onSearchChange()"
                    placeholder="Search by store ID, city, zip code, or state..."
                    class="p-w-full" />
@@ -83,10 +83,10 @@
         <h3>Store Locations ({{ getStoreCount() }} stores)</h3>
         <div class="table-actions" *ngIf="getSelectedCount() > 0">
           <span class="selected-count">{{ getSelectedCount() }} selected</span>
-          <button pButton type="button" 
-                  label="Clear Selection" 
+          <button pButton type="button"
+                  label="Clear Selection"
                   icon="pi pi-times"
-                  class="p-button-text p-button-sm" 
+                  class="p-button-text p-button-sm"
                   (click)="clearSelection()">
           </button>
         </div>
@@ -95,8 +95,8 @@
     <ng-template pTemplate="content">
       <ng-container *ngIf="!loading && !error; else loadingOrError">
         <div class="modern-table-container">
-          <p-table 
-            [value]="filteredStores" 
+          <p-table
+            [value]="filteredStores"
             [selectionMode]="'multiple'"
             [(selection)]="selectedStores"
             (onRowSelect)="onRowSelect($event)"
@@ -108,7 +108,7 @@
             [scrollable]="true"
             scrollHeight="600px"
             styleClass="modern-table">
-            
+
             <ng-template pTemplate="header">
               <tr>
                 <th style="width: 4rem">
@@ -118,9 +118,9 @@
                   Store ID
                   <p-sortIcon field="storeid"></p-sortIcon>
                 </th>
-                <th pSortableColumn="name" style="width: 200px">
+                <th pSortableColumn="city" style="width: 200px">
                   City
-                  <p-sortIcon field="name"></p-sortIcon>
+                  <p-sortIcon field="city"></p-sortIcon>
                 </th>
                 <th pSortableColumn="state" style="width: 150px">
                   State
@@ -135,21 +135,21 @@
                 </th>
               </tr>
             </ng-template>
-            
+
             <ng-template pTemplate="body" let-store>
               <tr class="store-row">
                 <td>
                   <p-tableCheckbox [value]="store"></p-tableCheckbox>
                 </td>
                 <td class="store-id">
-                  <span class="store-id-text clickable" 
+                  <span class="store-id-text clickable"
                         (click)="navigateToStoreDetails(store)"
-                        pTooltip="Click to view store details" 
+                        pTooltip="Click to view store details"
                         tooltipPosition="top">
                     {{ store.storeid }}
                   </span>
                 </td>
-                <td class="store-city">{{ store.name }}</td>
+                <td class="store-city">{{ store.city }}</td>
                 <td class="store-state">
                   <span class="state-badge">[{{ store.state_abbr }}]</span>
                   <span class="state-name">{{ store.state }}</span>
@@ -157,7 +157,7 @@
                 <td class="store-zip">{{ store.zipcode }}</td>
                 <td class="store-coordinates">
                   <span class="coordinates-link"
-                        pTooltip="Click to open in Google Maps" 
+                        pTooltip="Click to open in Google Maps"
                         tooltipPosition="top"
                         (click)="openInMaps(store.latitude, store.longitude)">
                     {{ formatCoordinates(store.latitude, store.longitude) }}
@@ -165,7 +165,7 @@
                 </td>
               </tr>
             </ng-template>
-            
+
             <ng-template pTemplate="emptymessage">
               <tr>
                 <td colspan="6" class="no-results">
@@ -177,7 +177,7 @@
           </p-table>
         </div>
       </ng-container>
-      
+
       <ng-template #loadingOrError>
         <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:200px;">
           <ng-container *ngIf="loading; else errorState">

@@ -446,4 +446,81 @@ public class PizzaService {
         return pizzaRepo.fetchOrdersPerDay();
     }
 
+    public Map<String, Object> getPerformanceData(User user) {
+        Map<String, Object> performanceData = new HashMap<>();
+
+        try {
+            // Get all stores based on user role
+            List<Map<String, Object>> stores = filterStores(new HashMap<>(), user);
+
+            // Get performance data for each store
+            Map<String, Object> storePerformance = new HashMap<>();
+            double totalRevenue = 0;
+            int totalOrders = 0;
+            int totalCustomers = 0;
+
+            for (Map<String, Object> store : stores) {
+                String storeId = (String) store.get("storeid");
+                try {
+                    Map<String, Object> storeKPIs = getStoreKPIs(storeId, new CustomUserDetails(user));
+                    Map<String, Object> kpis = (Map<String, Object>) storeKPIs.get("kpis");
+
+                    if (kpis != null) {
+                        Map<String, Object> performance = new HashMap<>();
+                        performance.put("totalOrders", kpis.get("orders"));
+                        performance.put("totalRevenue", kpis.get("revenue"));
+                        performance.put("avgOrderValue", kpis.get("avg_order"));
+                        performance.put("uniqueCustomers", kpis.get("customers"));
+                        performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+
+                        storePerformance.put(storeId, performance);
+
+                        // Accumulate global totals
+                        totalRevenue += ((Number) kpis.get("revenue")).doubleValue();
+                        totalOrders += ((Number) kpis.get("orders")).intValue();
+                        totalCustomers += ((Number) kpis.get("customers")).intValue();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error getting KPIs for store " + storeId + ": " + e.getMessage());
+                    // Add default values for this store
+                    Map<String, Object> performance = new HashMap<>();
+                    performance.put("totalOrders", 0);
+                    performance.put("totalRevenue", 0.0);
+                    performance.put("avgOrderValue", 0.0);
+                    performance.put("uniqueCustomers", 0);
+                    performance.put("lastUpdated", java.time.LocalDateTime.now().toString());
+                    storePerformance.put(storeId, performance);
+                }
+            }
+
+            // Calculate global KPIs
+            Map<String, Object> globalKPIs = new HashMap<>();
+            globalKPIs.put("totalRevenue", totalRevenue);
+            globalKPIs.put("totalOrders", totalOrders);
+            globalKPIs.put("avgOrderValue", totalOrders > 0 ? totalRevenue / totalOrders : 0);
+            globalKPIs.put("totalCustomers", totalCustomers);
+            globalKPIs.put("lastUpdated", java.time.LocalDateTime.now().toString());
+
+            performanceData.put("storePerformance", storePerformance);
+            performanceData.put("globalKPIs", globalKPIs);
+
+        } catch (Exception e) {
+            System.err.println("Error in getPerformanceData: " + e.getMessage());
+            e.printStackTrace();
+
+            // Return empty data structure on error
+            Map<String, Object> globalKPIs = new HashMap<>();
+            globalKPIs.put("totalRevenue", 0.0);
+            globalKPIs.put("totalOrders", 0);
+            globalKPIs.put("avgOrderValue", 0.0);
+            globalKPIs.put("totalCustomers", 0);
+            globalKPIs.put("lastUpdated", java.time.LocalDateTime.now().toString());
+
+            performanceData.put("storePerformance", new HashMap<>());
+            performanceData.put("globalKPIs", globalKPIs);
+        }
+
+        return performanceData;
+    }
+
 }

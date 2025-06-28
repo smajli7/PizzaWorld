@@ -80,14 +80,14 @@ export class StoresComponent implements OnInit {
   first = 0;
   rows = 10;
   totalRecords = 0;
-  
+
   // Sorting
   sortField: string = '';
   sortOrder: number = 1;
-  
+
   // Row selection
   selectedStores: StoreInfo[] = [];
-  
+
   // Export
   exportLoading = false;
 
@@ -155,8 +155,8 @@ export class StoresComponent implements OnInit {
 
   private applyFilters(): void {
     this.filteredStores = this.allStores.filter(store => {
-      const matchesSearch = !this.searchTerm || 
-        store.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      const matchesSearch = !this.searchTerm ||
+        store.city.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         store.storeid.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         store.zipcode.includes(this.searchTerm) ||
         store.state.toLowerCase().includes(this.searchTerm.toLowerCase());
@@ -165,7 +165,7 @@ export class StoresComponent implements OnInit {
 
       return matchesSearch && matchesState;
     });
-    
+
     this.totalRecords = this.filteredStores.length;
     this.first = 0; // Reset to first page when filtering
   }
@@ -188,18 +188,18 @@ export class StoresComponent implements OnInit {
   onSort(event: SortEvent): void {
     this.sortField = event.field || '';
     this.sortOrder = event.order || 1;
-    
+
     if (this.sortField) {
       this.filteredStores.sort((a: any, b: any) => {
         let valueA = a[this.sortField];
         let valueB = b[this.sortField];
-        
+
         // Handle string comparison
         if (typeof valueA === 'string') {
           valueA = valueA.toLowerCase();
           valueB = valueB.toLowerCase();
         }
-        
+
         if (valueA < valueB) {
           return this.sortOrder === 1 ? -1 : 1;
         }
@@ -229,13 +229,13 @@ export class StoresComponent implements OnInit {
   // Export functionality
   exportStores(): void {
     this.exportLoading = true;
-    
+
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
-    this.http.get('/api/store/export', { 
-      headers, 
-      responseType: 'blob' 
+
+    this.http.get('/api/store/export', {
+      headers,
+      responseType: 'blob'
     }).subscribe(
       (blob: Blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -265,7 +265,7 @@ export class StoresComponent implements OnInit {
       headers.join(','),
       ...this.filteredStores.map(store => [
         store.storeid,
-        store.name,
+        store.city,
         store.state,
         store.state_abbr,
         store.zipcode,

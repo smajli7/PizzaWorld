@@ -2,9 +2,9 @@
 <div class="home-section">
   <!-- Back Button -->
   <div class="back-section">
-    <button pButton type="button" 
-            icon="pi pi-arrow-left" 
-            label="Back to Stores" 
+    <button pButton type="button"
+            icon="pi pi-arrow-left"
+            label="Back to Stores"
             class="p-button-outlined"
             (click)="goBack()">
     </button>
@@ -29,12 +29,12 @@
     <div class="store-header">
       <div class="store-title">
         <h1>Store {{ store.storeid }}</h1>
-        <span class="store-location">{{ store.name }}, {{ store.state }}</span>
+        <span class="store-location">{{ store.city }}, {{ store.state }}</span>
       </div>
       <div class="store-actions">
-        <button pButton type="button" 
-                icon="pi pi-map-marker" 
-                label="Open in Maps" 
+        <button pButton type="button"
+                icon="pi pi-map-marker"
+                label="Open in Maps"
                 class="p-button-outlined"
                 (click)="openInMaps(store.latitude, store.longitude)">
         </button>
@@ -56,7 +56,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">City:</span>
-              <span class="info-value">{{ store.name }}</span>
+              <span class="info-value">{{ store.city }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">State:</span>
@@ -68,7 +68,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">Coordinates:</span>
-              <span class="info-value coordinates-link" 
+              <span class="info-value coordinates-link"
                     (click)="openInMaps(store.latitude, store.longitude)"
                     pTooltip="Click to open in Google Maps">
                 {{ formatCoordinates(store.latitude, store.longitude) }}
@@ -155,4 +155,4 @@
     <div>Store {{ storeId }} not found</div>
     <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()" style="margin-top: 1rem;"></button>
   </div>
-</div> 
+</div>

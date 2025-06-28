@@ -261,4 +261,11 @@ public class PizzaController {
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, testUserDetails));
     }
 
+    // 📊 Performance Data (All stores + Global KPIs)
+    @GetMapping("/dashboard/performance-data")
+    public ResponseEntity<?> getPerformanceData(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getPerformanceData(user));
+    }
+
 }

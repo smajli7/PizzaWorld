@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders }         from '@angular/common/http';
-import { Observable, shareReplay }         from 'rxjs';
+import { Observable, shareReplay, map }         from 'rxjs';
 
 /** Entspricht DashboardKpiDto im Backend */
 export interface DashboardKpiDto {
@@ -18,18 +18,42 @@ export interface StoreInfo {
   state_abbr: string;
   latitude: number;
   longitude: number;
-  name: string; // city
+  city: string; // City
   state: string;
   distance?: number;
+}
+
+/** Store performance data interface */
+export interface StorePerformance {
+  totalOrders: number;
+  totalRevenue: number;
+  avgOrderValue: number;
+  uniqueCustomers: number;
+  lastUpdated: string;
+}
+
+/** Global KPIs interface */
+export interface GlobalKPIs {
+  totalRevenue: number;
+  totalOrders: number;
+  avgOrderValue: number;
+  totalCustomers: number;
+  lastUpdated: string;
+}
+
+/** Performance data interface */
+export interface PerformanceData {
+  storePerformance: { [storeId: string]: StorePerformance };
+  globalKPIs: GlobalKPIs;
 }
 
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private http = inject(HttpClient);
-  
+
   // Cache for dashboard KPIs - cache for 5 minutes
   private dashboardCache$: Observable<DashboardKpiDto> | null = null;
-  
+
   // Cache for stores data - cache for 10 minutes
   private storesCache$: Observable<StoreInfo[]> | null = null;
 
@@ -55,9 +79,22 @@ export class KpiService {
       const token = localStorage.getItem('authToken');
       const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
       this.storesCache$ = this.http.get<StoreInfo[]>('/api/stores', { headers })
-        .pipe(shareReplay(1, 600000)); // Cache for 10 minutes
+        .pipe(
+          map(stores => {
+            // Cache the stores data
+            localStorage.setItem('pizzaWorld_stores', JSON.stringify(stores));
+            return stores;
+          }),
+          shareReplay(1, 600000) // Cache for 10 minutes
+        );
     }
     return this.storesCache$;
+  }
+
+  /** Get cached stores data */
+  getCachedStoresData(): StoreInfo[] | null {
+    const cached = localStorage.getItem('pizzaWorld_stores');
+    return cached ? JSON.parse(cached) : null;
   }
 
   /** Clear stores cache when needed */
@@ -93,5 +130,43 @@ export class KpiService {
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
     // Use the test endpoint for debugging (no authentication required)
     return this.http.get<any>(`/api/stores/${storeId}/kpis/test`, { headers });
+  }
+
+  /** Load all performance data and cache it */
+  loadPerformanceData(): Observable<PerformanceData> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return this.http.get<PerformanceData>('/api/dashboard/performance-data', { headers })
+      .pipe(
+        map(data => {
+          // Cache the data
+          localStorage.setItem('pizzaWorld_performance', JSON.stringify(data));
+          return data;
+        })
+      );
+  }
+
+  /** Get cached performance data */
+  getCachedPerformanceData(): PerformanceData | null {
+    const cached = localStorage.getItem('pizzaWorld_performance');
+    return cached ? JSON.parse(cached) : null;
+  }
+
+  /** Clear cached performance data */
+  clearPerformanceCache(): void {
+    localStorage.removeItem('pizzaWorld_performance');
+  }
+
+  /** Check if cached data is fresh (less than 24 hours old) */
+  isCachedDataFresh(): boolean {
+    const cached = this.getCachedPerformanceData();
+    if (!cached) return false;
+
+    const lastUpdated = new Date(cached.globalKPIs.lastUpdated);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+    return hoursDiff < 24;
   }
 }

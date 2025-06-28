@@ -3,6 +3,7 @@ import { CommonModule }   from '@angular/common';
 import { RouterModule }   from '@angular/router';
 import { NgApexchartsModule, ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexDataLabels, ApexTooltip, ApexPlotOptions, ApexYAxis, ApexStroke } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService } from '../../core/kpi.service';
 
 export interface ChartOptions {
@@ -22,7 +23,8 @@ export interface ChartOptions {
     CommonModule,
     RouterModule,
     NgApexchartsModule,
-    SidebarComponent
+    SidebarComponent,
+    TimeSelectorComponent
   ],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss']
@@ -32,6 +34,11 @@ export class OrdersComponent implements OnInit {
 
   /** Filled after HTTP call; null until then */
   ordersOpts: ChartOptions | null = null;
+
+  // Time selection
+  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
+  fromDate: string = '';
+  toDate: string = '';
 
   constructor(private kpi: KpiService) {}
 
@@ -52,6 +59,13 @@ export class OrdersComponent implements OnInit {
         tooltip    : { shared : true }
       };
     });
+  }
+
+  onTimePeriodChange(dateRange: { from: string; to: string }): void {
+    this.fromDate = dateRange.from;
+    this.toDate = dateRange.to;
+    // You can add logic here to filter orders data based on the selected time period
+    console.log('Time period changed:', dateRange);
   }
 
   toggleSidebar(): void {

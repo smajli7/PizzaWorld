@@ -53,20 +53,20 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
   String getStoreState(@Param("storeId") String storeId);
 
   @Query(value = """
-      SELECT SUM(o.total) AS revenue,
-             COUNT(*) AS total_orders,
-             COUNT(DISTINCT o.customerid) AS unique_customers,
-             AVG(o.total) AS avg_order
+      SELECT COALESCE(SUM(o.total), 0) AS revenue,
+             COALESCE(COUNT(*), 0) AS total_orders,
+             COALESCE(COUNT(DISTINCT o.customerid), 0) AS unique_customers,
+             COALESCE(AVG(o.total), 0) AS avg_order
       FROM orders o
       WHERE o.orderdate BETWEEN :from AND :to
       """, nativeQuery = true)
   Map<String, Object> fetchSalesKPIs(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
   @Query(value = """
-      SELECT SUM(o.total) AS revenue,
-             COUNT(*) AS total_orders,
-             COUNT(DISTINCT o.customerid) AS unique_customers,
-             AVG(o.total) AS avg_order
+      SELECT COALESCE(SUM(o.total), 0) AS revenue,
+             COALESCE(COUNT(*), 0) AS total_orders,
+             COALESCE(COUNT(DISTINCT o.customerid), 0) AS unique_customers,
+             COALESCE(AVG(o.total), 0) AS avg_order
       FROM orders o
       JOIN stores s ON o.storeid = s.storeid
       WHERE s.state_abbr = :state
@@ -77,10 +77,10 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       @Param("to") LocalDate to);
 
   @Query(value = """
-      SELECT SUM(o.total) AS revenue,
-             COUNT(*) AS total_orders,
-             COUNT(DISTINCT o.customerid) AS unique_customers,
-             AVG(o.total) AS avg_order
+      SELECT COALESCE(SUM(o.total), 0) AS revenue,
+             COALESCE(COUNT(*), 0) AS total_orders,
+             COALESCE(COUNT(DISTINCT o.customerid), 0) AS unique_customers,
+             COALESCE(AVG(o.total), 0) AS avg_order
       FROM orders o
       WHERE o.storeid = :storeId
         AND o.orderdate BETWEEN :from AND :to
@@ -369,5 +369,149 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       GROUP BY o.storeid
       """, nativeQuery = true)
   List<Map<String, Object>> fetchAllStoreKPIsForHQ();
+
+  // --------- SALES: Best Selling Products (Global) ---------
+  @Query(value = """
+      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      WHERE o.orderdate BETWEEN :from AND :to
+      GROUP BY p.sku, p.name, p.size
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchBestSellingProducts(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE s.state_abbr = :state
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY p.sku, p.name, p.size
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchBestSellingProductsByState(@Param("state") String state, 
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      WHERE o.storeid = :storeId
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY p.sku, p.name, p.size
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchBestSellingProductsByStore(@Param("storeId") String storeId,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  // --------- SALES: Best/Worst Stores by Revenue ---------
+  @Query(value = """
+      SELECT s.storeid, s.city, s.state_abbr, SUM(o.total) AS revenue, COUNT(*) AS orders
+      FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE o.orderdate BETWEEN :from AND :to
+      GROUP BY s.storeid, s.city, s.state_abbr
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchStoresByRevenue(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT s.storeid, s.city, s.state_abbr, SUM(o.total) AS revenue, COUNT(*) AS orders
+      FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE s.state_abbr = :state
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY s.storeid, s.city, s.state_abbr
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchStoresByRevenueByState(@Param("state") String state,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  // --------- SALES: Sales Trends by Time Period ---------
+  @Query(value = """
+      SELECT DATE(o.orderdate) AS day, SUM(o.total) AS revenue, COUNT(*) AS orders
+      FROM orders o
+      WHERE o.orderdate BETWEEN :from AND :to
+      GROUP BY DATE(o.orderdate)
+      ORDER BY day
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchSalesTrendByDay(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT DATE(o.orderdate) AS day, SUM(o.total) AS revenue, COUNT(*) AS orders
+      FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE s.state_abbr = :state
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY DATE(o.orderdate)
+      ORDER BY day
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchSalesTrendByDayByState(@Param("state") String state,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT DATE(o.orderdate) AS day, SUM(o.total) AS revenue, COUNT(*) AS orders
+      FROM orders o
+      WHERE o.storeid = :storeId
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY DATE(o.orderdate)
+      ORDER BY day
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchSalesTrendByDayByStore(@Param("storeId") String storeId,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  // --------- SALES: Revenue by Category ---------
+  @Query(value = """
+      SELECT p.category, SUM(oi.quantity * p.price) AS revenue, COUNT(*) AS orders
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      WHERE o.orderdate BETWEEN :from AND :to
+      GROUP BY p.category
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchRevenueByCategory(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT p.category, SUM(oi.quantity * p.price) AS revenue, COUNT(*) AS orders
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE s.state_abbr = :state
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY p.category
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchRevenueByCategoryByState(@Param("state") String state,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  @Query(value = """
+      SELECT p.category, SUM(oi.quantity * p.price) AS revenue, COUNT(*) AS orders
+      FROM order_items oi
+      JOIN orders o ON o.orderid = oi.orderid
+      JOIN products p ON p.sku = oi.sku
+      WHERE o.storeid = :storeId
+        AND o.orderdate BETWEEN :from AND :to
+      GROUP BY p.category
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> fetchRevenueByCategoryByStore(@Param("storeId") String storeId,
+      @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+  // Debug methods to check orders table
+  @Query(value = "SELECT * FROM orders LIMIT 5", nativeQuery = true)
+  List<Map<String, Object>> findSampleOrders();
+
+  @Query(value = "SELECT COUNT(*) FROM orders", nativeQuery = true)
+  Long countTotalOrders();
+
+  @Query(value = "SELECT MIN(orderdate) FROM orders", nativeQuery = true)
+  String findEarliestOrderDate();
 
 }

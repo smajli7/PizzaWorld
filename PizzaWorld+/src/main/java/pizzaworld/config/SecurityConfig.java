@@ -57,6 +57,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT = stateless
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/stores/**", "/api/store/**").permitAll() // TEMP: allow store KPIs for debugging
+                        .requestMatchers("/api/sales/test/**").permitAll() // TEMP: allow sales test endpoints for debugging
+                        .requestMatchers("/api/test").permitAll() // TEMP: allow test endpoint
                         .requestMatchers("/api/login", "/api/logout", "/api/me", "/error").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)

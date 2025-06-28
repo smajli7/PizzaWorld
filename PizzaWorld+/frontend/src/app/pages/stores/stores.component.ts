@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService, StoreInfo } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { CardModule } from 'primeng/card';
@@ -47,6 +48,7 @@ export interface ChartOptions {
   standalone: true,
   imports: [
     SidebarComponent,
+    TimeSelectorComponent,
     CommonModule,
     FormsModule,
     NgApexchartsModule,
@@ -95,6 +97,11 @@ export class StoresComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
 
+  // Time selection
+  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
+  fromDate: string = '';
+  toDate: string = '';
+
   constructor(
     private kpi: KpiService,
     private http: HttpClient,
@@ -131,7 +138,7 @@ export class StoresComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = false;
 
-    // Try to load from cache first for instant display
+    // ALWAYS try to load from cache first for instant display
     const cachedStores = this.kpi.getCachedStoresData();
     if (cachedStores && cachedStores.length > 0) {
       this.allStores = cachedStores;
@@ -141,14 +148,16 @@ export class StoresComponent implements OnInit, OnDestroy {
       this.applyFilters();
       this.loading = false;
       this.cdr.detectChanges();
-      console.log('Stores loaded from cache');
+      console.log('✅ Stores loaded INSTANTLY from cache');
+      return;
     }
 
-    // Load fresh data from API
+    // Only if NO cache exists, then load fresh data from API
+    console.log('⚠️ No cached stores data found - loading from API (this should not happen after login)');
     this.kpi.getAllStores()
       .pipe(
         catchError(err => {
-          console.error('Stores loading error:', err);
+          console.error('❌ Stores loading error:', err);
           this.error = true;
           return of([]);
         }),
@@ -164,7 +173,7 @@ export class StoresComponent implements OnInit, OnDestroy {
           this.totalRecords = stores.length;
           this.extractStates();
           this.applyFilters();
-          console.log('Stores loaded from API');
+          console.log('✅ Stores loaded from API');
         }
       });
   }
@@ -379,5 +388,12 @@ export class StoresComponent implements OnInit, OnDestroy {
   // Performance optimization: trackBy function for ngFor
   trackByStoreId(index: number, store: StoreInfo): string {
     return store.storeid;
+  }
+
+  onTimePeriodChange(dateRange: { from: string; to: string }): void {
+    this.fromDate = dateRange.from;
+    this.toDate = dateRange.to;
+    // You can add logic here to filter stores data based on the selected time period
+    console.log('Time period changed:', dateRange);
   }
 }

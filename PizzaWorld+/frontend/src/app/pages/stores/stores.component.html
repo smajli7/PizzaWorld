@@ -1,5 +1,11 @@
 <app-sidebar></app-sidebar>
 <div class="home-section">
+  <!-- Time Selector -->
+  <app-time-selector
+    [selectedPeriod]="selectedPeriod"
+    (periodChange)="onTimePeriodChange($event)">
+  </app-time-selector>
+
   <!-- Modern Upper Section -->
   <div class="stores-upper-section">
     <div class="stores-stats-row">

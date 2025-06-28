@@ -239,6 +239,44 @@ public class PizzaController {
         return ResponseEntity.ok(pizzaService.getOrdersPerDay());
     }
 
+    // --------- SALES ANALYTICS ENDPOINTS ---------
+    
+    @GetMapping("/sales/best-selling-products")
+    public ResponseEntity<?> getBestSellingProducts(
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getBestSellingProducts(from, to, user));
+    }
+
+    @GetMapping("/sales/stores-by-revenue")
+    public ResponseEntity<?> getStoresByRevenue(
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoresByRevenue(from, to, user));
+    }
+
+    @GetMapping("/sales/trend-by-day")
+    public ResponseEntity<?> getSalesTrendByDay(
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getSalesTrendByDay(from, to, user));
+    }
+
+    @GetMapping("/sales/revenue-by-category")
+    public ResponseEntity<?> getRevenueByCategory(
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRevenueByCategory(from, to, user));
+    }
+
     // 🧪 Test endpoint to verify controller is working
     @GetMapping("/test")
     public ResponseEntity<?> testEndpoint() {
@@ -261,6 +299,73 @@ public class PizzaController {
         return ResponseEntity.ok(pizzaService.getStoreKPIs(storeId, testUserDetails));
     }
 
+    // 🧪 Test endpoints for sales analytics without authentication (for debugging)
+    @GetMapping("/sales/test/kpis")
+    public ResponseEntity<?> getSalesKPIsTest(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        System.out.println("🔍 DEBUG: TEST Sales KPIs from: " + from + " to: " + to);
+        
+        // Debug: Check if there are any orders in the date range
+        System.out.println("🔍 DEBUG: Checking orders table for date range...");
+        
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+
+        Map<String, Object> result = pizzaService.getSalesKPIs(from, to, testUser);
+        System.out.println("🔍 DEBUG: Sales KPIs result: " + result);
+        
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/sales/test/best-selling-products")
+    public ResponseEntity<?> getBestSellingProductsTest(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        System.out.println("🔍 DEBUG: TEST Best selling products from: " + from + " to: " + to);
+        
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+
+        return ResponseEntity.ok(pizzaService.getBestSellingProducts(from, to, testUser));
+    }
+
+    @GetMapping("/sales/test/stores-by-revenue")
+    public ResponseEntity<?> getStoresByRevenueTest(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        System.out.println("🔍 DEBUG: TEST Stores by revenue from: " + from + " to: " + to);
+        
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+
+        return ResponseEntity.ok(pizzaService.getStoresByRevenue(from, to, testUser));
+    }
+
+    @GetMapping("/sales/test/trend-by-day")
+    public ResponseEntity<?> getSalesTrendByDayTest(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        System.out.println("🔍 DEBUG: TEST Sales trend from: " + from + " to: " + to);
+        
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+
+        return ResponseEntity.ok(pizzaService.getSalesTrendByDay(from, to, testUser));
+    }
+
+    @GetMapping("/sales/test/revenue-by-category")
+    public ResponseEntity<?> getRevenueByCategoryTest(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        System.out.println("🔍 DEBUG: TEST Revenue by category from: " + from + " to: " + to);
+        
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+
+        return ResponseEntity.ok(pizzaService.getRevenueByCategory(from, to, testUser));
+    }
+
     // 📊 Performance Data (All stores + Global KPIs)
     @GetMapping("/dashboard/performance-data")
     public ResponseEntity<?> getPerformanceData(@AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -274,6 +379,29 @@ public class PizzaController {
         User user = userDetails.getUser();
         System.out.println("🐌 Using legacy sequential performance data method for user: " + user.getUsername());
         return ResponseEntity.ok(pizzaService.getPerformanceData(user));
+    }
+
+    // 🧪 Debug endpoint to check orders table
+    @GetMapping("/debug/orders")
+    public ResponseEntity<?> debugOrders() {
+        System.out.println("🔍 DEBUG: Checking orders table...");
+        
+        // Get sample orders to see the data structure
+        List<Map<String, Object>> sampleOrders = pizzaService.getSampleOrders();
+        System.out.println("🔍 DEBUG: Sample orders: " + sampleOrders);
+        
+        return ResponseEntity.ok(Map.of(
+            "message", "Orders table debug info",
+            "sampleOrders", sampleOrders,
+            "totalOrders", pizzaService.getTotalOrderCount()
+        ));
+    }
+
+    // 🧪 Endpoint to get the earliest order date
+    @GetMapping("/orders/earliest-date")
+    public ResponseEntity<?> getEarliestOrderDate() {
+        String earliest = pizzaService.getEarliestOrderDate();
+        return ResponseEntity.ok(Map.of("earliestOrderDate", earliest));
     }
 
 }

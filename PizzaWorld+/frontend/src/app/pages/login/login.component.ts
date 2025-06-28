@@ -16,6 +16,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/auth.service';
 import { KpiService } from '../../core/kpi.service';
 import { LoadingPopupComponent } from '../../shared/loading-popup/loading-popup.component';
+import { PreloadService } from '../../core/preload.service';
 
 @Component({
   standalone: true,
@@ -45,7 +46,8 @@ export class LoginComponent implements OnInit {
     private http: HttpClient,
     private router: Router,
     private auth: AuthService,
-    private kpi: KpiService
+    private kpi: KpiService,
+    private preload: PreloadService
   ) {}
 
   ngOnInit(): void {
@@ -101,10 +103,25 @@ export class LoginComponent implements OnInit {
                 this.successMsg = 'Login erfolgreich';
                 this.errorMsg = null;
                 this.loadingProgress = 50;
-                this.loadingMessage = 'Loading performance data with optimized queries...';
+                this.loadingMessage = 'Loading all app data...';
 
-                // Load performance data after successful login
-                this.loadAllData();
+                // Use PreloadService to load all data (including sales)
+                this.preload.preloadAll().then(() => {
+                  this.loadingProgress = 100;
+                  this.loadingMessage = 'Welcome to PizzaWorld! 🍕';
+                  setTimeout(() => {
+                    this.showLoadingPopup = false;
+                    this.router.navigate(['/dashboard']);
+                  }, 800);
+                }).catch((err) => {
+                  console.error('PreloadService.preloadAll() failed:', err);
+                  this.loadingProgress = 100;
+                  this.loadingMessage = 'Warning: Some data may be incomplete';
+                  setTimeout(() => {
+                    this.showLoadingPopup = false;
+                    this.router.navigate(['/dashboard']);
+                  }, 800);
+                });
               } else {
                 this.errorMsg = 'Failed to load user after login';
                 this.showLoadingPopup = false;
@@ -120,69 +137,6 @@ export class LoginComponent implements OnInit {
           this.errorMsg = 'Benutzername oder Passwort falsch';
           this.successMsg = null;
           this.showLoadingPopup = false;
-        }
-      });
-  }
-
-  private loadAllData(): void {
-    // Load all data with detailed progress
-    this.loadingProgress = 60;
-    this.loadingMessage = 'Loading all dashboard data...';
-
-    const performanceData$ = this.kpi.loadPerformanceData();
-    const storesData$ = this.kpi.getAllStores();
-    const productsData$ = this.kpi.getAllProducts();
-
-    forkJoin([performanceData$, storesData$, productsData$])
-      .pipe(
-        catchError((error) => {
-          console.error('Error loading data:', error);
-          this.loadingProgress = 100;
-          this.loadingMessage = 'Warning: Some data may be incomplete';
-          this.showLoadingPopup = false;
-          this.router.navigate(['/dashboard']);
-          return of(null);
-        })
-      )
-      .subscribe({
-        next: (result) => {
-          if (!result) return; // Handle null case from catchError
-
-          const [performanceData, storesData, productsData] = result;
-          this.loadingProgress = 80;
-          this.loadingMessage = `Loaded ${storesData.length} stores, ${productsData.length} products.`;
-
-          // Verify data is cached
-          const cachedPerformance = this.kpi.getCachedPerformanceData();
-          const cachedStores = this.kpi.getCachedStoresData();
-          const cachedProducts = this.kpi.getCachedProducts();
-          console.log('Cached performance data:', cachedPerformance);
-          console.log('Cached stores data:', cachedStores);
-          console.log('Cached products data:', cachedProducts);
-
-          // Show final preparation message
-          setTimeout(() => {
-            this.loadingProgress = 95;
-            this.loadingMessage = 'Setting up your dashboard...';
-
-            setTimeout(() => {
-              this.loadingProgress = 100;
-              this.loadingMessage = 'Welcome to PizzaWorld! 🍕';
-
-              // Final delay to show completion
-              setTimeout(() => {
-                this.showLoadingPopup = false;
-                this.router.navigate(['/dashboard']);
-              }, 800);
-            }, 300);
-          }, 300);
-        },
-        error: (error) => {
-          console.error('Error loading data:', error);
-          this.loadingProgress = 100;
-          this.loadingMessage = 'Warning: Some data may be incomplete';
-          this.showLoadingPopup = false;
-          this.router.navigate(['/dashboard']);
         }
       });
   }

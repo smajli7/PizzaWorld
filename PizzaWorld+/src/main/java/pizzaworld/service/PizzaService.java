@@ -240,6 +240,15 @@ public class PizzaService {
         };
     }
 
+    // Debug methods to check orders table
+    public List<Map<String, Object>> getSampleOrders() {
+        return pizzaRepo.findSampleOrders();
+    }
+
+    public Long getTotalOrderCount() {
+        return pizzaRepo.countTotalOrders();
+    }
+
     public List<Map<String, Object>> dynamicOrderFilter(Map<String, String> params, User user) {
         String storeId = params.get("storeId");
         String customerId = params.get("customerId");
@@ -695,6 +704,54 @@ public class PizzaService {
         }
 
         return performanceData;
+    }
+
+    // --------- SALES ANALYTICS METHODS ---------
+    
+    public List<Map<String, Object>> getBestSellingProducts(LocalDate from, LocalDate to, User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> pizzaRepo.fetchBestSellingProducts(from, to);
+            case "STATE_MANAGER" -> pizzaRepo.fetchBestSellingProductsByState(user.getStateAbbr(), from, to);
+            case "STORE_MANAGER" -> pizzaRepo.fetchBestSellingProductsByStore(user.getStoreId(), from, to);
+            default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        };
+    }
+
+    public List<Map<String, Object>> getStoresByRevenue(LocalDate from, LocalDate to, User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> pizzaRepo.fetchStoresByRevenue(from, to);
+            case "STATE_MANAGER" -> pizzaRepo.fetchStoresByRevenueByState(user.getStateAbbr(), from, to);
+            case "STORE_MANAGER" -> {
+                // Store managers only see their own store
+                List<Map<String, Object>> allStores = pizzaRepo.fetchStoresByRevenue(from, to);
+                yield allStores.stream()
+                    .filter(store -> user.getStoreId().equals(store.get("storeid")))
+                    .toList();
+            }
+            default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        };
+    }
+
+    public List<Map<String, Object>> getSalesTrendByDay(LocalDate from, LocalDate to, User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> pizzaRepo.fetchSalesTrendByDay(from, to);
+            case "STATE_MANAGER" -> pizzaRepo.fetchSalesTrendByDayByState(user.getStateAbbr(), from, to);
+            case "STORE_MANAGER" -> pizzaRepo.fetchSalesTrendByDayByStore(user.getStoreId(), from, to);
+            default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        };
+    }
+
+    public List<Map<String, Object>> getRevenueByCategory(LocalDate from, LocalDate to, User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> pizzaRepo.fetchRevenueByCategory(from, to);
+            case "STATE_MANAGER" -> pizzaRepo.fetchRevenueByCategoryByState(user.getStateAbbr(), from, to);
+            case "STORE_MANAGER" -> pizzaRepo.fetchRevenueByCategoryByStore(user.getStoreId(), from, to);
+            default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
+        };
+    }
+
+    public String getEarliestOrderDate() {
+        return pizzaRepo.findEarliestOrderDate();
     }
 
 }

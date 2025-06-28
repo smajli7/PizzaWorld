@@ -5,6 +5,7 @@ import {
   BehaviorSubject, Observable, tap, catchError, of
 } from 'rxjs';
 import { CurrentUser } from './models/current-user.model'; // Import your CurrentUser model
+import { KpiService } from './kpi.service'; // Import KpiService to clear caches
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -13,7 +14,7 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<CurrentUser | null>(null);
   currentUser$               = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private kpi: KpiService) {}
 
   /* ───────── Token ───────── */
   setToken(token: string): void { localStorage.setItem(this.tokenKey, token); }
@@ -21,6 +22,11 @@ export class AuthService {
   logout(): void {
     // Clear all localStorage data for security
     localStorage.clear();
+    
+    // Clear all in-memory caches
+    this.kpi.clearAllCaches();
+    
+    // Clear current user
     this.currentUserSubject.next(null);
   }
 

@@ -30,6 +30,12 @@
     </div>
   </div>
 
+  <!-- Time Selector -->
+  <app-time-selector
+    [selectedPeriod]="selectedPeriod"
+    (periodChange)="onTimePeriodChange($event)">
+  </app-time-selector>
+
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>

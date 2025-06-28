@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
+import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService } from '../../core/kpi.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -80,6 +81,7 @@ interface BackendProductInfo {
   styleUrls: ['./products.component.scss'],
   imports: [
     SidebarComponent,
+    TimeSelectorComponent,
     CommonModule,
     RouterModule,
     FormsModule,
@@ -145,6 +147,11 @@ export class ProductsComponent implements OnInit {
     { label: 'Name Z-A', value: 'name', order: 'desc' }
   ];
 
+  // Time selection
+  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
+  fromDate: string = '';
+  toDate: string = '';
+
   constructor(
     private kpi: KpiService,
     private cdr: ChangeDetectorRef
@@ -158,17 +165,19 @@ export class ProductsComponent implements OnInit {
     // Try to load from cache first (like stores page)
     const cachedProducts = this.kpi.getCachedProducts();
 
-    if (cachedProducts) {
-      console.log('Products data found in cache');
+    if (cachedProducts && cachedProducts.length > 0) {
+      console.log('✅ Products data loaded INSTANTLY from cache');
       this.products = cachedProducts;
       this.extractFilterOptions();
       this.applyFilters();
       this.initializeCharts();
       this.loading = false;
-    } else {
-      // Fallback to loading with popup if no cache
-      this.loadProducts();
+      return;
     }
+
+    // Only if NO cache exists, then load with popup
+    console.log('⚠️ No cached products data found - loading from API (this should not happen after login)');
+    this.loadProducts();
   }
 
   loadProducts(): void {
@@ -595,5 +604,12 @@ export class ProductsComponent implements OnInit {
   exportFilteredProducts(): void {
     console.log('Export filtered products');
     // TODO: Implement export functionality
+  }
+
+  onTimePeriodChange(dateRange: { from: string; to: string }): void {
+    this.fromDate = dateRange.from;
+    this.toDate = dateRange.to;
+    // You can add logic here to filter products data based on the selected time period
+    console.log('Time period changed:', dateRange);
   }
 }

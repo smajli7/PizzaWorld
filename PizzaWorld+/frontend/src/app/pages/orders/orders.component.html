@@ -1,7 +1,32 @@
 <app-sidebar></app-sidebar>
 <div class="app-bg">
   <section class="home-section">
-    <!-- Existing orders content here -->
-    <ng-content></ng-content>
+    <!-- Header Section -->
+    <div class="header-section">
+      <h1>Orders Analytics</h1>
+      <p class="subtitle">Order tracking and analysis</p>
+    </div>
+
+    <!-- Time Selector -->
+    <app-time-selector
+      [selectedPeriod]="selectedPeriod"
+      (periodChange)="onTimePeriodChange($event)">
+    </app-time-selector>
+
+    <!-- Orders Chart -->
+    <div class="chart-section" *ngIf="ordersOpts">
+      <div class="chart-card">
+        <h3>Orders Over Time</h3>
+        <apx-chart
+          [series]="ordersOpts.series"
+          [chart]="ordersOpts.chart"
+          [xaxis]="ordersOpts.xaxis"
+          [yaxis]="ordersOpts.yaxis"
+          [stroke]="ordersOpts.stroke"
+          [dataLabels]="ordersOpts.dataLabels"
+          [tooltip]="ordersOpts.tooltip">
+        </apx-chart>
+      </div>
+    </div>
   </section>
 </div>

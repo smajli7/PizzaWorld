@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders }         from '@angular/common/http';
-import { Observable, shareReplay, map, catchError }         from 'rxjs';
+import { Observable, shareReplay, map, catchError, of }         from 'rxjs';
 import { ProductsComponent, ProductInfo } from '../pages/products/products.component';
 
 /** Entspricht DashboardKpiDto im Backend */
@@ -163,6 +163,30 @@ export class KpiService {
     return this.http.get<any[]>('/api/dashboard/revenue-by-store', { headers });
   }
 
+  /** Fetches sales KPIs for a date range */
+  getSalesKPIs(from: string, to: string): Observable<any> {
+    // Use test endpoint for debugging (no authentication required)
+    return this.http.get<any>(`/api/sales/test/kpis?from=${from}&to=${to}`)
+      .pipe(
+        map(data => {
+          // Cache the sales KPIs data
+          const cacheKey = `pizzaWorld_sales_kpis_${from}_${to}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_sales_kpis_${from}_${to}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached sales KPIs data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
   /** Fetches store-specific statistics and performance data */
   getStoreStats(storeId: string): Observable<any> {
     const token = localStorage.getItem('authToken');
@@ -178,23 +202,32 @@ export class KpiService {
 
     console.log('🔄 Processing store performance data (this may take a moment for 32 stores)...');
 
-    return this.http.get<PerformanceData>('/api/dashboard/performance-data', { headers })
-      .pipe(
-        map(data => {
-          // Cache the data in both memory and localStorage
-          this.performanceDataCache = data;
-          localStorage.setItem('pizzaWorld_performance', JSON.stringify(data));
+    return this.http.get<PerformanceData>('/api/dashboard/performance-data', { headers }).pipe(
+      map((data) => this.cachePerformanceData(data)),
+      catchError((primaryErr) => {
+        console.warn('⚠️ Primary performance-data endpoint failed – falling back to legacy:', primaryErr);
+        return this.http
+          .get<PerformanceData>('/api/dashboard/performance-data/legacy', { headers })
+          .pipe(
+            map((legacyData) => this.cachePerformanceData(legacyData)),
+            catchError((legacyErr) => {
+              console.error('❌ Legacy performance-data endpoint also failed:', legacyErr);
+              throw legacyErr;
+            })
+          );
+      })
+    );
+  }
 
-          const storeCount = Object.keys(data.storePerformance).length;
-          console.log(`✅ Store performance data processed: ${storeCount} stores, $${data.globalKPIs.totalRevenue.toLocaleString()} total revenue`);
+  /** helper to store performance data */
+  private cachePerformanceData(data: PerformanceData): PerformanceData {
+    // Cache in memory + localStorage
+    this.performanceDataCache = data;
+    localStorage.setItem('pizzaWorld_performance', JSON.stringify(data));
 
-          return data;
-        }),
-        catchError(error => {
-          console.error('❌ Store performance data processing failed:', error);
-          throw error;
-        })
-      );
+    const storeCount = Object.keys(data.storePerformance).length;
+    console.log(`✅ Store performance data processed: ${storeCount} stores, $${data.globalKPIs.totalRevenue.toLocaleString()} total revenue`);
+    return data;
   }
 
   /** Get cached performance data - optimized for speed */
@@ -311,5 +344,244 @@ export class KpiService {
     this.productsCache$ = null;
     this.productsDataCache = null;
     localStorage.removeItem('pizzaWorld_products');
+  }
+
+  /** Clear all sales-related caches */
+  clearSalesCaches(): void {
+    // Clear all sales-related localStorage items
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('pizzaWorld_sales_') || 
+          key && key.startsWith('pizzaWorld_best_products_') ||
+          key && key.startsWith('pizzaWorld_stores_revenue_') ||
+          key && key.startsWith('pizzaWorld_sales_trend_') ||
+          key && key.startsWith('pizzaWorld_category_revenue_')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log('Cleared all sales-related caches');
+  }
+
+  /** Clear all caches - comprehensive method */
+  clearAllCaches(): void {
+    this.clearDashboardCache();
+    this.clearStoresCache();
+    this.clearPerformanceCache();
+    this.clearProductsCache();
+    this.clearSalesCaches();
+    console.log('All caches cleared');
+  }
+
+  // --------- SALES ANALYTICS METHODS ---------
+
+  /** Fetches best selling products for a date range */
+  getBestSellingProducts(from: string, to: string): Observable<any[]> {
+    // Use test endpoint for debugging (no authentication required)
+    return this.http.get<any[]>(`/api/sales/test/best-selling-products?from=${from}&to=${to}`)
+      .pipe(
+        map(data => {
+          // Cache the best selling products data
+          const cacheKey = `pizzaWorld_best_products_${from}_${to}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_best_products_${from}_${to}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached best selling products data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Fetches stores ranked by revenue for a date range */
+  getStoresByRevenue(from: string, to: string): Observable<any[]> {
+    // Use test endpoint for debugging (no authentication required)
+    return this.http.get<any[]>(`/api/sales/test/stores-by-revenue?from=${from}&to=${to}`)
+      .pipe(
+        map(data => {
+          // Cache the stores by revenue data
+          const cacheKey = `pizzaWorld_stores_revenue_${from}_${to}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_stores_revenue_${from}_${to}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached stores by revenue data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Fetches sales trend by day for a date range */
+  getSalesTrendByDay(from: string, to: string): Observable<any[]> {
+    // Use test endpoint for debugging (no authentication required)
+    return this.http.get<any[]>(`/api/sales/test/trend-by-day?from=${from}&to=${to}`)
+      .pipe(
+        map(data => {
+          // Cache the sales trend data
+          const cacheKey = `pizzaWorld_sales_trend_${from}_${to}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_sales_trend_${from}_${to}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached sales trend data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Fetches revenue by category for a date range */
+  getRevenueByCategory(from: string, to: string): Observable<any[]> {
+    // Use test endpoint for debugging (no authentication required)
+    return this.http.get<any[]>(`/api/sales/test/revenue-by-category?from=${from}&to=${to}`)
+      .pipe(
+        map(data => {
+          // Cache the revenue by category data
+          const cacheKey = `pizzaWorld_category_revenue_${from}_${to}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_category_revenue_${from}_${to}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached revenue by category data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Debug method to check orders table */
+  debugOrders(): Observable<any> {
+    return this.http.get<any>('/api/debug/orders');
+  }
+
+  /** Get the earliest order date for All Time range */
+  getEarliestOrderDate(): Observable<string> {
+    // Include JWT if present to avoid 403 on secured endpoint
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return this.http
+      .get<{ earliestOrderDate: string }>('/api/orders/earliest-date', { headers })
+      .pipe(map(res => res.earliestOrderDate));
+  }
+
+  /** Get cached All Time sales KPIs */
+  getCachedAllTimeSalesKPIs(from: string, to: string): any | null {
+    const cacheKey = `pizzaWorld_sales_kpis_${from}_${to}`;
+    const cached = localStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) : null;
+  }
+  /** Get cached All Time best selling products */
+  getCachedAllTimeBestProducts(from: string, to: string): any[] {
+    const cacheKey = `pizzaWorld_best_products_${from}_${to}`;
+    const cached = localStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) : [];
+  }
+  /** Get cached All Time stores by revenue */
+  getCachedAllTimeStoresByRevenue(from: string, to: string): any[] {
+    const cacheKey = `pizzaWorld_stores_revenue_${from}_${to}`;
+    const cached = localStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) : [];
+  }
+  /** Get cached All Time sales trend */
+  getCachedAllTimeSalesTrend(from: string, to: string): any[] {
+    const cacheKey = `pizzaWorld_sales_trend_${from}_${to}`;
+    const cached = localStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) : [];
+  }
+  /** Get cached All Time revenue by category */
+  getCachedAllTimeRevenueByCategory(from: string, to: string): any[] {
+    const cacheKey = `pizzaWorld_category_revenue_${from}_${to}`;
+    const cached = localStorage.getItem(cacheKey);
+    return cached ? JSON.parse(cached) : [];
+  }
+
+  /** Debug method to check cache status */
+  debugCacheStatus(): void {
+    console.log('🔍 Cache Status Report:');
+    
+    // Check in-memory caches
+    console.log('📦 In-Memory Caches:');
+    console.log(`  - Dashboard: ${this.dashboardCache$ ? '✅ Loaded' : '❌ Empty'}`);
+    console.log(`  - Stores: ${this.storesCache$ ? '✅ Loaded' : '❌ Empty'}`);
+    console.log(`  - Products: ${this.productsCache$ ? '✅ Loaded' : '❌ Empty'}`);
+    console.log(`  - Stores Data: ${this.storesDataCache ? `✅ ${this.storesDataCache.length} stores` : '❌ Empty'}`);
+    console.log(`  - Performance Data: ${this.performanceDataCache ? '✅ Loaded' : '❌ Empty'}`);
+    console.log(`  - Products Data: ${this.productsDataCache ? `✅ ${this.productsDataCache.length} products` : '❌ Empty'}`);
+    
+    // Check localStorage caches
+    console.log('💾 LocalStorage Caches:');
+    const pizzaWorldKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('pizzaWorld_')) {
+        pizzaWorldKeys.push(key);
+      }
+    }
+    
+    if (pizzaWorldKeys.length > 0) {
+      pizzaWorldKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) {
+          try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+              console.log(`  - ${key}: ✅ ${parsed.length} items`);
+            } else if (typeof parsed === 'object') {
+              console.log(`  - ${key}: ✅ Object with ${Object.keys(parsed).length} properties`);
+            } else {
+              console.log(`  - ${key}: ✅ ${typeof parsed}`);
+            }
+          } catch (e) {
+            console.log(`  - ${key}: ❌ Invalid JSON`);
+          }
+        } else {
+          console.log(`  - ${key}: ❌ Empty`);
+        }
+      });
+    } else {
+      console.log('  - No PizzaWorld caches found in localStorage');
+    }
+  }
+
+  /** Check if all essential data is cached */
+  isAllDataCached(): boolean {
+    const storesData = this.getCachedStoresData();
+    const productsData = this.getCachedProducts();
+    const performanceData = this.getCachedPerformanceData();
+    
+    const hasStores = storesData !== null && storesData.length > 0;
+    const hasProducts = productsData !== null && productsData.length > 0;
+    const hasPerformance = performanceData !== null;
+    
+    console.log('🔍 Essential Data Cache Check:');
+    console.log(`  - Stores: ${hasStores ? '✅' : '❌'}`);
+    console.log(`  - Products: ${hasProducts ? '✅' : '❌'}`);
+    console.log(`  - Performance: ${hasPerformance ? '✅' : '❌'}`);
+    
+    return hasStores && hasProducts && hasPerformance;
   }
 }

@@ -71,6 +71,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       JOIN stores s ON o.storeid = s.storeid
       WHERE s.state_abbr = :state
         AND o.orderdate BETWEEN :from AND :to
+      GROUP BY s.state_abbr
       """, nativeQuery = true)
   Map<String, Object> fetchSalesKPIsByState(@Param("state") String state,
       @Param("from") LocalDate from,
@@ -129,6 +130,61 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
         AND (:nitems IS NULL OR o.nitems = :nitems)
       """, nativeQuery = true)
   List<Map<String, Object>> dynamicOrderFilter(
+      @Param("storeId") String storeId,
+      @Param("customerId") String customerId,
+      @Param("state") String state,
+      @Param("fromDate") String fromDate,
+      @Param("toDate") String toDate,
+      @Param("orderId") Integer orderId,
+      @Param("nitems") Integer nitems);
+
+  @Query(value = """
+      SELECT o.* FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE (:storeId IS NULL OR o.storeid = :storeId)
+        AND (:customerId IS NULL OR o.customerid = :customerId)
+        AND (:state IS NULL OR s.state_abbr = :state)
+        AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
+        AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
+        AND (:orderId IS NULL OR o.orderid = :orderId)
+        AND (:nitems IS NULL OR o.nitems = :nitems)
+      ORDER BY 
+        CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'ASC' THEN o.orderdate END ASC,
+        CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'DESC' THEN o.orderdate END DESC,
+        CASE WHEN :sortBy = 'total' AND :sortOrder = 'ASC' THEN o.total END ASC,
+        CASE WHEN :sortBy = 'total' AND :sortOrder = 'DESC' THEN o.total END DESC,
+        CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'ASC' THEN o.nitems END ASC,
+        CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'DESC' THEN o.nitems END DESC,
+        CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'ASC' THEN o.orderid END ASC,
+        CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'DESC' THEN o.orderid END DESC,
+        o.orderdate DESC
+      LIMIT :limit OFFSET :offset
+      """, nativeQuery = true)
+  List<Map<String, Object>> dynamicOrderFilterPaginated(
+      @Param("storeId") String storeId,
+      @Param("customerId") String customerId,
+      @Param("state") String state,
+      @Param("fromDate") String fromDate,
+      @Param("toDate") String toDate,
+      @Param("orderId") Integer orderId,
+      @Param("nitems") Integer nitems,
+      @Param("sortBy") String sortBy,
+      @Param("sortOrder") String sortOrder,
+      @Param("limit") int limit,
+      @Param("offset") int offset);
+
+  @Query(value = """
+      SELECT COUNT(*) FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      WHERE (:storeId IS NULL OR o.storeid = :storeId)
+        AND (:customerId IS NULL OR o.customerid = :customerId)
+        AND (:state IS NULL OR s.state_abbr = :state)
+        AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
+        AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
+        AND (:orderId IS NULL OR o.orderid = :orderId)
+        AND (:nitems IS NULL OR o.nitems = :nitems)
+      """, nativeQuery = true)
+  Long countFilteredOrders(
       @Param("storeId") String storeId,
       @Param("customerId") String customerId,
       @Param("state") String state,
@@ -513,5 +569,15 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
 
   @Query(value = "SELECT MIN(orderdate) FROM orders", nativeQuery = true)
   String findEarliestOrderDate();
+
+  // Get recent orders for caching (first 100 orders)
+  @Query(value = """
+      SELECT o.*, s.city as store_city, s.state_abbr as store_state
+      FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      ORDER BY o.orderdate DESC
+      LIMIT 100
+      """, nativeQuery = true)
+  List<Map<String, Object>> getRecentOrdersForCache();
 
 }

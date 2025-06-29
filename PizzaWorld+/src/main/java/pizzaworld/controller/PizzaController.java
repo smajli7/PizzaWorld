@@ -148,6 +148,49 @@ public class PizzaController {
         return ResponseEntity.ok(pizzaService.dynamicOrderFilter(params, user));
     }
 
+    @GetMapping("/orders/paginated")
+    public ResponseEntity<?> getPaginatedOrders(
+            @RequestParam Map<String, String> params,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "orderdate") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortOrder,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getPaginatedOrders(params, user, page, size, sortBy, sortOrder));
+    }
+
+    @GetMapping("/orders/recent")
+    public ResponseEntity<?> getRecentOrders(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRecentOrdersForCache(user));
+    }
+
+    @GetMapping("/orders/test/paginated")
+    public ResponseEntity<?> getPaginatedOrdersTest(
+            @RequestParam Map<String, String> params,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "orderdate") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortOrder) {
+        // Create a test user for testing without authentication
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+        return ResponseEntity.ok(pizzaService.getPaginatedOrders(params, testUser, page, size, sortBy, sortOrder));
+    }
+
+    @GetMapping("/orders/test/recent")
+    public ResponseEntity<?> getRecentOrdersTest() {
+        // Create a test user for testing without authentication
+        User testUser = new User();
+        testUser.setRole("HQ_ADMIN");
+        testUser.setStoreId("S948821");
+        testUser.setStateAbbr("CA");
+        return ResponseEntity.ok(pizzaService.getRecentOrdersForCache(testUser));
+    }
+
     @GetMapping("/orders/export")
     public void exportOrdersCsv(@RequestParam Map<String, String> params,
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -236,6 +279,11 @@ public class PizzaController {
 
     @GetMapping("/kpi/orders-per-day")
     public ResponseEntity<?> getOrdersPerDay() {
+        return ResponseEntity.ok(pizzaService.getOrdersPerDay());
+    }
+
+    @GetMapping("/kpi/orders-per-day/test")
+    public ResponseEntity<?> getOrdersPerDayTest() {
         return ResponseEntity.ok(pizzaService.getOrdersPerDay());
     }
 

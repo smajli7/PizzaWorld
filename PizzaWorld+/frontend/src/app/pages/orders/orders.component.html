@@ -3,8 +3,8 @@
   <section class="home-section">
     <!-- Header Section -->
     <div class="header-section">
-      <h1>Orders Analytics</h1>
-      <p class="subtitle">Order tracking and analysis</p>
+      <h1>Orders Management</h1>
+      <p class="subtitle">Order tracking, filtering, and analysis</p>
     </div>
 
     <!-- Time Selector -->
@@ -26,6 +26,222 @@
           [dataLabels]="ordersOpts.dataLabels"
           [tooltip]="ordersOpts.tooltip">
         </apx-chart>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filters-card">
+        <div class="filters-header">
+          <h3>🔍 Filters</h3>
+          <button class="clear-filters-btn" (click)="clearFilters()">
+            🗑️ Clear All
+          </button>
+        </div>
+        
+        <div class="filters-grid">
+          <!-- Order ID Filter -->
+          <div class="filter-group">
+            <label for="orderId">Order ID:</label>
+            <input 
+              type="text" 
+              id="orderId" 
+              [(ngModel)]="filters.orderId"
+              (input)="onFilterChange()"
+              placeholder="Search by order ID">
+          </div>
+
+          <!-- Customer ID Filter -->
+          <div class="filter-group">
+            <label for="customerId">Customer ID:</label>
+            <input 
+              type="text" 
+              id="customerId" 
+              [(ngModel)]="filters.customerId"
+              (input)="onFilterChange()"
+              placeholder="Search by customer ID">
+          </div>
+
+          <!-- Store ID Filter -->
+          <div class="filter-group">
+            <label for="storeId">Store ID:</label>
+            <input 
+              type="text" 
+              id="storeId" 
+              [(ngModel)]="filters.storeId"
+              (input)="onFilterChange()"
+              placeholder="Search by store ID">
+          </div>
+
+          <!-- State Filter -->
+          <div class="filter-group">
+            <label for="state">State:</label>
+            <input 
+              type="text" 
+              id="state" 
+              [(ngModel)]="filters.state"
+              (input)="onFilterChange()"
+              placeholder="Filter by state">
+          </div>
+
+          <!-- Number of Items Filter -->
+          <div class="filter-group">
+            <label for="nitems">Items Count:</label>
+            <input 
+              type="number" 
+              id="nitems" 
+              [(ngModel)]="filters.nitems"
+              (input)="onFilterChange()"
+              placeholder="Filter by item count">
+          </div>
+
+          <!-- Page Size Selector -->
+          <div class="filter-group">
+            <label for="pageSize">Page Size:</label>
+            <select 
+              id="pageSize" 
+              [(ngModel)]="pageSize"
+              (change)="onPageSizeChange()">
+              <option *ngFor="let size of pageSizeOptions" [value]="size">
+                {{ size }} orders
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Table Section -->
+    <div class="orders-section">
+      <div class="orders-card">
+        <div class="orders-header">
+          <h3>📋 Orders List</h3>
+          <div class="orders-stats">
+            <span class="stat-item">
+              📊 Total: {{ totalCount | number }}
+            </span>
+            <span class="stat-item">
+              📄 Page {{ currentPage + 1 }} of {{ totalPages }}
+            </span>
+            <span class="stat-item">
+              ⏱️ {{ orders.length }} orders loaded
+            </span>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" *ngIf="loading">
+          <div class="loading-spinner"></div>
+          <p>Loading orders...</p>
+        </div>
+
+        <!-- Error State -->
+        <div class="error-state" *ngIf="error && !loading">
+          <p class="error-message">❌ {{ error }}</p>
+          <button class="retry-btn" (click)="loadOrders()">
+            🔄 Retry
+          </button>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="table-container" *ngIf="!loading && !error">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th (click)="onSortChange('orderid')" class="sortable">
+                  Order ID {{ getSortIcon('orderid') }}
+                </th>
+                <th (click)="onSortChange('orderdate')" class="sortable">
+                  Date {{ getSortIcon('orderdate') }}
+                </th>
+                <th>Customer ID</th>
+                <th>Store ID</th>
+                <th>Store Location</th>
+                <th (click)="onSortChange('nitems')" class="sortable">
+                  Items {{ getSortIcon('nitems') }}
+                </th>
+                <th (click)="onSortChange('total')" class="sortable">
+                  Total {{ getSortIcon('total') }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of orders" class="order-row">
+                <td class="order-id">{{ order.orderid }}</td>
+                <td class="order-date">{{ formatDate(order.orderdate) }}</td>
+                <td class="customer-id">{{ order.customerid }}</td>
+                <td class="store-id">{{ order.storeid }}</td>
+                <td class="store-location">
+                  <span *ngIf="order.store_city">{{ order.store_city }}</span>
+                  <span *ngIf="order.store_state">, {{ order.store_state }}</span>
+                  <span *ngIf="!order.store_city && !order.store_state">-</span>
+                </td>
+                <td class="items-count">{{ order.nitems }}</td>
+                <td class="order-total">{{ formatCurrency(order.total) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          <div class="empty-state" *ngIf="orders.length === 0 && !loading">
+            <p>📭 No orders found matching your filters</p>
+            <button class="clear-filters-btn" (click)="clearFilters()">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-section" *ngIf="totalPages > 1 && !loading">
+          <div class="pagination-info">
+            <span>Showing {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalCount) }} of {{ totalCount }} orders</span>
+          </div>
+          
+          <div class="pagination-controls">
+            <!-- First Page -->
+            <button 
+              class="pagination-btn"
+              [disabled]="!hasPrevious"
+              (click)="goToPage(0)">
+              ⏮️ First
+            </button>
+
+            <!-- Previous Page -->
+            <button 
+              class="pagination-btn"
+              [disabled]="!hasPrevious"
+              (click)="goToPage(currentPage - 1)">
+              ◀️ Previous
+            </button>
+
+            <!-- Page Numbers -->
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of getPaginationRange()"
+                class="page-number-btn"
+                [class.active]="page === currentPage"
+                (click)="goToPage(page)">
+                {{ page + 1 }}
+              </button>
+            </div>
+
+            <!-- Next Page -->
+            <button 
+              class="pagination-btn"
+              [disabled]="!hasNext"
+              (click)="goToPage(currentPage + 1)">
+              Next ▶️
+            </button>
+
+            <!-- Last Page -->
+            <button 
+              class="pagination-btn"
+              [disabled]="!hasNext"
+              (click)="goToPage(totalPages - 1)">
+              Last ⏭️
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>

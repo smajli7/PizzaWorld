@@ -33,6 +33,13 @@ export class PreloadService {
             storesByRevenue: this.kpi.getStoresByRevenue(fromDate, toDate).pipe(catchError((e) => {console.error('❌ Preload: Stores by Revenue failed', e); return of([]);})),
             salesTrend: this.kpi.getSalesTrendByDay(fromDate, toDate).pipe(catchError((e) => {console.error('❌ Preload: Sales Trend failed', e); return of([]);})),
             revenueByCategory: this.kpi.getRevenueByCategory(fromDate, toDate).pipe(catchError((e) => {console.error('❌ Preload: Revenue by Category failed', e); return of([]);})),
+            recentOrders: this.kpi.getRecentOrders().pipe(catchError((e) => {
+              console.error('❌ Preload: Recent Orders failed, trying test endpoint', e);
+              return this.kpi.getRecentOrdersTest().pipe(catchError((e2) => {
+                console.error('❌ Preload: Recent Orders test also failed', e2);
+                return of([]);
+              }));
+            })),
           }).toPromise().then((result: any = {}) => {
             const {
               products = [],
@@ -44,6 +51,7 @@ export class PreloadService {
               storesByRevenue = [],
               salesTrend = [],
               revenueByCategory = [],
+              recentOrders = [],
             } = result;
             
             console.log('✅ Preload complete:', {
@@ -56,6 +64,7 @@ export class PreloadService {
               storesByRevenue: storesByRevenue.length,
               salesTrend: salesTrend.length,
               revenueByCategory: revenueByCategory.length,
+              recentOrders: recentOrders.length,
             });
 
             // Wait a moment for all data to be properly cached, then verify

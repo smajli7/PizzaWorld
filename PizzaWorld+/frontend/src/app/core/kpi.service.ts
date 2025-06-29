@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders }         from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams }         from '@angular/common/http';
 import { Observable, shareReplay, map, catchError, of }         from 'rxjs';
 import { ProductsComponent, ProductInfo } from '../pages/products/products.component';
 
@@ -48,6 +48,40 @@ export interface PerformanceData {
   globalKPIs: GlobalKPIs;
 }
 
+/** Order information interface */
+export interface OrderInfo {
+  orderid: number;
+  customerid: string;
+  storeid: string;
+  orderdate: string;
+  nitems: number;
+  total: number;
+  store_city?: string;
+  store_state?: string;
+}
+
+/** Paginated orders response interface */
+export interface PaginatedOrdersResponse {
+  orders: OrderInfo[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+/** Order filters interface */
+export interface OrderFilters {
+  storeId?: string;
+  customerId?: string;
+  state?: string;
+  orderId?: string;
+  nitems?: string;
+  from?: string;
+  to?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private http = inject(HttpClient);
@@ -65,6 +99,8 @@ export class KpiService {
   // Product data cache
   private productsCache$: Observable<ProductInfo[]> | null = null;
   private productsDataCache: ProductInfo[] | null = null;
+
+  private recentOrdersCache: OrderInfo[] | null = null;
 
   /** Holt alle KPI‐Zahlen für das Dashboard */
   getDashboard(): Observable<DashboardKpiDto> {
@@ -143,7 +179,9 @@ export class KpiService {
 
   /** Holt Orders-per-Day KPI */
   getOrdersPerDay(): Observable<any[]> {
-    return this.http.get<any[]>('/api/kpi/orders-per-day');
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    return this.http.get<any[]>('/api/kpi/orders-per-day', { headers });
   }
 
   /** Holt Sales-per-Day KPI */
@@ -154,6 +192,11 @@ export class KpiService {
   /** Holt Stores-per-Day KPI */
   getStoresPerDay(): Observable<any[]> {
     return this.http.get<any[]>('/api/kpi/stores-per-day');
+  }
+
+  /** Test method for Orders-per-Day KPI (no auth required) */
+  getOrdersPerDayTest(): Observable<any[]> {
+    return this.http.get<any[]>('/api/kpi/orders-per-day/test');
   }
 
   /** Fetches revenue by store for the dashboard chart */
@@ -583,5 +626,148 @@ export class KpiService {
     console.log(`  - Performance: ${hasPerformance ? '✅' : '❌'}`);
     
     return hasStores && hasProducts && hasPerformance;
+  }
+
+  /** Get paginated orders with filtering and sorting */
+  getPaginatedOrders(
+    filters: OrderFilters,
+    page: number = 0,
+    size: number = 50,
+    sortBy: string = 'orderdate',
+    sortOrder: string = 'DESC'
+  ): Observable<PaginatedOrdersResponse> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value);
+      }
+    });
+    params.append('page', page.toString());
+    params.append('size', size.toString());
+    params.append('sortBy', sortBy);
+    params.append('sortOrder', sortOrder);
+
+    return this.http.get<PaginatedOrdersResponse>(`/api/orders/paginated?${params.toString()}`, { headers })
+      .pipe(
+        map(data => {
+          // Cache the paginated results
+          const cacheKey = `pizzaWorld_orders_${JSON.stringify(filters)}_${page}_${size}_${sortBy}_${sortOrder}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_orders_${JSON.stringify(filters)}_${page}_${size}_${sortBy}_${sortOrder}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached orders data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Get recent orders for initial caching */
+  getRecentOrders(): Observable<OrderInfo[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return this.http.get<OrderInfo[]>('/api/orders/recent', { headers })
+      .pipe(
+        map(orders => {
+          // Cache recent orders
+          localStorage.setItem('pizzaWorld_recent_orders', JSON.stringify(orders));
+          return orders;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cached = localStorage.getItem('pizzaWorld_recent_orders');
+          if (cached) {
+            console.log('Using cached recent orders data');
+            return of(JSON.parse(cached));
+          }
+          throw error;
+        })
+      );
+  }
+
+  /** Get recent orders for testing (no auth required) */
+  getRecentOrdersTest(): Observable<OrderInfo[]> {
+    return this.http.get<OrderInfo[]>('/api/orders/test/recent')
+      .pipe(
+        map(orders => {
+          // Cache the recent orders
+          this.recentOrdersCache = orders;
+          localStorage.setItem('pizzaWorld_recent_orders', JSON.stringify(orders));
+          console.log(`✅ Recent orders loaded: ${orders.length} orders`);
+          return orders;
+        }),
+        catchError(error => {
+          console.error('❌ Recent orders loading failed:', error);
+          throw error;
+        })
+      );
+  }
+
+  /** Get paginated orders for testing (no auth required) */
+  getPaginatedOrdersTest(
+    filters: OrderFilters,
+    page: number = 0,
+    size: number = 50,
+    sortBy: string = 'orderdate',
+    sortOrder: string = 'DESC'
+  ): Observable<PaginatedOrdersResponse> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortOrder', sortOrder);
+
+    // Add filter parameters
+    if (filters.storeId) params.set('storeId', filters.storeId);
+    if (filters.customerId) params.set('customerId', filters.customerId);
+    if (filters.state) params.set('state', filters.state);
+    if (filters.orderId) params.set('orderId', filters.orderId);
+    if (filters.nitems) params.set('nitems', filters.nitems);
+    if (filters.from) params.set('from', filters.from);
+    if (filters.to) params.set('to', filters.to);
+
+    return this.http.get<PaginatedOrdersResponse>(`/api/orders/test/paginated`, { params })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Paginated orders loading failed:', error);
+          throw error;
+        })
+      );
+  }
+
+  /** Get cached recent orders */
+  getCachedRecentOrders(): OrderInfo[] | null {
+    const cached = localStorage.getItem('pizzaWorld_recent_orders');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        console.error('Error parsing cached recent orders:', error);
+        localStorage.removeItem('pizzaWorld_recent_orders');
+      }
+    }
+    return null;
+  }
+
+  /** Clear orders cache */
+  clearOrdersCache(): void {
+    // Clear all orders-related cache entries
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('pizzaWorld_orders_') || key === 'pizzaWorld_recent_orders') {
+        localStorage.removeItem(key);
+      }
+    });
   }
 }

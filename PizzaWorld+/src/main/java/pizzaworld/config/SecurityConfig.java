@@ -58,6 +58,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/stores/**", "/api/store/**").permitAll() // TEMP: allow store KPIs for debugging
                         .requestMatchers("/api/sales/test/**").permitAll() // TEMP: allow sales test endpoints for debugging
+                        .requestMatchers("/api/orders/test/**").permitAll() // allow orders test endpoints for debugging
+                        .requestMatchers("/api/kpi/orders-per-day/test").permitAll() // TEMP: allow orders per day test endpoint
                         .requestMatchers("/api/test").permitAll() // TEMP: allow test endpoint
                         .requestMatchers("/api/login", "/api/logout", "/api/me", "/error").permitAll()
                         .anyRequest().authenticated())

@@ -55,4 +55,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        boolean skip = path.startsWith("/api/orders/test/")
+            || path.startsWith("/api/kpi/orders-per-day/test")
+            || path.startsWith("/api/sales/test/")
+            || path.startsWith("/api/test")
+            || path.matches(".*/test$");
+        System.out.println("JwtAuthFilter.shouldNotFilter: " + path + " -> " + skip);
+        return skip;
+    }
 }

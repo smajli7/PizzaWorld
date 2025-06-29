@@ -754,4 +754,123 @@ public class PizzaService {
         return pizzaRepo.findEarliestOrderDate();
     }
 
+    /**
+     * Get paginated orders with filtering, sorting, and caching
+     */
+    @Cacheable(value = "orders", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #page + '_' + #size + '_' + #sortBy + '_' + #sortOrder + '_' + #params.toString()")
+    public Map<String, Object> getPaginatedOrders(Map<String, String> params, User user, 
+            int page, int size, String sortBy, String sortOrder) {
+        
+        String storeId = params.get("storeId");
+        String customerId = params.get("customerId");
+        String state = params.get("state");
+        String orderId = params.get("orderId");
+        String nitems = params.get("nitems");
+        String from = params.get("from");
+        String to = params.get("to");
+
+        String userRole = user.getRole();
+        String userState = user.getStateAbbr();
+        String userStoreId = user.getStoreId();
+
+        // Role-based access control
+        switch (userRole) {
+            case "HQ_ADMIN":
+                // HQ sees everything
+                break;
+
+            case "STATE_MANAGER":
+                if (storeId != null) {
+                    String storeState = pizzaRepo.getStoreState(storeId);
+                    if (!userState.equals(storeState)) {
+                        throw new AccessDeniedException("No access to this store");
+                    }
+                }
+                state = userState;
+                break;
+
+            case "STORE_MANAGER":
+                if (storeId != null && !userStoreId.equals(storeId)) {
+                    throw new AccessDeniedException("Access only to your own store");
+                }
+                storeId = userStoreId;
+                state = null;
+                break;
+
+            default:
+                throw new AccessDeniedException("Unknown role");
+        }
+
+        // Type safety for integers
+        Integer orderIdInt = parseIntSafe(orderId);
+        Integer nitemsInt = parseIntSafe(nitems);
+
+        // Default sorting
+        if (sortBy == null || sortBy.isEmpty()) {
+            sortBy = "orderdate";
+        }
+        if (sortOrder == null || sortOrder.isEmpty()) {
+            sortOrder = "DESC";
+        }
+
+        // Calculate offset
+        int offset = page * size;
+
+        // Get paginated results
+        List<Map<String, Object>> orders = pizzaRepo.dynamicOrderFilterPaginated(
+                storeId, customerId, state, from, to, orderIdInt, nitemsInt,
+                sortBy, sortOrder, size, offset);
+
+        // Get total count
+        Long totalCount = pizzaRepo.countFilteredOrders(
+                storeId, customerId, state, from, to, orderIdInt, nitemsInt);
+
+        // Calculate pagination info
+        int totalPages = (int) Math.ceil((double) totalCount / size);
+        boolean hasNext = page < totalPages - 1;
+        boolean hasPrevious = page > 0;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("orders", orders);
+        result.put("totalCount", totalCount);
+        result.put("totalPages", totalPages);
+        result.put("currentPage", page);
+        result.put("pageSize", size);
+        result.put("hasNext", hasNext);
+        result.put("hasPrevious", hasPrevious);
+
+        return result;
+    }
+
+    /**
+     * Get recent orders for initial caching
+     */
+    @Cacheable(value = "recentOrders", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getRecentOrdersForCache(User user) {
+        // Apply role-based filtering to cached data
+        List<Map<String, Object>> allRecentOrders = pizzaRepo.getRecentOrdersForCache();
+        
+        String userRole = user.getRole();
+        String userState = user.getStateAbbr();
+        String userStoreId = user.getStoreId();
+
+        return allRecentOrders.stream()
+                .filter(order -> {
+                    String orderStoreId = (String) order.get("storeid");
+                    String orderState = (String) order.get("store_state");
+                    
+                    switch (userRole) {
+                        case "HQ_ADMIN":
+                            return true; // See all orders
+                        case "STATE_MANAGER":
+                            return userState.equals(orderState);
+                        case "STORE_MANAGER":
+                            return userStoreId.equals(orderStoreId);
+                        default:
+                            return false;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
 }

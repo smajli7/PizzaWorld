@@ -357,20 +357,7 @@ public class PizzaService {
 
     public List<Map<String, Object>> getAllProducts(User user) {
         System.out.println("🧾 Getting all products for user: " + user.getUsername());
-
-        switch (user.getRole()) {
-            case "HQ_ADMIN":
-                return pizzaRepo.getAllProducts(); // HQ sieht alles
-
-            case "STATE_MANAGER":
-                return pizzaRepo.dynamicProductFilter(null, user.getStateAbbr(), null); // nur eigener Bundesstaat
-
-            case "STORE_MANAGER":
-                return pizzaRepo.dynamicProductFilter(user.getStoreId(), null, null); // nur eigener Store
-
-            default:
-                throw new AccessDeniedException("Unbekannte Rolle");
-        }
+        return pizzaRepo.getAllProducts();
     }
 
     public Map<String, Object> getProductDetails(String sku) {
@@ -720,7 +707,7 @@ public class PizzaService {
     }
 
     // --------- SALES ANALYTICS METHODS ---------
-
+    
     public List<Map<String, Object>> getBestSellingProducts(LocalDate from, LocalDate to, User user) {
         return switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchBestSellingProducts(from, to);
@@ -738,8 +725,8 @@ public class PizzaService {
                 // Store managers only see their own store
                 List<Map<String, Object>> allStores = pizzaRepo.fetchStoresByRevenue(from, to);
                 yield allStores.stream()
-                        .filter(store -> user.getStoreId().equals(store.get("storeid")))
-                        .toList();
+                    .filter(store -> user.getStoreId().equals(store.get("storeid")))
+                    .toList();
             }
             default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         };
@@ -771,9 +758,9 @@ public class PizzaService {
      * Get paginated orders with filtering, sorting, and caching
      */
     @Cacheable(value = "orders", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #page + '_' + #size + '_' + #sortBy + '_' + #sortOrder + '_' + #params.toString()")
-    public Map<String, Object> getPaginatedOrders(Map<String, String> params, User user,
+    public Map<String, Object> getPaginatedOrders(Map<String, String> params, User user, 
             int page, int size, String sortBy, String sortOrder) {
-
+        
         String storeId = params.get("storeId");
         String customerId = params.get("customerId");
         String state = params.get("state");
@@ -862,7 +849,7 @@ public class PizzaService {
     public List<Map<String, Object>> getRecentOrdersForCache(User user) {
         // Apply role-based filtering to cached data
         List<Map<String, Object>> allRecentOrders = pizzaRepo.getRecentOrdersForCache();
-
+        
         String userRole = user.getRole();
         String userState = user.getStateAbbr();
         String userStoreId = user.getStoreId();
@@ -871,7 +858,7 @@ public class PizzaService {
                 .filter(order -> {
                     String orderStoreId = (String) order.get("storeid");
                     String orderState = (String) order.get("store_state");
-
+                    
                     switch (userRole) {
                         case "HQ_ADMIN":
                             return true; // See all orders

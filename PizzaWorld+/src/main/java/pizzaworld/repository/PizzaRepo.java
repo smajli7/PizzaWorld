@@ -580,4 +580,131 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       """, nativeQuery = true)
   List<Map<String, Object>> getRecentOrdersForCache();
 
+  // 🚀 NEW DASHBOARD ENDPOINTS
+
+  // Get revenue by year
+  @Query(value = """
+      SELECT 
+          EXTRACT(YEAR FROM o.orderdate) AS year,
+          SUM(o.total) AS revenue,
+          COUNT(*) AS orders,
+          COUNT(DISTINCT o.customerid) AS customers
+      FROM orders o
+      GROUP BY EXTRACT(YEAR FROM o.orderdate)
+      ORDER BY year DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getRevenueByYear();
+
+  // Get revenue by year and month
+  @Query(value = """
+      SELECT 
+          EXTRACT(YEAR FROM o.orderdate) AS year,
+          EXTRACT(MONTH FROM o.orderdate) AS month,
+          TO_CHAR(o.orderdate, 'Month') AS month_name,
+          SUM(o.total) AS revenue,
+          COUNT(*) AS orders,
+          COUNT(DISTINCT o.customerid) AS customers
+      FROM orders o
+      GROUP BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month')
+      ORDER BY year DESC, month DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getRevenueByYearMonth();
+
+  // Get top 10 stores by revenue
+  @Query(value = """
+      SELECT 
+          s.storeid,
+          s.city,
+          s.state_abbr,
+          SUM(o.total) AS revenue,
+          COUNT(*) AS orders,
+          COUNT(DISTINCT o.customerid) AS customers,
+          AVG(o.total) AS avg_order
+      FROM orders o
+      JOIN stores s ON o.storeid = s.storeid
+      GROUP BY s.storeid, s.city, s.state_abbr
+      ORDER BY revenue DESC
+      LIMIT 10
+      """, nativeQuery = true)
+  List<Map<String, Object>> getTopStoresByRevenue();
+
+  // Get revenue trend by day for last 30 days
+  @Query(value = """
+      SELECT 
+          DATE(o.orderdate) AS day,
+          SUM(o.total) AS revenue,
+          COUNT(*) AS orders,
+          COUNT(DISTINCT o.customerid) AS customers
+      FROM orders o
+      WHERE o.orderdate >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(o.orderdate)
+      ORDER BY day DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getRevenueTrendLast30Days();
+
+  // Get product category performance
+  @Query(value = """
+      SELECT 
+          p.category,
+          SUM(oi.quantity * p.price) AS revenue,
+          SUM(oi.quantity) AS units_sold,
+          COUNT(DISTINCT o.orderid) AS orders,
+          COUNT(DISTINCT o.customerid) AS customers
+      FROM order_items oi
+      JOIN orders o ON oi.orderid = o.orderid
+      JOIN products p ON oi.sku = p.sku
+      GROUP BY p.category
+      ORDER BY revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getProductCategoryPerformance();
+
+  // Get customer acquisition by month
+  @Query(value = """
+      SELECT 
+          EXTRACT(YEAR FROM o.orderdate) AS year,
+          EXTRACT(MONTH FROM o.orderdate) AS month,
+          TO_CHAR(o.orderdate, 'Month') AS month_name,
+          COUNT(DISTINCT o.customerid) AS new_customers
+      FROM orders o
+      WHERE o.customerid NOT IN (
+          SELECT DISTINCT customerid 
+          FROM orders 
+          WHERE orderdate < DATE_TRUNC('month', o.orderdate)
+      )
+      GROUP BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month')
+      ORDER BY year DESC, month DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getCustomerAcquisitionByMonth();
+
+  // Get average order value trend
+  @Query(value = """
+      SELECT 
+          DATE(o.orderdate) AS day,
+          AVG(o.total) AS avg_order_value,
+          COUNT(*) AS orders
+      FROM orders o
+      WHERE o.orderdate >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(o.orderdate)
+      ORDER BY day DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getAverageOrderValueTrend();
+
+  // Get store performance comparison
+  @Query(value = """
+      SELECT 
+          s.storeid,
+          s.city,
+          s.state_abbr,
+          SUM(o.total) AS total_revenue,
+          COUNT(*) AS total_orders,
+          COUNT(DISTINCT o.customerid) AS unique_customers,
+          AVG(o.total) AS avg_order_value,
+          MAX(o.orderdate) AS last_order_date
+      FROM stores s
+      LEFT JOIN orders o ON s.storeid = o.storeid
+      GROUP BY s.storeid, s.city, s.state_abbr
+      ORDER BY total_revenue DESC
+      """, nativeQuery = true)
+  List<Map<String, Object>> getStorePerformanceComparison();
+
 }

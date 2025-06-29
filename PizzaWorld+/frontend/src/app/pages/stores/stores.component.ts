@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService, StoreInfo } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { CardModule } from 'primeng/card';
@@ -48,7 +47,6 @@ export interface ChartOptions {
   standalone: true,
   imports: [
     SidebarComponent,
-    TimeSelectorComponent,
     CommonModule,
     FormsModule,
     NgApexchartsModule,
@@ -96,11 +94,6 @@ export class StoresComponent implements OnInit, OnDestroy {
   // Performance optimization
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
-
-  // Time selection
-  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
-  fromDate: string = '';
-  toDate: string = '';
 
   constructor(
     private kpi: KpiService,
@@ -388,12 +381,5 @@ export class StoresComponent implements OnInit, OnDestroy {
   // Performance optimization: trackBy function for ngFor
   trackByStoreId(index: number, store: StoreInfo): string {
     return store.storeid;
-  }
-
-  onTimePeriodChange(dateRange: { from: string; to: string }): void {
-    this.fromDate = dateRange.from;
-    this.toDate = dateRange.to;
-    // You can add logic here to filter stores data based on the selected time period
-    console.log('Time period changed:', dateRange);
   }
 }

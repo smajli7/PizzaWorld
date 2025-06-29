@@ -4,7 +4,6 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgApexchartsModule, ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexDataLabels, ApexTooltip, ApexPlotOptions, ApexYAxis, ApexStroke } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService, OrderInfo, PaginatedOrdersResponse, OrderFilters } from '../../core/kpi.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 
@@ -26,8 +25,7 @@ export interface ChartOptions {
     RouterModule,
     FormsModule,
     NgApexchartsModule,
-    SidebarComponent,
-    TimeSelectorComponent
+    SidebarComponent
   ],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss']
@@ -37,11 +35,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   /** Filled after HTTP call; null until then */
   ordersOpts: ChartOptions | null = null;
-
-  // Time selection
-  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
-  fromDate: string = '';
-  toDate: string = '';
 
   // Orders table data
   orders: OrderInfo[] = [];
@@ -179,17 +172,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Handle date range changes
-   */
-  onTimePeriodChange(dateRange: { from: string; to: string }): void {
-    this.fromDate = dateRange.from;
-    this.toDate = dateRange.to;
-    this.filters.from = this.fromDate;
-    this.filters.to = this.toDate;
-    this.onFilterChange();
-  }
-
-  /**
    * Handle sorting changes
    */
   onSortChange(column: string): void {
@@ -225,8 +207,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
    */
   clearFilters(): void {
     this.filters = {};
-    this.fromDate = '';
-    this.toDate = '';
     this.currentPage = 0;
     this.loadOrders();
   }

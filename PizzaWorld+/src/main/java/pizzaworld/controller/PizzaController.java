@@ -448,8 +448,63 @@ public class PizzaController {
     // 🧪 Endpoint to get the earliest order date
     @GetMapping("/orders/earliest-date")
     public ResponseEntity<?> getEarliestOrderDate() {
-        String earliest = pizzaService.getEarliestOrderDate();
-        return ResponseEntity.ok(Map.of("earliestOrderDate", earliest));
+        return ResponseEntity.ok(Map.of("earliestOrderDate", pizzaService.getEarliestOrderDate()));
+    }
+
+    // 🚀 NEW DASHBOARD ANALYTICS ENDPOINTS
+
+    @GetMapping("/dashboard/analytics")
+    public ResponseEntity<?> getDashboardAnalytics(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getDashboardAnalytics(user));
+    }
+
+    @GetMapping("/dashboard/analytics/revenue-by-year")
+    public ResponseEntity<?> getRevenueByYear(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRevenueByYear(user));
+    }
+
+    @GetMapping("/dashboard/analytics/revenue-by-year-month")
+    public ResponseEntity<?> getRevenueByYearMonth(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRevenueByYearMonth(user));
+    }
+
+    @GetMapping("/dashboard/analytics/top-stores")
+    public ResponseEntity<?> getTopStoresByRevenue(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getTopStoresByRevenue(user));
+    }
+
+    @GetMapping("/dashboard/analytics/revenue-trend-30-days")
+    public ResponseEntity<?> getRevenueTrendLast30Days(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getRevenueTrendLast30Days(user));
+    }
+
+    @GetMapping("/dashboard/analytics/product-category-performance")
+    public ResponseEntity<?> getProductCategoryPerformance(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getProductCategoryPerformance(user));
+    }
+
+    @GetMapping("/dashboard/analytics/customer-acquisition")
+    public ResponseEntity<?> getCustomerAcquisitionByMonth(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getCustomerAcquisitionByMonth(user));
+    }
+
+    @GetMapping("/dashboard/analytics/avg-order-value-trend")
+    public ResponseEntity<?> getAverageOrderValueTrend(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getAverageOrderValueTrend(user));
+    }
+
+    @GetMapping("/dashboard/analytics/store-performance-comparison")
+    public ResponseEntity<?> getStorePerformanceComparison(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStorePerformanceComparison(user));
     }
 
 }

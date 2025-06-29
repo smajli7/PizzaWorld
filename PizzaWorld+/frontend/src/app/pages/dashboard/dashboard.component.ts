@@ -3,7 +3,6 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 import { LoadingPopupComponent } from '../../shared/loading-popup/loading-popup.component';
-import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { KpiService, DashboardKpiDto, PerformanceData } from '../../core/kpi.service';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { CardModule } from 'primeng/card';
@@ -30,7 +29,6 @@ interface ChartOptions {
   dataLabels: ApexDataLabels;
   stroke: ApexStroke;
   tooltip: ApexTooltip;
-  colors?: string[];
   plotOptions?: any;
 }
 
@@ -43,7 +41,6 @@ interface ChartOptions {
     CommonModule,
     SidebarComponent,
     LoadingPopupComponent,
-    TimeSelectorComponent,
     NgApexchartsModule,
     CardModule,
     ButtonModule
@@ -66,10 +63,13 @@ export class DashboardComponent implements OnInit {
   revenueChartOpts: ChartOptions | null = null;
   ordersChartOpts: ChartOptions | null = null;
 
-  // Time selection
-  selectedPeriod: 'day' | 'week' | 'month' | 'year' = 'month';
-  fromDate: string = '';
-  toDate: string = '';
+  // New analytics data
+  topStoresData: any[] = [];
+  revenueByYear: any[] = [];
+  revenueByYearMonth: any[] = [];
+  productCategoryPerformance: any[] = [];
+  customerAcquisition: any[] = [];
+  averageOrderValueTrend: any[] = [];
 
   constructor(private kpi: KpiService) {}
 
@@ -96,6 +96,7 @@ export class DashboardComponent implements OnInit {
       this.dataLastUpdated = cachedData.globalKPIs.lastUpdated;
       this.loading = false;
       this.setupCharts();
+      this.loadAdditionalAnalytics();
       console.log('✅ Dashboard loaded INSTANTLY from cache');
       return;
     }
@@ -118,11 +119,50 @@ export class DashboardComponent implements OnInit {
           this.performanceData = data;
           this.dataLastUpdated = data.globalKPIs.lastUpdated;
           this.setupCharts();
+          this.loadAdditionalAnalytics();
           console.log('✅ Dashboard loaded from API');
         } else {
           this.error = true;
         }
       });
+  }
+
+  loadAdditionalAnalytics(): void {
+    // Load top stores data
+    this.kpi.getTopStoresByRevenue().subscribe(data => {
+      this.topStoresData = data;
+      console.log('✅ Top stores data loaded');
+    });
+
+    // Load revenue by year
+    this.kpi.getRevenueByYear().subscribe(data => {
+      this.revenueByYear = data;
+      console.log('✅ Revenue by year data loaded');
+    });
+
+    // Load revenue by year/month
+    this.kpi.getRevenueByYearMonth().subscribe(data => {
+      this.revenueByYearMonth = data;
+      console.log('✅ Revenue by year/month data loaded');
+    });
+
+    // Load product category performance
+    this.kpi.getProductCategoryPerformance().subscribe(data => {
+      this.productCategoryPerformance = data;
+      console.log('✅ Product category performance loaded');
+    });
+
+    // Load customer acquisition
+    this.kpi.getCustomerAcquisitionByMonth().subscribe(data => {
+      this.customerAcquisition = data;
+      console.log('✅ Customer acquisition data loaded');
+    });
+
+    // Load average order value trend
+    this.kpi.getAverageOrderValueTrend().subscribe(data => {
+      this.averageOrderValueTrend = data;
+      console.log('✅ Average order value trend loaded');
+    });
   }
 
   refreshData(): void {
@@ -166,6 +206,7 @@ export class DashboardComponent implements OnInit {
                   this.performanceData = data;
                   this.dataLastUpdated = data.globalKPIs.lastUpdated;
                   this.setupCharts();
+                  this.loadAdditionalAnalytics();
                   this.error = false;
                   console.log('Dashboard data refreshed successfully');
                 }, 500);
@@ -186,7 +227,7 @@ export class DashboardComponent implements OnInit {
   setupCharts(): void {
     if (!this.performanceData) return;
 
-    // Setup revenue chart
+    // Setup revenue chart with modern styling
     this.revenueChartOpts = {
       series: [{
         name: 'Revenue',
@@ -198,14 +239,36 @@ export class DashboardComponent implements OnInit {
         toolbar: {
           show: false
         },
-        background: '#ffffff',
-        foreColor: '#ff6b35'
+        background: 'transparent'
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          columnWidth: '60%',
+          distributed: false,
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return '$' + Number(val).toLocaleString();
+        },
+        style: {
+          fontSize: '12px',
+          colors: ['#374151']
+        }
+      },
+      stroke: {
+        width: 0
       },
       xaxis: {
         categories: Object.keys(this.performanceData.storePerformance),
         labels: {
           style: {
-            colors: '#ff6b35',
+            colors: '#6b7280',
             fontSize: '12px'
           }
         }
@@ -214,117 +277,109 @@ export class DashboardComponent implements OnInit {
         title: {
           text: 'Revenue ($)',
           style: {
-            color: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
+            color: '#6b7280',
+            fontSize: '14px'
           }
         },
         labels: {
+          formatter: function (val) {
+            return '$' + Number(val).toLocaleString();
+          },
           style: {
-            colors: '#ff6b35',
+            colors: '#6b7280',
             fontSize: '12px'
           }
         }
       },
-      dataLabels: {
-        enabled: true,
-        style: {
-          colors: ['#ff6b35'],
-          fontSize: '12px',
-          fontWeight: 'bold'
-        },
-        formatter: (val: number) => '$' + (val / 1000).toFixed(0) + 'k'
-      },
-      stroke: {
-        width: 2
-      },
       tooltip: {
-        theme: 'light',
-        style: {
-          fontSize: '12px'
-        },
         y: {
-          formatter: (value: number) => `$${value.toLocaleString()}`
-        }
-      },
-      colors: ['#ff6b35'],
-      plotOptions: {
-        bar: {
-          borderRadius: 8,
-          columnWidth: '70%'
+          formatter: function (val) {
+            return '$' + Number(val).toLocaleString();
+          }
         }
       }
     };
 
-    // Setup orders chart
+    // Setup orders chart with modern styling
     this.ordersChartOpts = {
       series: [{
         name: 'Orders',
         data: Object.values(this.performanceData.storePerformance).map(store => store.totalOrders)
       }],
       chart: {
-        type: 'line',
+        type: 'bar',
         height: 350,
         toolbar: {
           show: false
         },
-        background: '#ffffff',
-        foreColor: '#ff6b35'
+        background: 'transparent'
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          columnWidth: '60%',
+          distributed: false,
+          dataLabels: {
+            position: 'top'
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val) {
+          return Number(val).toLocaleString();
+        },
+        style: {
+          fontSize: '12px',
+          colors: ['#374151']
+        }
+      },
+      stroke: {
+        width: 0
       },
       xaxis: {
         categories: Object.keys(this.performanceData.storePerformance),
         labels: {
           style: {
-            colors: '#ff6b35',
+            colors: '#6b7280',
             fontSize: '12px'
           }
         }
       },
       yaxis: {
         title: {
-          text: 'Total Orders',
+          text: 'Orders',
           style: {
-            color: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
+            color: '#6b7280',
+            fontSize: '14px'
           }
         },
         labels: {
+          formatter: function (val) {
+            return Number(val).toLocaleString();
+          },
           style: {
-            colors: '#ff6b35',
+            colors: '#6b7280',
             fontSize: '12px'
           }
         }
       },
-      dataLabels: {
-        enabled: true,
-        style: {
-          colors: ['#ff6b35'],
-          fontSize: '12px',
-          fontWeight: 'bold'
-        }
-      },
-      stroke: {
-        width: 4,
-        colors: ['#ff6b35']
-      },
       tooltip: {
-        theme: 'light',
-        style: {
-          fontSize: '12px'
-        },
         y: {
-          formatter: (value: number) => value.toLocaleString()
+          formatter: function (val) {
+            return Number(val).toLocaleString() + ' orders';
+          }
         }
-      },
-      colors: ['#ff6b35']
+      }
     };
   }
 
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
   }
 
@@ -332,45 +387,13 @@ export class DashboardComponent implements OnInit {
     return value.toLocaleString();
   }
 
-  onTimePeriodChange(dateRange: { from: string; to: string }): void {
-    this.fromDate = dateRange.from;
-    this.toDate = dateRange.to;
-    // Handle time period changes if needed
-  }
-
-  /** Debug method to check cache status */
   debugCacheStatus(): void {
-    console.log('🔍 Dashboard Cache Debug:');
+    console.log('🔍 Debug: Cache status check');
     this.kpi.debugCacheStatus();
-    
-    const allCached = this.kpi.isAllDataCached();
-    console.log(`Overall cache status: ${allCached ? '✅ All cached' : '❌ Missing data'}`);
   }
 
-  /** Global debug method accessible from browser console */
   testInstantLoading(): void {
-    console.log('🧪 Testing instant loading...');
-    
-    // Test dashboard cache
-    const dashboardCache = this.kpi.getCachedPerformanceData();
-    console.log(`Dashboard cache: ${dashboardCache ? '✅' : '❌'}`);
-    
-    // Test stores cache
-    const storesCache = this.kpi.getCachedStoresData();
-    console.log(`Stores cache: ${storesCache ? `✅ ${storesCache.length} stores` : '❌'}`);
-    
-    // Test products cache
-    const productsCache = this.kpi.getCachedProducts();
-    console.log(`Products cache: ${productsCache ? `✅ ${productsCache.length} products` : '❌'}`);
-    
-    // Test sales cache
-    const salesCache = this.kpi.getCachedAllTimeSalesKPIs('2000-01-01', new Date().toISOString().split('T')[0]);
-    console.log(`Sales cache: ${salesCache ? '✅' : '❌'}`);
-    
-    if (dashboardCache && storesCache && productsCache && salesCache) {
-      console.log('🎉 ALL CACHES WORKING - INSTANT TAB SWITCHING ENABLED!');
-    } else {
-      console.log('⚠️ Some caches missing - tab switching may have delays');
-    }
+    console.log('🧪 Test: Instant loading simulation');
+    this.loadDashboardData();
   }
 }

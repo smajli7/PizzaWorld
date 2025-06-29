@@ -5,7 +5,6 @@ import { NgApexchartsModule } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 import { KpiService } from '../../core/kpi.service';
 import { FormsModule } from '@angular/forms';
-import { TimeSelectorComponent } from '../../shared/time-selector/time-selector.component';
 import { LoadingPopupComponent } from '../../shared/loading-popup/loading-popup.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -85,7 +84,6 @@ export interface CategoryRevenue {
     RouterModule,
     NgApexchartsModule,
     FormsModule,
-    TimeSelectorComponent,
     LoadingPopupComponent,
   ],
   templateUrl: './sales.component.html',

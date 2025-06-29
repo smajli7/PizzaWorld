@@ -770,4 +770,104 @@ export class KpiService {
       }
     });
   }
+
+  // 🚀 NEW DASHBOARD ANALYTICS METHODS
+
+  /** Get top stores by revenue */
+  getTopStoresByRevenue(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/top-stores', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Top stores data loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get revenue by year */
+  getRevenueByYear(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/revenue-by-year', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Revenue by year data loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get revenue by year and month */
+  getRevenueByYearMonth(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/revenue-by-year-month', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Revenue by year/month data loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get product category performance */
+  getProductCategoryPerformance(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/product-category-performance', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Product category performance loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get customer acquisition by month */
+  getCustomerAcquisitionByMonth(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/customer-acquisition', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Customer acquisition data loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get average order value trend */
+  getAverageOrderValueTrend(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/avg-order-value-trend', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Average order value trend loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get store performance comparison */
+  getStorePerformanceComparison(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<any[]>('/api/dashboard/analytics/store-performance-comparison', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Store performance comparison loading failed:', error);
+          return of([]);
+        })
+      );
+  }
 }

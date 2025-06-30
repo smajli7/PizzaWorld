@@ -357,7 +357,20 @@ public class PizzaService {
 
     public List<Map<String, Object>> getAllProducts(User user) {
         System.out.println("🧾 Getting all products for user: " + user.getUsername());
-        return pizzaRepo.getAllProducts();
+
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                return pizzaRepo.getAllProducts(); // HQ sieht alles
+
+            case "STATE_MANAGER":
+                return pizzaRepo.dynamicProductFilter(null, user.getStateAbbr(), null); // nur eigener Bundesstaat
+
+            case "STORE_MANAGER":
+                return pizzaRepo.dynamicProductFilter(user.getStoreId(), null, null); // nur eigener Store
+
+            default:
+                throw new AccessDeniedException("Unbekannte Rolle");
+        }
     }
 
     public Map<String, Object> getProductDetails(String sku) {
@@ -707,7 +720,7 @@ public class PizzaService {
     }
 
     // --------- SALES ANALYTICS METHODS ---------
-    
+
     public List<Map<String, Object>> getBestSellingProducts(LocalDate from, LocalDate to, User user) {
         return switch (user.getRole()) {
             case "HQ_ADMIN" -> pizzaRepo.fetchBestSellingProducts(from, to);
@@ -725,8 +738,8 @@ public class PizzaService {
                 // Store managers only see their own store
                 List<Map<String, Object>> allStores = pizzaRepo.fetchStoresByRevenue(from, to);
                 yield allStores.stream()
-                    .filter(store -> user.getStoreId().equals(store.get("storeid")))
-                    .toList();
+                        .filter(store -> user.getStoreId().equals(store.get("storeid")))
+                        .toList();
             }
             default -> throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         };
@@ -758,9 +771,9 @@ public class PizzaService {
      * Get paginated orders with filtering, sorting, and caching
      */
     @Cacheable(value = "orders", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #page + '_' + #size + '_' + #sortBy + '_' + #sortOrder + '_' + #params.toString()")
-    public Map<String, Object> getPaginatedOrders(Map<String, String> params, User user, 
+    public Map<String, Object> getPaginatedOrders(Map<String, String> params, User user,
             int page, int size, String sortBy, String sortOrder) {
-        
+
         String storeId = params.get("storeId");
         String customerId = params.get("customerId");
         String state = params.get("state");
@@ -857,7 +870,7 @@ public class PizzaService {
      */
     public Map<String, Object> getDashboardAnalytics(User user) {
         Map<String, Object> analytics = new HashMap<>();
-        
+
         try {
             // Get all analytics data
             analytics.put("revenueByYear", getRevenueByYear(user));
@@ -868,12 +881,12 @@ public class PizzaService {
             analytics.put("customerAcquisitionByMonth", getCustomerAcquisitionByMonth(user));
             analytics.put("averageOrderValueTrend", getAverageOrderValueTrend(user));
             analytics.put("storePerformanceComparison", getStorePerformanceComparison(user));
-            
+
         } catch (Exception e) {
             System.err.println("Error getting dashboard analytics: " + e.getMessage());
             e.printStackTrace();
         }
-        
+
         return analytics;
     }
 
@@ -882,19 +895,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getRevenueByYear(User user) {
         List<Map<String, Object>> data = pizzaRepo.getRevenueByYear();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -903,19 +916,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getRevenueByYearMonth(User user) {
         List<Map<String, Object>> data = pizzaRepo.getRevenueByYearMonth();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -924,18 +937,18 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getTopStoresByRevenue(User user) {
         List<Map<String, Object>> data = pizzaRepo.getTopStoresByRevenue();
-        
+
         // Apply role-based filtering
         if ("STORE_MANAGER".equals(user.getRole())) {
             return data.stream()
-                .filter(row -> user.getStoreId().equals(row.get("storeid")))
-                .collect(Collectors.toList());
+                    .filter(row -> user.getStoreId().equals(row.get("storeid")))
+                    .collect(Collectors.toList());
         } else if ("STATE_MANAGER".equals(user.getRole())) {
             return data.stream()
-                .filter(row -> user.getStateAbbr().equals(row.get("state_abbr")))
-                .collect(Collectors.toList());
+                    .filter(row -> user.getStateAbbr().equals(row.get("state_abbr")))
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -944,19 +957,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getRevenueTrendLast30Days(User user) {
         List<Map<String, Object>> data = pizzaRepo.getRevenueTrendLast30Days();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -965,19 +978,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getProductCategoryPerformance(User user) {
         List<Map<String, Object>> data = pizzaRepo.getProductCategoryPerformance();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -986,19 +999,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getCustomerAcquisitionByMonth(User user) {
         List<Map<String, Object>> data = pizzaRepo.getCustomerAcquisitionByMonth();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -1007,19 +1020,19 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getAverageOrderValueTrend(User user) {
         List<Map<String, Object>> data = pizzaRepo.getAverageOrderValueTrend();
-        
+
         // Apply role-based filtering if needed
         if ("STORE_MANAGER".equals(user.getRole())) {
             // Filter to only show data for the user's store
             return data.stream()
-                .filter(row -> {
-                    // This would need to be implemented based on your data structure
-                    // For now, return all data
-                    return true;
-                })
-                .collect(Collectors.toList());
+                    .filter(row -> {
+                        // This would need to be implemented based on your data structure
+                        // For now, return all data
+                        return true;
+                    })
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 
@@ -1028,18 +1041,18 @@ public class PizzaService {
      */
     public List<Map<String, Object>> getStorePerformanceComparison(User user) {
         List<Map<String, Object>> data = pizzaRepo.getStorePerformanceComparison();
-        
+
         // Apply role-based filtering
         if ("STORE_MANAGER".equals(user.getRole())) {
             return data.stream()
-                .filter(row -> user.getStoreId().equals(row.get("storeid")))
-                .collect(Collectors.toList());
+                    .filter(row -> user.getStoreId().equals(row.get("storeid")))
+                    .collect(Collectors.toList());
         } else if ("STATE_MANAGER".equals(user.getRole())) {
             return data.stream()
-                .filter(row -> user.getStateAbbr().equals(row.get("state_abbr")))
-                .collect(Collectors.toList());
+                    .filter(row -> user.getStateAbbr().equals(row.get("state_abbr")))
+                    .collect(Collectors.toList());
         }
-        
+
         return data;
     }
 

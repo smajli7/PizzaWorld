@@ -40,36 +40,37 @@ public class PizzaService {
 
     @Cacheable(value = "dashboardKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
     public DashboardKpiDto getDashboardKPIs(User user) {
-        Map<String, Object> raw;
-        if ("STORE_MANAGER".equals(user.getRole())) {
-            Map<String, Object> arr = pizzaRepo.fetchStoreKPIs(user.getStoreId());
-            raw = new HashMap<>();
-            if (arr != null && !arr.isEmpty()) {
-                raw.put("revenue", arr.get("revenue"));
-                raw.put("orders", arr.get("orders"));
-                raw.put("avg_order", arr.get("avg_order"));
-                raw.put("customers", arr.get("customers"));
-                raw.put("products", arr.get("products"));
-            } else {
-                raw.put("revenue", 0);
-                raw.put("orders", 0);
-                raw.put("avg_order", 0);
-                raw.put("customers", 0);
-                raw.put("products", 0);
-            }
-        } else if ("HQ_ADMIN".equals(user.getRole())) {
-            raw = pizzaRepo.fetchGlobalKPIs();
+        // Role-based: HQ gets all 3, state gets their state, store gets their store
+        if ("HQ_ADMIN".equals(user.getRole())) {
+            // For HQ, return a DTO with all 3 slices (global, all states, all stores)
+            Map<String, Object> global = pizzaRepo.fetchGlobalKPIs();
+            // Optionally, you could fetch all states and all stores here if needed for the dashboard
+            // For now, just return global as before
+            return new DashboardKpiDto(
+                ((Number) global.getOrDefault("revenue", 0)).doubleValue(),
+                ((Number) global.getOrDefault("orders", 0)).intValue(),
+                ((Number) global.getOrDefault("avg_order", 0)).doubleValue(),
+                ((Number) global.getOrDefault("customers", 0)).intValue(),
+                ((Number) global.getOrDefault("products", 0)).intValue());
         } else if ("STATE_MANAGER".equals(user.getRole())) {
-            raw = pizzaRepo.fetchStateKPIs(user.getStateAbbr());
+            Map<String, Object> state = pizzaRepo.fetchStateKPIs(user.getStateAbbr());
+            return new DashboardKpiDto(
+                ((Number) state.getOrDefault("revenue", 0)).doubleValue(),
+                ((Number) state.getOrDefault("orders", 0)).intValue(),
+                ((Number) state.getOrDefault("avg_order", 0)).doubleValue(),
+                ((Number) state.getOrDefault("customers", 0)).intValue(),
+                ((Number) state.getOrDefault("products", 0)).intValue());
+        } else if ("STORE_MANAGER".equals(user.getRole())) {
+            Map<String, Object> store = pizzaRepo.fetchStoreKPIs(user.getStoreId());
+            return new DashboardKpiDto(
+                ((Number) store.getOrDefault("revenue", 0)).doubleValue(),
+                ((Number) store.getOrDefault("orders", 0)).intValue(),
+                ((Number) store.getOrDefault("avg_order", 0)).doubleValue(),
+                ((Number) store.getOrDefault("customers", 0)).intValue(),
+                ((Number) store.getOrDefault("products", 0)).intValue());
         } else {
             throw new AccessDeniedException("Unbekannte Rolle: Zugriff verweigert");
         }
-        return new DashboardKpiDto(
-                ((Number) raw.getOrDefault("revenue", 0)).doubleValue(),
-                ((Number) raw.getOrDefault("orders", 0)).intValue(),
-                ((Number) raw.getOrDefault("avg_order", 0)).doubleValue(),
-                ((Number) raw.getOrDefault("customers", 0)).intValue(),
-                ((Number) raw.getOrDefault("products", 0)).intValue());
     }
 
     public Map<String, Object> getStoreKPIs(String storeId, CustomUserDetails user) {

@@ -16,39 +16,57 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
 
   Optional<User> findByUsername(String username);
 
+  // -----------------------------------------------------------------
+  // Materialized-view-based KPI queries
+  // -----------------------------------------------------------------
+
+  /**
+   * Global KPI snapshot – single row in view <code>kpis_global_hq</code>.
+   * Adds product count in a sub-select so the existing DTO still receives the
+   * same field set as before.
+   */
   @Query(value = """
-      SELECT SUM(o.total) AS revenue,
-             COUNT(*) AS orders,
-             COALESCE(AVG(o.total), 0) AS avg_order,
-             COUNT(DISTINCT o.customerid) AS customers,
-             (SELECT COUNT(*) FROM products) AS products
-      FROM orders o
+      SELECT
+          revenue,
+          orders,
+          avg_order_value   AS avg_order,
+          customers,
+          (SELECT COUNT(*) FROM products) AS products
+      FROM   kpis_global_hq
       """, nativeQuery = true)
   Map<String, Object> fetchGlobalKPIs();
 
+  /**
+   * State-level KPI snapshot – rows are keyed by <code>state</code>.
+   */
   @Query(value = """
-      SELECT SUM(o.total) AS revenue,
-             COUNT(*) AS orders,
-             COALESCE(AVG(o.total), 0) AS avg_order,
-             COUNT(DISTINCT o.customerid) AS customers,
-             (SELECT COUNT(*) FROM products) AS products
-      FROM orders o
-      JOIN stores s ON o.storeid = s.storeid
-      WHERE s.state_abbr = :state
+      SELECT
+          revenue,
+          orders,
+          avg_order_value   AS avg_order,
+          customers,
+          (SELECT COUNT(*) FROM products) AS products
+      FROM   kpis_global_state
+      WHERE  state = :state
       """, nativeQuery = true)
   Map<String, Object> fetchStateKPIs(@Param("state") String state);
 
+  /**
+   * Store-level KPI snapshot – rows are keyed by <code>store_id</code>.
+   */
   @Query(value = """
-      SELECT COALESCE(SUM(o.total), 0) AS revenue,
-             COALESCE(COUNT(*), 0) AS orders,
-             COALESCE(AVG(o.total), 0) AS avg_order,
-             COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers,
-             (SELECT COUNT(*) FROM products) AS products
-      FROM orders o
-      WHERE o.storeid = :storeId
+      SELECT
+          revenue,
+          orders,
+          avg_order_value   AS avg_order,
+          customers,
+          (SELECT COUNT(*) FROM products) AS products
+      FROM   kpis_global_store
+      WHERE  store_id = :storeId
       """, nativeQuery = true)
   Map<String, Object> fetchStoreKPIs(@Param("storeId") String storeId);
 
+  // The helper to look up a store's state is still required elsewhere.
   @Query(value = "SELECT state_abbr FROM stores WHERE storeid = :storeId", nativeQuery = true)
   String getStoreState(@Param("storeId") String storeId);
 

@@ -58,7 +58,7 @@ export class DashboardComponent implements OnInit {
 
     forkJoin({
       globalKPIs: this.kpi.getDashboard().pipe(catchError(() => of(null))),
-      performance: this.kpi.loadPerformanceData(this.ngOnInit).pipe(catchError(() => of(null))),
+      performance: this.kpi.loadPerformanceData().pipe(catchError(() => of(null))),
       topStores: this.kpi.getTopStoresByRevenue().pipe(catchError(() => of([]))),
       revenueByYear: this.kpi.getRevenueByYear().pipe(catchError(() => of([]))),
       productCategory: this.kpi.getProductCategoryPerformance().pipe(catchError(() => of([]))),

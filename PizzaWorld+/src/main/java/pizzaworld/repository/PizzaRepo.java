@@ -222,7 +222,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
           p.launch,
           COUNT(*) AS total_orders,
           COUNT(DISTINCT o.customerid) AS unique_customers,
-          SUM(p.price) AS revenue,
+          SUM(o.total) AS revenue,
           AVG(o.total) AS avg_order
       FROM products p
       JOIN order_items oi ON p.sku = oi.sku
@@ -233,7 +233,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
   Map<String, Object> fetchProductDetails(@Param("sku") String sku);
 
   @Query(value = """
-      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue
+      SELECT p.sku, p.name, p.size, SUM(o.total) AS revenue
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -290,7 +290,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
           p.launch,
           COALESCE(COUNT(o.orderid), 0) AS total_orders,
           COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers,
-          COALESCE(SUM(p.price), 0) AS revenue
+          COALESCE(SUM(o.total), 0) AS revenue
       FROM products p
       LEFT JOIN order_items oi ON p.sku = oi.sku
       LEFT JOIN orders o ON o.orderid = oi.orderid
@@ -318,7 +318,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
           p.launch,
           COALESCE(COUNT(o.orderid), 0) AS total_orders,
           COALESCE(COUNT(DISTINCT o.customerid), 0) AS customers,
-          COALESCE(SUM(p.price), 0) AS revenue
+          COALESCE(SUM(o.total), 0) AS revenue
       FROM products p
       LEFT JOIN order_items oi ON p.sku = oi.sku
       LEFT JOIN orders o ON o.orderid = oi.orderid
@@ -446,7 +446,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
 
   // --------- SALES: Best Selling Products (Global) ---------
   @Query(value = """
-      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      SELECT p.sku, p.name, p.size, SUM(o.total) AS revenue, SUM(oi.quantity) AS total_sold
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -457,7 +457,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
   List<Map<String, Object>> fetchBestSellingProducts(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
   @Query(value = """
-      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      SELECT p.sku, p.name, p.size, SUM(o.total) AS revenue, SUM(oi.quantity) AS total_sold
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -471,7 +471,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       @Param("from") LocalDate from, @Param("to") LocalDate to);
 
   @Query(value = """
-      SELECT p.sku, p.name, p.size, SUM(oi.quantity * p.price) AS revenue, SUM(oi.quantity) AS total_sold
+      SELECT p.sku, p.name, p.size, SUM(o.total) AS revenue, SUM(oi.quantity) AS total_sold
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -541,7 +541,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
 
   // --------- SALES: Revenue by Category ---------
   @Query(value = """
-      SELECT p.category, SUM(oi.quantity * p.price) AS revenue, COUNT(*) AS orders
+      SELECT p.category, SUM(o.total) AS revenue, COUNT(*) AS orders
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -566,7 +566,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       @Param("from") LocalDate from, @Param("to") LocalDate to);
 
   @Query(value = """
-      SELECT p.category, SUM(oi.quantity * p.price) AS revenue, COUNT(*) AS orders
+      SELECT p.category, SUM(o.total) AS revenue, COUNT(*) AS orders
       FROM order_items oi
       JOIN orders o ON o.orderid = oi.orderid
       JOIN products p ON p.sku = oi.sku
@@ -664,7 +664,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
   @Query(value = """
       SELECT 
           p.category,
-          SUM(oi.quantity * p.price) AS revenue,
+          SUM(o.total) AS revenue,
           SUM(oi.quantity) AS units_sold,
           COUNT(DISTINCT o.orderid) AS orders,
           COUNT(DISTINCT o.customerid) AS customers

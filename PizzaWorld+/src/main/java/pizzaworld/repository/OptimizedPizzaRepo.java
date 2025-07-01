@@ -463,40 +463,40 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
 
     // Yearly Revenue (for year-specific filtering) - using store_revenue_by_time_periods
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label,
+        SELECT storeid, city, state_name, state_abbr, year,
                SUM(total_revenue) as yearly_revenue,
                SUM(order_count) as yearly_orders,
                AVG(avg_order_value) as yearly_avg_order_value,
                SUM(unique_customers) as yearly_unique_customers
         FROM store_revenue_by_time_periods 
         WHERE year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label
+        GROUP BY storeid, city, state_name, state_abbr, year
         ORDER BY yearly_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueByYearHQ(@Param("year") Integer year);
 
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label,
+        SELECT storeid, city, state_name, state_abbr, year,
                SUM(total_revenue) as yearly_revenue,
                SUM(order_count) as yearly_orders,
                AVG(avg_order_value) as yearly_avg_order_value,
                SUM(unique_customers) as yearly_unique_customers
         FROM store_revenue_by_time_periods 
         WHERE state_abbr = :state AND year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label
+        GROUP BY storeid, city, state_name, state_abbr, year
         ORDER BY yearly_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueByYearState(@Param("state") String state, @Param("year") Integer year);
 
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label,
+        SELECT storeid, city, state_name, state_abbr, year,
                SUM(total_revenue) as yearly_revenue,
                SUM(order_count) as yearly_orders,
                AVG(avg_order_value) as yearly_avg_order_value,
                SUM(unique_customers) as yearly_unique_customers
         FROM store_revenue_by_time_periods 
         WHERE storeid = :storeId AND year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label
+        GROUP BY storeid, city, state_name, state_abbr, year
         """, nativeQuery = true)
     Map<String, Object> getStoreRevenueByYearStore(@Param("storeId") String storeId, @Param("year") Integer year);
 
@@ -585,13 +585,13 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
     Map<String, Object> getStoreRevenueByDateRangeStore(@Param("storeId") String storeId, @Param("startDate") String startDate, @Param("endDate") String endDate);
 
     // Utility methods for time period options
-    @Query(value = "SELECT DISTINCT year, year_label FROM store_revenue_by_time_periods ORDER BY year DESC", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT year, CONCAT('Year ', year) as year_label FROM store_revenue_by_time_periods WHERE year IS NOT NULL ORDER BY year DESC", nativeQuery = true)
     List<Map<String, Object>> getAvailableYears();
 
-    @Query(value = "SELECT DISTINCT year, month, month_label, month_name_label FROM store_revenue_by_time_periods WHERE year = :year ORDER BY year DESC, month DESC", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT year, month, month_label, month_name_label FROM store_revenue_by_time_periods WHERE year = :year AND month IS NOT NULL ORDER BY month", nativeQuery = true)
     List<Map<String, Object>> getAvailableMonthsForYear(@Param("year") Integer year);
 
-    @Query(value = "SELECT DISTINCT year, quarter, quarter_label FROM store_revenue_by_time_periods WHERE year = :year ORDER BY year DESC, quarter DESC", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT year, CEIL(month/3.0) as quarter, CONCAT('Q', CEIL(month/3.0), ' ', year) as quarter_label FROM store_revenue_by_time_periods WHERE year = :year AND month IS NOT NULL ORDER BY quarter", nativeQuery = true)
     List<Map<String, Object>> getAvailableQuartersForYear(@Param("year") Integer year);
 
     // =================================================================
@@ -649,47 +649,62 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
 
     // Yearly Revenue
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label, 
+        SELECT storeid, city, state_name, state_abbr, year, 
                SUM(total_revenue) as yearly_revenue, 
                SUM(order_count) as yearly_orders, 
                AVG(avg_order_value) as yearly_avg_order_value, 
                SUM(unique_customers) as yearly_unique_customers 
         FROM store_revenue_by_time_periods 
         WHERE year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label 
+        GROUP BY storeid, city, state_name, state_abbr, year 
         ORDER BY yearly_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueChartYearHQ(@Param("year") Integer year);
 
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label, 
+        SELECT storeid, city, state_name, state_abbr, year, 
                SUM(total_revenue) as yearly_revenue, 
                SUM(order_count) as yearly_orders, 
                AVG(avg_order_value) as yearly_avg_order_value, 
                SUM(unique_customers) as yearly_unique_customers 
         FROM store_revenue_by_time_periods 
         WHERE state_abbr = :state AND year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label 
+        GROUP BY storeid, city, state_name, state_abbr, year 
         ORDER BY yearly_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueChartYearState(@Param("state") String state, @Param("year") Integer year);
 
     @Query(value = """
-        SELECT storeid, city, state_name, state_abbr, year, year_label, 
+        SELECT storeid, city, state_name, state_abbr, year, 
                SUM(total_revenue) as yearly_revenue, 
                SUM(order_count) as yearly_orders, 
                AVG(avg_order_value) as yearly_avg_order_value, 
                SUM(unique_customers) as yearly_unique_customers 
         FROM store_revenue_by_time_periods 
         WHERE storeid = :storeId AND year = :year 
-        GROUP BY storeid, city, state_name, state_abbr, year, year_label
+        GROUP BY storeid, city, state_name, state_abbr, year
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueChartYearStore(@Param("storeId") String storeId, @Param("year") Integer year);
 
     // Time period options
-    @Query(value = "SELECT DISTINCT year, year_label FROM store_revenue_by_time_periods ORDER BY year DESC", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT year, CONCAT('Year ', year) as year_label FROM store_revenue_by_time_periods WHERE year IS NOT NULL ORDER BY year DESC", nativeQuery = true)
     List<Map<String, Object>> getChartAvailableYears();
 
-    @Query(value = "SELECT DISTINCT year, month, month_label, month_name_label FROM store_revenue_by_time_periods WHERE year = :year ORDER BY month", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT year, month, month_label, month_name_label FROM store_revenue_by_time_periods WHERE year = :year AND month IS NOT NULL ORDER BY month", nativeQuery = true)
     List<Map<String, Object>> getChartAvailableMonths(@Param("year") Integer year);
+
+    // =================================================================
+    // FALLBACK QUERIES - Using existing store_performance views
+    // =================================================================
+    // These queries use the existing store_performance views as fallback
+    // when the new store_revenue_all_time view is not available
+
+    @Query(value = "SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, avg_order_value, unique_customers as total_unique_customers FROM store_performance_hq ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreRevenueChartAllTimeHQFallback();
+
+    @Query(value = "SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, avg_order_value, unique_customers as total_unique_customers FROM store_performance_state WHERE state_abbr = :state ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreRevenueChartAllTimeStateFallback(@Param("state") String state);
+
+    @Query(value = "SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, avg_order_value, unique_customers as total_unique_customers FROM store_performance_hq WHERE storeid = :storeId", nativeQuery = true)
+    List<Map<String, Object>> getStoreRevenueChartAllTimeStoreFallback(@Param("storeId") String storeId);
 }

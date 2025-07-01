@@ -23,14 +23,18 @@ interface StoreRevenueData {
   state_abbr: string;
   year?: number;
   month?: number;
+  month_label?: string;
+  month_name_label?: string;
   yearly_revenue?: number;
   monthly_revenue?: number;
   total_revenue?: number;
   yearly_orders?: number;
   monthly_orders?: number;
+  total_orders?: number;
   order_count?: number;
   yearly_unique_customers?: number;
   monthly_unique_customers?: number;
+  total_unique_customers?: number;
   unique_customers?: number;
   yearly_avg_order_value?: number;
   monthly_avg_order_value?: number;
@@ -60,8 +64,8 @@ export class DashboardComponent implements OnInit {
   availableMonths: TimePeriodOption[] = [];
   
   // Filter state
-  selectedTimePeriod: 'year' | 'month' = 'year';
-  selectedYear: number = 2023;
+  selectedTimePeriod: 'all-time' | 'year' | 'month' = 'all-time';
+  selectedYear?: number;
   selectedMonth?: number;
   
   // UI state
@@ -78,7 +82,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAvailableYears();
-    this.loadDashboardData();
+    // loadDashboardData() will be called from loadAvailableYears() after years are loaded
   }
 
   private getAuthHeaders(): HttpHeaders {
@@ -91,10 +95,16 @@ export class DashboardComponent implements OnInit {
       .subscribe({
         next: (years) => {
           this.availableYears = years;
-          if (years.length > 0 && !this.selectedYear) {
+          // Only set year if we're not in all-time mode
+          if (years.length > 0 && !this.selectedYear && this.selectedTimePeriod !== 'all-time') {
             this.selectedYear = years[0].year;
           }
-          this.loadAvailableMonths();
+          if (this.selectedTimePeriod !== 'all-time') {
+            this.loadAvailableMonths();
+          } else {
+            // For all-time mode, load data immediately
+            this.loadDashboardData();
+          }
         },
         error: (error) => console.error('Failed to load available years:', error)
       });
@@ -109,6 +119,15 @@ export class DashboardComponent implements OnInit {
       }).subscribe({
         next: (months) => {
           this.availableMonths = months;
+          // Set January as default when switching to month view
+          if (this.selectedTimePeriod === 'month' && !this.selectedMonth && months.length > 0) {
+            const january = months.find(m => m.month === 1);
+            if (january) {
+              this.selectedMonth = 1;
+            }
+          }
+          // Load dashboard data after months are loaded (for initial load)
+          this.loadDashboardData();
         },
         error: (error) => console.error('Failed to load available months:', error)
       });
@@ -119,12 +138,18 @@ export class DashboardComponent implements OnInit {
     this.loading = true;
     this.error = false;
     
-    const params = new HttpParams()
-      .set('timePeriod', this.selectedTimePeriod)
-      .set('year', this.selectedYear?.toString() || '')
-      .set('month', this.selectedMonth?.toString() || '');
+    let params = new HttpParams().set('timePeriod', this.selectedTimePeriod);
+    
+    if (this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    }
+    
+    if (this.selectedMonth) {
+      params = params.set('month', this.selectedMonth.toString());
+    }
+    
 
-    this.http.get<StoreRevenueData[]>('/api/v2/store-revenue-chart', { 
+    this.http.get<StoreRevenueData[]>('/api/v2/chart/store-revenue', { 
       headers: this.getAuthHeaders(), 
       params 
     }).subscribe({
@@ -144,12 +169,26 @@ export class DashboardComponent implements OnInit {
 
   onTimePeriodChange(): void {
     this.selectedMonth = undefined;
+    
+    if (this.selectedTimePeriod === 'all-time') {
+      this.selectedYear = undefined;
+    } else if (this.selectedTimePeriod === 'year' && this.availableYears.length > 0) {
+      this.selectedYear = this.availableYears[0].year;
+    } else if (this.selectedTimePeriod === 'month') {
+      if (this.availableYears.length > 0 && !this.selectedYear) {
+        this.selectedYear = this.availableYears[0].year;
+      }
+      this.loadAvailableMonths();
+    }
+    
     this.loadDashboardData();
   }
 
   onYearChange(): void {
     this.selectedMonth = undefined;
-    this.loadAvailableMonths();
+    if (this.selectedTimePeriod === 'month') {
+      this.loadAvailableMonths();
+    }
     this.loadDashboardData();
   }
 
@@ -291,7 +330,7 @@ export class DashboardComponent implements OnInit {
       yaxis: {
         title: { text: 'Avg Order (€)', style: { color: '#6b7280' } },
         labels: {
-          formatter: (val: number) => `€${val.toFixed(2)}`,
+          formatter: (val: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val),
           style: { colors: '#6b7280' }
         }
       },
@@ -343,11 +382,11 @@ export class DashboardComponent implements OnInit {
   }
 
   getOrders(store: StoreRevenueData): number {
-    return store.yearly_orders || store.monthly_orders || store.order_count || 0;
+    return store.yearly_orders || store.monthly_orders || store.total_orders || store.order_count || 0;
   }
 
   getCustomers(store: StoreRevenueData): number {
-    return store.yearly_unique_customers || store.monthly_unique_customers || store.unique_customers || 0;
+    return store.yearly_unique_customers || store.monthly_unique_customers || store.total_unique_customers || store.unique_customers || 0;
   }
 
   getAvgOrderValue(store: StoreRevenueData): number {
@@ -383,12 +422,23 @@ export class DashboardComponent implements OnInit {
     }).format(value);
   }
 
+  formatCurrencyWithDecimals(value: number): string {
+    return new Intl.NumberFormat('de-DE', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+
   formatNumber(value: number): string {
     return new Intl.NumberFormat('en-US').format(value);
   }
 
   getTimePeriodLabel(): string {
     switch (this.selectedTimePeriod) {
+      case 'all-time':
+        return 'All Time (2021-2023)';
       case 'year':
         return this.selectedYear ? `Year ${this.selectedYear}` : 'Yearly';
       case 'month':

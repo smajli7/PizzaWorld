@@ -252,9 +252,20 @@
 
       <!-- Orders Chart -->
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
-        <div class="mb-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Store Orders</h3>
-          <p class="text-gray-600">Order volume by store</p>
+        <div class="mb-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Store Orders</h3>
+            <p class="text-gray-600">Order volume by store</p>
+          </div>
+          <button 
+            (click)="toggleOrdersChartSort()"
+            class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path *ngIf="!ordersChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              <path *ngIf="ordersChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+            </svg>
+            {{ ordersChartSortAscending ? 'Ascending' : 'Descending' }}
+          </button>
         </div>
         <div *ngIf="ordersChartOptions" class="h-96">
           <apx-chart
@@ -275,9 +286,20 @@
 
       <!-- Average Order Value Chart -->
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
-        <div class="mb-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Average Order Value</h3>
-          <p class="text-gray-600">Average order value by store</p>
+        <div class="mb-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Average Order Value</h3>
+            <p class="text-gray-600">Average order value by store</p>
+          </div>
+          <button 
+            (click)="toggleAvgOrderChartSort()"
+            class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path *ngIf="!avgOrderChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              <path *ngIf="avgOrderChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+            </svg>
+            {{ avgOrderChartSortAscending ? 'Ascending' : 'Descending' }}
+          </button>
         </div>
         <div *ngIf="avgOrderValueChartOptions" class="h-96">
           <apx-chart
@@ -299,9 +321,20 @@
 
       <!-- Customers Chart -->
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
-        <div class="mb-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Unique Customers</h3>
-          <p class="text-gray-600">Customer count by store</p>
+        <div class="mb-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Unique Customers</h3>
+            <p class="text-gray-600">Customer count by store</p>
+          </div>
+          <button 
+            (click)="toggleCustomersChartSort()"
+            class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path *ngIf="!customersChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              <path *ngIf="customersChartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+            </svg>
+            {{ customersChartSortAscending ? 'Ascending' : 'Descending' }}
+          </button>
         </div>
         <div *ngIf="customersChartOptions" class="h-96">
           <apx-chart

@@ -74,6 +74,9 @@ export class DashboardComponent implements OnInit {
   
   // Chart controls
   chartSortAscending = false; // false = descending (default), true = ascending
+  ordersChartSortAscending = false;
+  avgOrderChartSortAscending = false;
+  customersChartSortAscending = false;
   
   // Table sorting
   tableSortColumn: 'revenue' | 'orders' | 'customers' | 'avgOrder' | 'store' = 'revenue';
@@ -229,15 +232,59 @@ export class DashboardComponent implements OnInit {
   }
   
   sortStoreData(): void {
+    // This method is kept for the table sorting, but charts now use individual sort methods
     const sortMultiplier = this.chartSortAscending ? 1 : -1;
     this.filteredStoreData.sort((a, b) => {
       return (this.getRevenue(a) - this.getRevenue(b)) * sortMultiplier;
     });
   }
   
+  getSortedStoreDataForRevenue(): StoreRevenueData[] {
+    const sortMultiplier = this.chartSortAscending ? 1 : -1;
+    return [...this.filteredStoreData].sort((a, b) => {
+      return (this.getRevenue(a) - this.getRevenue(b)) * sortMultiplier;
+    });
+  }
+  
+  getSortedStoreDataForOrders(): StoreRevenueData[] {
+    const sortMultiplier = this.ordersChartSortAscending ? 1 : -1;
+    return [...this.filteredStoreData].sort((a, b) => {
+      return (this.getOrders(a) - this.getOrders(b)) * sortMultiplier;
+    });
+  }
+  
+  getSortedStoreDataForAvgOrder(): StoreRevenueData[] {
+    const sortMultiplier = this.avgOrderChartSortAscending ? 1 : -1;
+    return [...this.filteredStoreData].sort((a, b) => {
+      return (this.getAvgOrderValue(a) - this.getAvgOrderValue(b)) * sortMultiplier;
+    });
+  }
+  
+  getSortedStoreDataForCustomers(): StoreRevenueData[] {
+    const sortMultiplier = this.customersChartSortAscending ? 1 : -1;
+    return [...this.filteredStoreData].sort((a, b) => {
+      return (this.getCustomers(a) - this.getCustomers(b)) * sortMultiplier;
+    });
+  }
+  
   toggleChartSort(): void {
     this.chartSortAscending = !this.chartSortAscending;
     this.sortStoreData();
+    this.buildCharts();
+  }
+  
+  toggleOrdersChartSort(): void {
+    this.ordersChartSortAscending = !this.ordersChartSortAscending;
+    this.buildCharts();
+  }
+  
+  toggleAvgOrderChartSort(): void {
+    this.avgOrderChartSortAscending = !this.avgOrderChartSortAscending;
+    this.buildCharts();
+  }
+  
+  toggleCustomersChartSort(): void {
+    this.customersChartSortAscending = !this.customersChartSortAscending;
     this.buildCharts();
   }
   
@@ -286,13 +333,16 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    const topStores = this.filteredStoreData.slice(0, 15);
-    const storeLabels = topStores.map(store => `${store.city}, ${store.state_abbr}`);
+    // Each chart gets its own sorted data - showing all stores
+    const revenueStores = this.getSortedStoreDataForRevenue();
+    const ordersStores = this.getSortedStoreDataForOrders();
+    const avgOrderStores = this.getSortedStoreDataForAvgOrder();
+    const customersStores = this.getSortedStoreDataForCustomers();
     
-    this.buildRevenueChart(topStores, storeLabels);
-    this.buildOrdersChart(topStores, storeLabels);
-    this.buildAvgOrderChart(topStores, storeLabels);
-    this.buildCustomersChart(topStores, storeLabels);
+    this.buildRevenueChart(revenueStores, revenueStores.map(store => `${store.city}, ${store.state_abbr}`));
+    this.buildOrdersChart(ordersStores, ordersStores.map(store => `${store.city}, ${store.state_abbr}`));
+    this.buildAvgOrderChart(avgOrderStores, avgOrderStores.map(store => `${store.city}, ${store.state_abbr}`));
+    this.buildCustomersChart(customersStores, customersStores.map(store => `${store.city}, ${store.state_abbr}`));
   }
 
   private buildRevenueChart(stores: StoreRevenueData[], labels: string[]): void {
@@ -304,7 +354,7 @@ export class DashboardComponent implements OnInit {
         data: revenueData
       }],
       chart: {
-        type: 'bar',
+        type: 'line',
         height: 400,
         toolbar: { 
           show: true,
@@ -323,23 +373,24 @@ export class DashboardComponent implements OnInit {
             }
           }
         },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
         background: 'transparent'
       },
       colors: ['#fb923c'],
-      plotOptions: {
-        bar: {
-          borderRadius: 8,
-          columnWidth: '60%',
-          distributed: false
-        }
-      },
+      stroke: { curve: 'smooth', width: 3 },
       dataLabels: { enabled: false },
       xaxis: {
         categories: labels,
         labels: {
           rotate: -45,
-          style: { colors: '#6b7280', fontSize: '12px' }
-        }
+          style: { colors: '#6b7280', fontSize: '12px' },
+          maxHeight: 120
+        },
+        tickAmount: undefined
       },
       yaxis: {
         title: { text: 'Revenue (€)', style: { color: '#6b7280' } },
@@ -364,7 +415,7 @@ export class DashboardComponent implements OnInit {
         data: ordersData
       }],
       chart: {
-        type: 'line',
+        type: 'area',
         height: 350,
         toolbar: { 
           show: true,
@@ -383,17 +434,32 @@ export class DashboardComponent implements OnInit {
             }
           }
         },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
         background: 'transparent'
       },
       colors: ['#f97316'],
-      stroke: { curve: 'smooth', width: 3 },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.3
+        }
+      },
+      stroke: { curve: 'smooth', width: 2 },
       dataLabels: { enabled: false },
       xaxis: {
         categories: labels,
         labels: {
           rotate: -45,
-          style: { colors: '#6b7280', fontSize: '12px' }
-        }
+          style: { colors: '#6b7280', fontSize: '12px' },
+          maxHeight: 120
+        },
+        tickAmount: undefined
       },
       yaxis: {
         title: { text: 'Orders', style: { color: '#6b7280' } },
@@ -431,6 +497,11 @@ export class DashboardComponent implements OnInit {
             }
           }
         },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
         background: 'transparent'
       },
       colors: ['#ea580c'],
@@ -448,8 +519,10 @@ export class DashboardComponent implements OnInit {
         categories: labels,
         labels: {
           rotate: -45,
-          style: { colors: '#6b7280', fontSize: '12px' }
-        }
+          style: { colors: '#6b7280', fontSize: '12px' },
+          maxHeight: 120
+        },
+        tickAmount: undefined
       },
       yaxis: {
         title: { text: 'Avg Order (€)', style: { color: '#6b7280' } },
@@ -471,7 +544,7 @@ export class DashboardComponent implements OnInit {
         data: customersData
       }],
       chart: {
-        type: 'bar',
+        type: 'area',
         height: 350,
         toolbar: { 
           show: true,
@@ -490,23 +563,32 @@ export class DashboardComponent implements OnInit {
             }
           }
         },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
         background: 'transparent'
       },
       colors: ['#c2410c'],
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          columnWidth: '70%',
-          distributed: false
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.3
         }
       },
+      stroke: { curve: 'smooth', width: 2 },
       dataLabels: { enabled: false },
       xaxis: {
         categories: labels,
         labels: {
           rotate: -45,
-          style: { colors: '#6b7280', fontSize: '12px' }
-        }
+          style: { colors: '#6b7280', fontSize: '12px' },
+          maxHeight: 120
+        },
+        tickAmount: undefined
       },
       yaxis: {
         title: { text: 'Customers', style: { color: '#6b7280' } },

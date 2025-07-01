@@ -102,12 +102,12 @@ export class KpiService {
 
   private recentOrdersCache: OrderInfo[] | null = null;
 
-  /** Holt alle KPI‐Zahlen für das Dashboard */
+  /** Holt alle KPI‐Zahlen für das Dashboard - v2 optimized */
   getDashboard(): Observable<DashboardKpiDto> {
     if (!this.dashboardCache$) {
       const token = localStorage.getItem('authToken');
       const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-      this.dashboardCache$ = this.http.get<DashboardKpiDto>('/api/dashboard', { headers })
+      this.dashboardCache$ = this.http.get<DashboardKpiDto>('/api/v2/dashboard/kpis', { headers })
         .pipe(shareReplay(1, 300000)); // Cache for 5 minutes
     }
     return this.dashboardCache$;
@@ -118,7 +118,7 @@ export class KpiService {
     this.dashboardCache$ = null;
   }
 
-  /** Holt alle Stores */
+  /** Holt alle Stores - v2 optimized */
   getAllStores(): Observable<StoreInfo[]> {
     if (!this.storesCache$) {
       const token = localStorage.getItem('authToken');
@@ -126,7 +126,7 @@ export class KpiService {
 
       console.log('🔄 Loading stores data from API...');
 
-      this.storesCache$ = this.http.get<StoreInfo[]>('/api/stores', { headers })
+      this.storesCache$ = this.http.get<StoreInfo[]>('/api/v2/stores', { headers })
         .pipe(
           map(stores => {
             // Cache the stores data in both memory and localStorage
@@ -199,17 +199,24 @@ export class KpiService {
     return this.http.get<any[]>('/api/kpi/orders-per-day/test');
   }
 
-  /** Fetches revenue by store for the dashboard chart */
+  /** Fetches revenue by store for the dashboard chart - v2 optimized */
   getRevenueByStore(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    return this.http.get<any[]>('/api/dashboard/revenue-by-store', { headers });
+    return this.http.get<any[]>('/api/v2/analytics/store-performance', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Revenue by store data loading failed:', error);
+          return of([]);
+        })
+      );
   }
 
-  /** Fetches sales KPIs for a date range */
+  /** Fetches sales KPIs for a date range - v2 optimized */
   getSalesKPIs(from: string, to: string): Observable<any> {
-    // Use test endpoint for debugging (no authentication required)
-    return this.http.get<any>(`/api/sales/test/kpis?from=${from}&to=${to}`)
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    return this.http.get<any>(`/api/v2/sales/kpis?from=${from}&to=${to}`, { headers })
       .pipe(
         map(data => {
           // Cache the sales KPIs data
@@ -322,7 +329,7 @@ export class KpiService {
     return performanceData?.storePerformance[storeId] || null;
   }
 
-  /** Load all products from backend API */
+  /** Load all products from backend API - v2 optimized */
   getAllProducts(): Observable<ProductInfo[]> {
     if (!this.productsCache$) {
       const token = localStorage.getItem('authToken');
@@ -330,7 +337,7 @@ export class KpiService {
 
       console.log('🔄 Loading products data from API...');
 
-      this.productsCache$ = this.http.get<any[]>('/api/products', { headers })
+      this.productsCache$ = this.http.get<any[]>('/api/v2/products/top?limit=100', { headers })
         .pipe(
           map(backendProducts => {
             // Transform backend data to frontend format
@@ -628,7 +635,7 @@ export class KpiService {
     return hasStores && hasProducts && hasPerformance;
   }
 
-  /** Get paginated orders with filtering and sorting */
+  /** Get paginated orders with filtering and sorting - v2 optimized */
   getPaginatedOrders(
     filters: OrderFilters,
     page: number = 0,
@@ -651,7 +658,7 @@ export class KpiService {
     params.append('sortBy', sortBy);
     params.append('sortOrder', sortOrder);
 
-    return this.http.get<PaginatedOrdersResponse>(`/api/orders/paginated?${params.toString()}`, { headers })
+    return this.http.get<PaginatedOrdersResponse>(`/api/v2/orders?${params.toString()}`, { headers })
       .pipe(
         map(data => {
           // Cache the paginated results
@@ -672,12 +679,12 @@ export class KpiService {
       );
   }
 
-  /** Get recent orders for initial caching */
-  getRecentOrders(): Observable<OrderInfo[]> {
+  /** Get recent orders for initial caching - v2 optimized */
+  getRecentOrders(limit: number = 50): Observable<OrderInfo[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
-    return this.http.get<OrderInfo[]>('/api/orders/recent', { headers })
+    return this.http.get<OrderInfo[]>(`/api/v2/orders/recent?limit=${limit}`, { headers })
       .pipe(
         map(orders => {
           // Cache recent orders
@@ -787,12 +794,12 @@ export class KpiService {
       );
   }
 
-  /** Get revenue by year */
+  /** Get revenue by year - v2 optimized */
   getRevenueByYear(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
     
-    return this.http.get<any[]>('/api/dashboard/analytics/revenue-by-year', { headers })
+    return this.http.get<any[]>('/api/v2/analytics/revenue/by-year', { headers })
       .pipe(
         catchError(error => {
           console.error('❌ Revenue by year data loading failed:', error);
@@ -801,15 +808,29 @@ export class KpiService {
       );
   }
 
-  /** Get revenue by year and month */
-  getRevenueByYearMonth(): Observable<any[]> {
+  /** Get revenue by month - v2 optimized */
+  getRevenueByMonth(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
     
-    return this.http.get<any[]>('/api/dashboard/analytics/revenue-by-year-month', { headers })
+    return this.http.get<any[]>('/api/v2/analytics/revenue/by-month', { headers })
       .pipe(
         catchError(error => {
-          console.error('❌ Revenue by year/month data loading failed:', error);
+          console.error('❌ Revenue by month data loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get orders by month - v2 optimized */
+  getOrdersByMonth(): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return this.http.get<any[]>('/api/v2/analytics/orders/by-month', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Orders by month data loading failed:', error);
           return of([]);
         })
       );
@@ -867,6 +888,19 @@ export class KpiService {
         catchError(error => {
           console.error('❌ Store performance comparison loading failed:', error);
           return of([]);
+        })
+      );
+  }
+
+  /** Fetch consolidated dashboard payload (HQ, state or store depending on role) */
+  getConsolidatedDashboard(): Observable<any> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    return this.http.get<any>('/api/v2/analytics/hq/consolidated', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Consolidated dashboard data loading failed:', error);
+          return of(null);
         })
       );
   }

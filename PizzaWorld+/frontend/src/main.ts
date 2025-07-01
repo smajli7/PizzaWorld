@@ -16,6 +16,10 @@ import { routes }                from './app/app.routes';
 import { AuthService }           from './app/core/auth.service';     // ✅ richtiger Pfad
 
 import { TokenInterceptor }      from './app/core/token-interceptor'; // ⬅️ automatisch "Bearer ..."
+import { applyChartTheme } from './app/core/chart-theme'; // 👈 new import
+
+// Apply global ApexCharts theme
+applyChartTheme();
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -33,8 +37,8 @@ bootstrapApplication(AppComponent, {
     provideAnimations()
   ]
 })
-.then(appRef => {
+.then((appRef: any) => {
   /* Lädt /api/me genau einmal nach dem Bootstrap */
   appRef.injector.get(AuthService).loadCurrentUser().subscribe();
 })
-.catch(err => console.error(err));
+.catch((err: any) => console.error(err));

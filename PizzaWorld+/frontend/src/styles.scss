@@ -2,56 +2,289 @@
 @tailwind components;
 @tailwind utilities;
 
-/* You can add global styles to this file, and also import other style files */
+/* PizzaWorld Modern Dashboard - Orange Theme */
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #1e293b;
+}
 
 :root {
-  --sidebar-w: 250px;          /* offene Breite */
-  --sidebar-w-collapsed: 60px; /* falls du doch wieder einklappst */
+  /* Modern Sidebar Dimensions */
+  --sidebar-w: 280px;
+  --sidebar-w-collapsed: 80px;
+  
+  /* Orange Theme Colors */
+  --orange-50: #fff7ed;
+  --orange-100: #ffedd5;
+  --orange-200: #fed7aa;
+  --orange-300: #fdba74;
+  --orange-400: #fb923c;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #c2410c;
+  --orange-800: #9a3412;
+  --orange-900: #7c2d12;
+  
+  /* Neutral Colors */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--orange-500) 0%, var(--orange-600) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--orange-400) 0%, var(--orange-500) 100%);
+  --gradient-bg: linear-gradient(135deg, var(--slate-50) 0%, var(--slate-100) 100%);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* rechter Inhalts-Bereich */
+/* Modern Layout System */
 .home-section {
   margin-left: var(--sidebar-w);
-  padding: 40px;
+  min-height: 100vh;
+  background: var(--gradient-bg);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
 }
 
-/* falls Sidebar die Klasse .collapsed bekommt */
 .sidebar.collapsed ~ .home-section {
   margin-left: var(--sidebar-w-collapsed);
 }
 
-/* Global tooltip styling */
+/* Modern Content Container */
+.content-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Modern Card Styles */
+.modern-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--slate-200);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* Modern Button Styles */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--orange-600) 0%, var(--orange-700) 100%);
+}
+
+/* Modern Input Styles */
+.modern-input {
+  background: white;
+  border: 2px solid var(--slate-200);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-input:focus {
+  outline: none;
+  border-color: var(--orange-500);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+/* Typography */
+.text-heading {
+  font-weight: 700;
+  color: var(--slate-800);
+  line-height: 1.2;
+}
+
+.text-subheading {
+  font-weight: 600;
+  color: var(--slate-700);
+  line-height: 1.3;
+}
+
+.text-body {
+  color: var(--slate-600);
+  line-height: 1.6;
+}
+
+.text-muted {
+  color: var(--slate-500);
+}
+
+/* Status Indicators */
+.status-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.status-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.status-error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+/* Page Transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .home-section {
+    margin-left: 0;
+    padding: 1rem;
+  }
+  
+  .content-container {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 100vw;
+  }
+  
+  .content-container {
+    padding: 0.75rem;
+  }
+}
+
+/* Modern Tooltip Styling */
 .p-tooltip .p-tooltip-text {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%) !important;
+  background: var(--gradient-primary) !important;
   color: white !important;
-  padding: 0.75rem 1rem !important;
-  border-radius: 8px !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
+  padding: 0.875rem 1.25rem !important;
+  border-radius: 12px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
   line-height: 1.4 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: var(--shadow-xl) !important;
   white-space: nowrap !important;
   max-width: none !important;
   min-width: 200px !important;
   text-align: center !important;
-  letter-spacing: 0.3px !important;
+  letter-spacing: 0.025em !important;
+  backdrop-filter: blur(10px) !important;
 }
 
-.p-tooltip.p-tooltip-top .p-tooltip-arrow {
-  border-top-color: transparent !important;
+.p-tooltip .p-tooltip-arrow {
+  display: none !important;
 }
 
-.p-tooltip.p-tooltip-bottom .p-tooltip-arrow {
-  border-bottom-color: transparent !important;
+/* Enhanced PrimeNG Component Styling */
+.p-datatable .p-datatable-thead > tr > th {
+  background: var(--slate-50) !important;
+  color: var(--slate-700) !important;
+  font-weight: 600 !important;
+  border-bottom: 2px solid var(--orange-200) !important;
 }
 
-.p-tooltip.p-tooltip-left .p-tooltip-arrow {
-  border-left-color: transparent !important;
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--orange-50) !important;
 }
 
-.p-tooltip.p-tooltip-right .p-tooltip-arrow {
-  border-right-color: transparent !important;
+.p-button {
+  background: var(--gradient-primary) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.p-button:hover {
+  background: linear-gradient(135deg, var(--orange-600) 0%, var(--orange-700) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Chart Container Styling */
+.chart-container {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--slate-200);
+}
+
+/* Loading States */
+.loading-spinner {
+  border: 3px solid var(--slate-200);
+  border-top: 3px solid var(--orange-500);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--slate-100);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--orange-600) 0%, var(--orange-700) 100%);
 }

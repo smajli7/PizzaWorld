@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -95,12 +95,12 @@ export class StoresComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private subscriptions = new Subscription();
 
-  constructor(
-    private kpi: KpiService,
-    private http: HttpClient,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private kpi = inject(KpiService);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.setupSearchDebouncing();

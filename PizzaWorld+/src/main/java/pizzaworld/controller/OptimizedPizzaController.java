@@ -323,6 +323,115 @@ public class OptimizedPizzaController {
     }
 
     // =================================================================
+    // COMPREHENSIVE ANALYTICS - Advanced Business Intelligence
+    // =================================================================
+
+    @GetMapping("/analytics/hourly-performance")
+    public ResponseEntity<List<Map<String, Object>>> getHourlyPerformanceAnalytics(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getHourlyPerformanceAnalytics(user, year, month));
+    }
+
+    @GetMapping("/analytics/product-performance")
+    public ResponseEntity<List<Map<String, Object>>> getProductPerformanceAnalytics(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(defaultValue = "50") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getProductPerformanceAnalytics(user, category, year, month, limit));
+    }
+
+    @GetMapping("/analytics/peak-hours")
+    public ResponseEntity<List<Map<String, Object>>> getPeakHoursAnalysis(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getPeakHoursAnalysis(user, year, month));
+    }
+
+    @GetMapping("/analytics/seasonal-business")
+    public ResponseEntity<List<Map<String, Object>>> getSeasonalBusinessAnalysis(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String season, // Winter, Spring, Summer, Fall
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getSeasonalBusinessAnalysis(user, year, season));
+    }
+
+    @GetMapping("/analytics/top-products-by-time")
+    public ResponseEntity<List<Map<String, Object>>> getTopProductsByTimePeriod(
+            @RequestParam(required = false) String timePeriod, // Morning, Afternoon, Evening, Night
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(defaultValue = "20") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getTopProductsByTimePeriod(user, timePeriod, year, month, limit));
+    }
+
+    @GetMapping("/analytics/store-performance-comparison")
+    public ResponseEntity<List<Map<String, Object>>> getStorePerformanceComparison(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStorePerformanceComparison(user, year, month));
+    }
+
+    // Export endpoints for comprehensive analytics
+    @GetMapping("/analytics/hourly-performance/export")
+    public void exportHourlyPerformanceAnalytics(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getHourlyPerformanceAnalytics(user, year, month);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "hourly-performance.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "hourly-performance.csv");
+    }
+
+    @GetMapping("/analytics/product-performance/export")
+    public void exportProductPerformanceAnalytics(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(defaultValue = "100") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getProductPerformanceAnalytics(user, category, year, month, limit);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "product-performance.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "product-performance.csv");
+    }
+
+    // =================================================================
     // HEALTH CHECK
     // =================================================================
 

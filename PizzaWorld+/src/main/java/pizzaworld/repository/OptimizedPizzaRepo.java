@@ -712,4 +712,153 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
 
     @Query(value = "SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, avg_order_value, unique_customers as total_unique_customers FROM store_performance_hq WHERE storeid = :storeId", nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueChartAllTimeStoreFallback(@Param("storeId") String storeId);
+
+    // =================================================================
+    // COMPREHENSIVE ANALYTICS - New Advanced Analytics API
+    // =================================================================
+
+    // Hourly Performance Analytics
+    @Query(value = """
+        SELECT storeid, city, state_abbr, hour_of_day, time_period, day_type,
+               COUNT(DISTINCT orderid) as hourly_orders,
+               SUM(product_revenue) as hourly_revenue,
+               COUNT(DISTINCT customerid) as hourly_customers,
+               AVG(order_total) as avg_hourly_order_value,
+               COUNT(DISTINCT sku) as products_sold
+        FROM store_analytics_comprehensive 
+        WHERE (:storeId IS NULL OR storeid = :storeId)
+          AND (:state IS NULL OR state_abbr = :state)
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY storeid, city, state_abbr, hour_of_day, time_period, day_type
+        ORDER BY hourly_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalytics(
+        @Param("storeId") String storeId, 
+        @Param("state") String state,
+        @Param("year") Integer year,
+        @Param("month") Integer month);
+
+    // Product Performance Analytics
+    @Query(value = """
+        SELECT sku, product_name, category, size,
+               storeid, city, state_abbr,
+               SUM(quantity_sold) as total_quantity,
+               SUM(product_revenue) as total_revenue,
+               COUNT(DISTINCT orderid) as orders_count,
+               COUNT(DISTINCT customerid) as customers_count,
+               AVG(price) as avg_price,
+               COUNT(DISTINCT date_key) as days_sold,
+               AVG(daily_product_rank_by_revenue) as avg_revenue_rank
+        FROM store_analytics_comprehensive 
+        WHERE (:storeId IS NULL OR storeid = :storeId)
+          AND (:state IS NULL OR state_abbr = :state)
+          AND (:category IS NULL OR category = :category)
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY sku, product_name, category, size, storeid, city, state_abbr
+        ORDER BY total_revenue DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getProductPerformanceAnalytics(
+        @Param("storeId") String storeId, 
+        @Param("state") String state,
+        @Param("category") String category,
+        @Param("year") Integer year,
+        @Param("month") Integer month,
+        @Param("limit") Integer limit);
+
+    // Peak Hours Analysis
+    @Query(value = """
+        SELECT hour_of_day, time_period, day_type,
+               COUNT(DISTINCT orderid) as total_orders,
+               SUM(product_revenue) as total_revenue,
+               COUNT(DISTINCT customerid) as total_customers,
+               AVG(order_total) as avg_order_value,
+               COUNT(DISTINCT storeid) as stores_active
+        FROM store_analytics_comprehensive 
+        WHERE (:storeId IS NULL OR storeid = :storeId)
+          AND (:state IS NULL OR state_abbr = :state)
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY hour_of_day, time_period, day_type
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getPeakHoursAnalysis(
+        @Param("storeId") String storeId, 
+        @Param("state") String state,
+        @Param("year") Integer year,
+        @Param("month") Integer month);
+
+    // Seasonal Business Analysis
+    @Query(value = """
+        SELECT season, business_period, year, month,
+               storeid, city, state_abbr,
+               COUNT(DISTINCT orderid) as period_orders,
+               SUM(product_revenue) as period_revenue,
+               COUNT(DISTINCT customerid) as period_customers,
+               AVG(order_total) as avg_order_value,
+               COUNT(DISTINCT sku) as products_sold
+        FROM store_analytics_comprehensive 
+        WHERE (:storeId IS NULL OR storeid = :storeId)
+          AND (:state IS NULL OR state_abbr = :state)
+          AND (:year IS NULL OR year = :year)
+          AND (:season IS NULL OR season = :season)
+        GROUP BY season, business_period, year, month, storeid, city, state_abbr
+        ORDER BY period_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getSeasonalBusinessAnalysis(
+        @Param("storeId") String storeId, 
+        @Param("state") String state,
+        @Param("year") Integer year,
+        @Param("season") String season);
+
+    // Top Products by Time Period
+    @Query(value = """
+        SELECT sku, product_name, category, size, ingredients,
+               time_period, day_type,
+               SUM(quantity_sold) as total_quantity,
+               SUM(product_revenue) as total_revenue,
+               COUNT(DISTINCT orderid) as orders_count,
+               AVG(daily_product_rank_by_revenue) as avg_rank
+        FROM store_analytics_comprehensive 
+        WHERE (:storeId IS NULL OR storeid = :storeId)
+          AND (:state IS NULL OR state_abbr = :state)
+          AND (:timePeriod IS NULL OR time_period = :timePeriod)
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY sku, product_name, category, size, ingredients, time_period, day_type
+        ORDER BY total_revenue DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getTopProductsByTimePeriod(
+        @Param("storeId") String storeId, 
+        @Param("state") String state,
+        @Param("timePeriod") String timePeriod,
+        @Param("year") Integer year,
+        @Param("month") Integer month,
+        @Param("limit") Integer limit);
+
+    // Store Performance Comparison
+    @Query(value = """
+        SELECT storeid, city, state_abbr,
+               COUNT(DISTINCT orderid) as total_orders,
+               SUM(product_revenue) as total_revenue,
+               COUNT(DISTINCT customerid) as total_customers,
+               AVG(order_total) as avg_order_value,
+               COUNT(DISTINCT sku) as products_sold,
+               COUNT(DISTINCT date_key) as active_days,
+               SUM(product_revenue) / COUNT(DISTINCT date_key) as avg_daily_revenue,
+               COUNT(DISTINCT orderid) / COUNT(DISTINCT date_key) as avg_daily_orders
+        FROM store_analytics_comprehensive 
+        WHERE (:state IS NULL OR state_abbr = :state)
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY storeid, city, state_abbr
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparison(
+        @Param("state") String state,
+        @Param("year") Integer year,
+        @Param("month") Integer month);
 }

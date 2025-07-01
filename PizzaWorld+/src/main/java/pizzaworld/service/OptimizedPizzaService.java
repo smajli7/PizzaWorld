@@ -554,6 +554,80 @@ public class OptimizedPizzaService {
     }
 
     // =================================================================
+    // COMPREHENSIVE ANALYTICS - Advanced Business Intelligence
+    // =================================================================
+
+    @Cacheable(value = "hourlyAnalytics", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getHourlyPerformanceAnalytics(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getHourlyPerformanceAnalytics(null, null, year, month);
+            case "STATE_MANAGER" -> repo.getHourlyPerformanceAnalytics(null, user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getHourlyPerformanceAnalytics(user.getStoreId(), null, year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "productAnalytics", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #category + '_' + #year + '_' + #month + '_' + #limit")
+    public List<Map<String, Object>> getProductPerformanceAnalytics(User user, String category, Integer year, Integer month, Integer limit) {
+        if (limit == null) limit = 50; // Default limit
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getProductPerformanceAnalytics(null, null, category, year, month, limit);
+            case "STATE_MANAGER" -> repo.getProductPerformanceAnalytics(null, user.getStateAbbr(), category, year, month, limit);
+            case "STORE_MANAGER" -> repo.getProductPerformanceAnalytics(user.getStoreId(), null, category, year, month, limit);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "peakHours", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getPeakHoursAnalysis(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getPeakHoursAnalysis(null, null, year, month);
+            case "STATE_MANAGER" -> repo.getPeakHoursAnalysis(null, user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getPeakHoursAnalysis(user.getStoreId(), null, year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "seasonalAnalysis", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #season")
+    public List<Map<String, Object>> getSeasonalBusinessAnalysis(User user, Integer year, String season) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getSeasonalBusinessAnalysis(null, null, year, season);
+            case "STATE_MANAGER" -> repo.getSeasonalBusinessAnalysis(null, user.getStateAbbr(), year, season);
+            case "STORE_MANAGER" -> repo.getSeasonalBusinessAnalysis(user.getStoreId(), null, year, season);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "topProductsByTime", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #timePeriod + '_' + #year + '_' + #month + '_' + #limit")
+    public List<Map<String, Object>> getTopProductsByTimePeriod(User user, String timePeriod, Integer year, Integer month, Integer limit) {
+        if (limit == null) limit = 20; // Default limit
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getTopProductsByTimePeriod(null, null, timePeriod, year, month, limit);
+            case "STATE_MANAGER" -> repo.getTopProductsByTimePeriod(null, user.getStateAbbr(), timePeriod, year, month, limit);
+            case "STORE_MANAGER" -> repo.getTopProductsByTimePeriod(user.getStoreId(), null, timePeriod, year, month, limit);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeComparison", key = "#user.role + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getStorePerformanceComparison(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStorePerformanceComparison(null, year, month);
+            case "STATE_MANAGER" -> repo.getStorePerformanceComparison(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> {
+                // Store managers see their store comparison within their state
+                List<Map<String, Object>> stateStores = repo.getStorePerformanceComparison(user.getStateAbbr(), year, month);
+                yield storeStores.stream()
+                    .filter(store -> user.getStoreId().equals(store.get("storeid")))
+                    .toList();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // =================================================================
     // UTILITY METHODS
     // =================================================================
 

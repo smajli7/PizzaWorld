@@ -97,6 +97,25 @@ export class DashboardComponent implements OnInit {
   ordersChartOptions: any = null;
   avgOrderValueChartOptions: any = null;
   customersChartOptions: any = null;
+  
+  // Comprehensive Analytics Data
+  hourlyPerformanceData: any[] = [];
+  productPerformanceData: any[] = [];
+  peakHoursData: any[] = [];
+  seasonalData: any[] = [];
+  
+  // Analytics Chart Options
+  hourlyChartOptions: any = null;
+  productChartOptions: any = null;
+  peakHoursChartOptions: any = null;
+  seasonalChartOptions: any = null;
+  
+  // Analytics Controls
+  showAnalytics = false;
+  analyticsTimePeriod: 'Morning' | 'Afternoon' | 'Evening' | 'Night' | '' = '';
+  analyticsSeason: 'Winter' | 'Spring' | 'Summer' | 'Fall' | '' = '';
+  analyticsCategory = '';
+  analyticsLimit = 20;
 
   constructor(private http: HttpClient) {}
 
@@ -757,5 +776,228 @@ export class DashboardComponent implements OnInit {
 
   refreshData(): void {
     this.loadDashboardData();
+    if (this.showAnalytics) {
+      this.loadAnalyticsData();
+    }
+  }
+  
+  // =================================================================
+  // COMPREHENSIVE ANALYTICS METHODS
+  // =================================================================
+  
+  toggleAnalytics(): void {
+    this.showAnalytics = !this.showAnalytics;
+    if (this.showAnalytics) {
+      this.loadAnalyticsData();
+    }
+  }
+  
+  loadAnalyticsData(): void {
+    this.loadHourlyPerformanceData();
+    this.loadProductPerformanceData();
+    this.loadPeakHoursData();
+    this.loadSeasonalData();
+  }
+  
+  loadHourlyPerformanceData(): void {
+    let params = new HttpParams();
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
+      params = params.set('month', this.selectedMonth.toString());
+    }
+    
+    this.http.get<any[]>('/api/v2/analytics/hourly-performance', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (data) => {
+        this.hourlyPerformanceData = data;
+        this.buildHourlyChart();
+      },
+      error: (error) => console.error('Failed to load hourly performance:', error)
+    });
+  }
+  
+  loadProductPerformanceData(): void {
+    let params = new HttpParams().set('limit', this.analyticsLimit.toString());
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
+      params = params.set('month', this.selectedMonth.toString());
+    }
+    if (this.analyticsCategory) params = params.set('category', this.analyticsCategory);
+    
+    this.http.get<any[]>('/api/v2/analytics/product-performance', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (data) => {
+        this.productPerformanceData = data;
+        this.buildProductChart();
+      },
+      error: (error) => console.error('Failed to load product performance:', error)
+    });
+  }
+  
+  loadPeakHoursData(): void {
+    let params = new HttpParams();
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
+      params = params.set('month', this.selectedMonth.toString());
+    }
+    
+    this.http.get<any[]>('/api/v2/analytics/peak-hours', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (data) => {
+        this.peakHoursData = data;
+        this.buildPeakHoursChart();
+      },
+      error: (error) => console.error('Failed to load peak hours:', error)
+    });
+  }
+  
+  loadSeasonalData(): void {
+    let params = new HttpParams();
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.analyticsSeason) params = params.set('season', this.analyticsSeason);
+    
+    this.http.get<any[]>('/api/v2/analytics/seasonal-business', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (data) => {
+        this.seasonalData = data;
+        this.buildSeasonalChart();
+      },
+      error: (error) => console.error('Failed to load seasonal data:', error)
+    });
+  }
+  
+  onAnalyticsFilterChange(): void {
+    if (this.showAnalytics) {
+      this.loadAnalyticsData();
+    }
+  }
+  
+  // Analytics Chart Building Methods
+  buildHourlyChart(): void {
+    if (!this.hourlyPerformanceData || this.hourlyPerformanceData.length === 0) {
+      this.hourlyChartOptions = null;
+      return;
+    }
+    
+    const hours = Array.from({length: 24}, (_, i) => i);
+    const hourlyRevenue = hours.map(hour => {
+      const hourData = this.hourlyPerformanceData.find(d => d.hour_of_day === hour);
+      return hourData ? Number(hourData.hourly_revenue) || 0 : 0;
+    });
+    
+    this.hourlyChartOptions = {
+      series: [{
+        name: 'Hourly Revenue',
+        data: hourlyRevenue
+      }],
+      chart: {
+        type: 'area',
+        height: 300,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
+      },
+      colors: ['#f59e0b'],
+      fill: {
+        type: 'gradient',
+        gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.3 }
+      },
+      stroke: { curve: 'smooth', width: 2 },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: hours.map(h => `${h}:00`),
+        title: { text: 'Hour of Day' }
+      },
+      yaxis: {
+        title: { text: 'Revenue (€)' },
+        labels: { formatter: (val: number) => `€${this.formatNumber(val)}` }
+      },
+      grid: { borderColor: '#e5e7eb' }
+    };
+  }
+  
+  buildProductChart(): void {
+    if (!this.productPerformanceData || this.productPerformanceData.length === 0) {
+      this.productChartOptions = null;
+      return;
+    }
+    
+    const topProducts = this.productPerformanceData.slice(0, 10);
+    const productNames = topProducts.map(p => p.product_name || 'Unknown');
+    const productRevenue = topProducts.map(p => Number(p.total_revenue) || 0);
+    
+    this.productChartOptions = {
+      series: [{ name: 'Product Revenue', data: productRevenue }],
+      chart: {
+        type: 'bar',
+        height: 350,
+        toolbar: { show: true }
+      },
+      colors: ['#dc2626'],
+      plotOptions: {
+        bar: { borderRadius: 4, horizontal: true }
+      },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: productNames,
+        title: { text: 'Revenue (€)' }
+      },
+      yaxis: { title: { text: 'Products' } }
+    };
+  }
+  
+  buildPeakHoursChart(): void {
+    if (!this.peakHoursData || this.peakHoursData.length === 0) {
+      this.peakHoursChartOptions = null;
+      return;
+    }
+    
+    const hours = this.peakHoursData.map(d => d.hour_of_day);
+    const orders = this.peakHoursData.map(d => Number(d.total_orders) || 0);
+    
+    this.peakHoursChartOptions = {
+      series: [{ name: 'Orders', data: orders }],
+      chart: {
+        type: 'line',
+        height: 300,
+        toolbar: { show: true }
+      },
+      colors: ['#059669'],
+      stroke: { curve: 'smooth', width: 3 },
+      markers: { size: 6 },
+      xaxis: {
+        categories: hours.map(h => `${h}:00`),
+        title: { text: 'Hour' }
+      },
+      yaxis: { title: { text: 'Total Orders' } }
+    };
+  }
+  
+  buildSeasonalChart(): void {
+    if (!this.seasonalData || this.seasonalData.length === 0) {
+      this.seasonalChartOptions = null;
+      return;
+    }
+    
+    const periods = this.seasonalData.map(d => d.business_period || d.season);
+    const revenue = this.seasonalData.map(d => Number(d.period_revenue) || 0);
+    
+    this.seasonalChartOptions = {
+      series: revenue,
+      chart: {
+        type: 'donut',
+        height: 350
+      },
+      labels: periods,
+      colors: ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'],
+      legend: { position: 'bottom' }
+    };
   }
 }

@@ -31,13 +31,13 @@ public class OptimizedPizzaController {
     // DASHBOARD KPIs - Fast materialized view queries
     // =================================================================
 
-    @GetMapping("/dashboard/kpis")
+    @GetMapping("/dashboard/kpis") //works, all time data for HQ_ADMIN
     public ResponseEntity<DashboardKpiDto> getDashboardKPIs(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getDashboardKPIs(user));
     }
 
-    @GetMapping("/dashboard/kpis/export")
+    @GetMapping("/dashboard/kpis/export") //works, all time data for HQ_ADMIN - in csv
     public void exportDashboardKPIs(@AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
         DashboardKpiDto data = pizzaService.getDashboardKPIs(userDetails.getUser());
@@ -54,7 +54,7 @@ public class OptimizedPizzaController {
     // REVENUE ANALYTICS - Role-based materialized views
     // =================================================================
 
-    @GetMapping("/analytics/revenue/by-year")
+    @GetMapping("/analytics/revenue/by-year") //- works, gives out revenue by year for hq
     public ResponseEntity<List<Map<String, Object>>> getRevenueByYear(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getRevenueByYear(user));
@@ -76,13 +76,8 @@ public class OptimizedPizzaController {
     // ORDER ANALYTICS - Role-based materialized views
     // =================================================================
 
-    @GetMapping("/analytics/orders/by-month")
-    public ResponseEntity<List<Map<String, Object>>> getOrdersByMonth(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getOrdersByMonth(user));
-    }
 
-    @GetMapping("/orders/recent")
+    @GetMapping("/orders/recent") //works
     public ResponseEntity<List<Map<String, Object>>> getRecentOrders(
             @RequestParam(defaultValue = "50") int limit,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -94,45 +89,12 @@ public class OptimizedPizzaController {
     // FILTERED ORDERS - Enhanced with pagination
     // =================================================================
 
-    @GetMapping("/orders")
-    public ResponseEntity<Map<String, Object>> getFilteredOrders(
-            @RequestParam Map<String, String> params,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getFilteredOrders(params, user, page, size));
-    }
-
-    @GetMapping("/orders/export")
-    public void exportFilteredOrders(
-            @RequestParam Map<String, String> params,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            HttpServletResponse response) {
-        User user = userDetails.getUser();
-        Map<String, Object> result = pizzaService.getFilteredOrders(params, user, 0, 10000);
-        
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> orders = (List<Map<String, Object>>) result.get("orders");
-        
-        if (orders.isEmpty()) {
-            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "orders.csv");
-            return;
-        }
-
-        List<String> headers = List.copyOf(orders.get(0).keySet());
-        List<List<String>> rows = orders.stream()
-                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
-                .toList();
-
-        CsvExportUtil.writeCsv(response, headers, rows, "orders.csv");
-    }
 
     // =================================================================
     // PRODUCT ANALYTICS - Role-based
     // =================================================================
 
-    @GetMapping("/products/top")
+    @GetMapping("/products/top") //work - 3.29ms -all stores
     public ResponseEntity<List<Map<String, Object>>> getTopProducts(
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "20") int limit,
@@ -141,7 +103,7 @@ public class OptimizedPizzaController {
         return ResponseEntity.ok(pizzaService.getTopProducts(user, category, limit));
     }
 
-    @GetMapping("/products/top/export")
+    @GetMapping("/products/top/export") //works, all stores
     public void exportTopProducts(
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "100") int limit,
@@ -167,13 +129,13 @@ public class OptimizedPizzaController {
     // STORES - Role-based
     // =================================================================
 
-    @GetMapping("/stores")
+    @GetMapping("/stores") //works, all stores
     public ResponseEntity<List<Map<String, Object>>> getStores(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getStores(user));
     }
 
-    @GetMapping("/stores/export")
+    @GetMapping("/stores/export") //works, exports all stores to csv
     public void exportStores(@AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
         User user = userDetails.getUser();
@@ -192,52 +154,8 @@ public class OptimizedPizzaController {
         CsvExportUtil.writeCsv(response, headers, rows, "stores.csv");
     }
 
-    // =================================================================
-    // SALES KPIs for Date Range - Role-based
-    // =================================================================
 
-    @GetMapping("/sales/kpis")
-    public ResponseEntity<Map<String, Object>> getSalesKPIs(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getSalesKPIsForDateRange(from, to, user));
-    }
-
-    @GetMapping("/sales/trend")
-    public ResponseEntity<List<Map<String, Object>>> getSalesTrend(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getSalesTrendForDateRange(from, to, user));
-    }
-
-    @GetMapping("/sales/kpis/export")
-    public void exportSalesKPIs(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            HttpServletResponse response) {
-        User user = userDetails.getUser();
-        Map<String, Object> data = pizzaService.getSalesKPIsForDateRange(from, to, user);
-        
-        List<String> headers = List.of("Revenue", "Total Orders", "Unique Customers", "Avg Order");
-        List<List<String>> rows = List.of(List.of(
-                String.valueOf(data.get("revenue")),
-                String.valueOf(data.get("total_orders")),
-                String.valueOf(data.get("unique_customers")),
-                String.valueOf(data.get("avg_order"))));
-        
-        CsvExportUtil.writeCsv(response, headers, rows, "sales-kpis.csv");
-    }
-
-    // =================================================================
-    // USER PROFILE
-    // =================================================================
-
-    @GetMapping("/profile")
+    @GetMapping("/profile") //works, gives out user profile
     public ResponseEntity<Map<String, Object>> getUserProfile(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(Map.of(
@@ -251,86 +169,31 @@ public class OptimizedPizzaController {
     // ADDITIONAL DASHBOARD ANALYTICS - Enhanced Data
     // =================================================================
 
-    @GetMapping("/analytics/revenue/by-store")
+    @GetMapping("/analytics/revenue/by-store") //works
     public ResponseEntity<List<Map<String, Object>>> getRevenueByStore(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getRevenueByStore(user));
     }
 
-    @GetMapping("/analytics/store-performance")
+    @GetMapping("/analytics/store-performance") //works but same as above
     public ResponseEntity<List<Map<String, Object>>> getStorePerformance(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getStorePerformance(user));
     }
 
-    @GetMapping("/analytics/customer-acquisition")
-    public ResponseEntity<List<Map<String, Object>>> getCustomerAcquisition(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getCustomerAcquisition(user));
-    }
 
-    @GetMapping("/analytics/category-performance")
-    public ResponseEntity<List<Map<String, Object>>> getCategoryPerformance(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getCategoryPerformance(user));
-    }
-
-    @GetMapping("/analytics/best-selling-products")
-    public ResponseEntity<List<Map<String, Object>>> getBestSellingProducts(
-            @RequestParam String from,
-            @RequestParam String to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getBestSellingProducts(user, from, to));
-    }
-
-    @GetMapping("/analytics/stores-by-revenue")
-    public ResponseEntity<List<Map<String, Object>>> getStoresByRevenue(
-            @RequestParam String from,
-            @RequestParam String to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getStoresByRevenue(user, from, to));
-    }
-
-    @GetMapping("/analytics/sales-trend-by-day")
-    public ResponseEntity<List<Map<String, Object>>> getSalesTrendByDay(
-            @RequestParam String from,
-            @RequestParam String to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getSalesTrendByDay(user, from, to));
-    }
-
-    @GetMapping("/analytics/revenue-by-category")
-    public ResponseEntity<List<Map<String, Object>>> getRevenueByCategory(
-            @RequestParam String from,
-            @RequestParam String to,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getRevenueByCategory(user, from, to));
-    }
-
-    // =================================================================
-    // CONSOLIDATED HQ DASHBOARD ENDPOINT
-    // =================================================================
-    @GetMapping("/analytics/hq/consolidated")
-    public ResponseEntity<pizzaworld.dto.ConsolidatedDto> getConsolidatedDashboard(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getConsolidatedPayload(user));
-    }
 
     // =================================================================
     // GLOBAL STORE KPIs - Materialized View Access
     // =================================================================
 
-    @GetMapping("/kpis/global-store")
+    @GetMapping("/kpis/global-store") //works but is the same as above somewehere
     public ResponseEntity<List<Map<String, Object>>> getGlobalStoreKPIs(@AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getGlobalStoreKPIs(user));
     }
 
-    @GetMapping("/kpis/global-store/export")
+    @GetMapping("/kpis/global-store/export") //also works
     public void exportGlobalStoreKPIs(@AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
         User user = userDetails.getUser();
@@ -350,121 +213,10 @@ public class OptimizedPizzaController {
     }
 
     // =================================================================
-    // STORE REVENUE CHART - Dynamic Time Period Filtering
-    // =================================================================
-
-    @GetMapping("/chart/store-revenue")
-    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueChart(
-            @RequestParam(defaultValue = "all-time") String timePeriod,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer quarter,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getStoreRevenueByTimePeriod(user, timePeriod, year, month, quarter));
-    }
-
-    @GetMapping("/chart/store-revenue/date-range")
-    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueByDateRange(
-            @RequestParam String startDate,
-            @RequestParam String endDate,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getStoreRevenueByDateRange(user, startDate, endDate));
-    }
-
-    @GetMapping("/chart/store-revenue/export")
-    public void exportStoreRevenueChart(
-            @RequestParam(defaultValue = "all-time") String timePeriod,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(required = false) Integer quarter,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            HttpServletResponse response) {
-        User user = userDetails.getUser();
-        List<Map<String, Object>> data = pizzaService.getStoreRevenueByTimePeriod(user, timePeriod, year, month, quarter);
-        
-        if (data.isEmpty()) {
-            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-revenue-chart.csv");
-            return;
-        }
-
-        List<String> headers = List.copyOf(data.get(0).keySet());
-        List<List<String>> rows = data.stream()
-                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
-                .toList();
-
-        CsvExportUtil.writeCsv(response, headers, rows, "store-revenue-chart.csv");
-    }
-
-    // Time period utility endpoints
-    @GetMapping("/chart/time-periods/years")
-    public ResponseEntity<List<Map<String, Object>>> getAvailableYears() {
-        return ResponseEntity.ok(pizzaService.getAvailableYears());
-    }
-
-    @GetMapping("/chart/time-periods/months")
-    public ResponseEntity<List<Map<String, Object>>> getAvailableMonthsForYear(@RequestParam Integer year) {
-        return ResponseEntity.ok(pizzaService.getAvailableMonthsForYear(year));
-    }
-
-    @GetMapping("/chart/time-periods/quarters")
-    public ResponseEntity<List<Map<String, Object>>> getAvailableQuartersForYear(@RequestParam Integer year) {
-        return ResponseEntity.ok(pizzaService.getAvailableQuartersForYear(year));
-    }
-
-    // =================================================================
-    // FINAL STORE REVENUE CHART API - Production Ready
-    // =================================================================
-
-    @GetMapping("/store-revenue-chart")
-    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueChart(
-            @RequestParam(defaultValue = "all-time") String timePeriod,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getStoreRevenueChart(user, timePeriod, year, month));
-    }
-
-    @GetMapping("/store-revenue-chart/export")
-    public void exportStoreRevenueChart(
-            @RequestParam(defaultValue = "all-time") String timePeriod,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            HttpServletResponse response) {
-        User user = userDetails.getUser();
-        List<Map<String, Object>> data = pizzaService.getStoreRevenueChart(user, timePeriod, year, month);
-        
-        if (data.isEmpty()) {
-            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-revenue-chart.csv");
-            return;
-        }
-
-        List<String> headers = List.copyOf(data.get(0).keySet());
-        List<List<String>> rows = data.stream()
-                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
-                .toList();
-
-        CsvExportUtil.writeCsv(response, headers, rows, "store-revenue-chart.csv");
-    }
-
-    @GetMapping("/store-revenue-chart/years")
-    public ResponseEntity<List<Map<String, Object>>> getChartAvailableYears() {
-        return ResponseEntity.ok(pizzaService.getChartAvailableYears());
-    }
-
-    @GetMapping("/store-revenue-chart/months")
-    public ResponseEntity<List<Map<String, Object>>> getChartAvailableMonths(@RequestParam Integer year) {
-        return ResponseEntity.ok(pizzaService.getChartAvailableMonths(year));
-    }
-
-    // =================================================================
     // HEALTH CHECK
     // =================================================================
 
-    @GetMapping("/health")
+    @GetMapping("/health") //works
     public ResponseEntity<Map<String, Object>> healthCheck() {
         return ResponseEntity.ok(Map.of(
                 "status", "OK",

@@ -30,7 +30,7 @@
       
       <!-- Filter Controls -->
       <div class="px-6 py-6 bg-gradient-to-r from-orange-25 to-orange-50">
-        <div class="flex flex-wrap gap-4 items-center">
+        <div class="flex flex-wrap gap-4 items-center justify-start">
           <!-- Time Period Filter -->
           <div class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Time Period</label>
@@ -42,6 +42,7 @@
               <option value="all-time">All Time</option>
               <option value="year">Year</option>
               <option value="month">Month</option>
+              <option value="custom">Custom Range</option>
             </select>
           </div>
 
@@ -67,6 +68,96 @@
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
               <option *ngFor="let month of availableMonths" [value]="month.month">{{ month.month_name_label }}</option>
             </select>
+          </div>
+
+          <!-- Custom Date Range (when custom period is selected) -->
+          <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Start Year</label>
+            <select 
+              [(ngModel)]="customStartYear"
+              (change)="onCustomRangeChange()"
+              [disabled]="loading"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+              <option *ngFor="let year of availableYears" [value]="year.year">{{ year.year }}</option>
+            </select>
+          </div>
+
+          <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Start Month</label>
+            <select 
+              [(ngModel)]="customStartMonth"
+              (change)="onCustomRangeChange()"
+              [disabled]="loading"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+
+          <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">End Year</label>
+            <select 
+              [(ngModel)]="customEndYear"
+              (change)="onCustomRangeChange()"
+              [disabled]="loading"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+              <option *ngFor="let year of availableYears" [value]="year.year">{{ year.year }}</option>
+            </select>
+          </div>
+
+          <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">End Month</label>
+            <select 
+              [(ngModel)]="customEndMonth"
+              (change)="onCustomRangeChange()"
+              [disabled]="loading"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+
+          <!-- Quick Presets for Custom Range -->
+          <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Quick Presets</label>
+            <div class="flex gap-2 flex-wrap">
+              <button (click)="setCustomRange(2022, 1, 2022, 3)" 
+                      class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
+                Q1 2022
+              </button>
+              <button (click)="setCustomRange(2022, 5, 2022, 8)" 
+                      class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
+                Summer 2022
+              </button>
+              <button (click)="setCustomRange(2023, 1, 2023, 6)" 
+                      class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
+                H1 2023
+              </button>
+              <button (click)="setCustomRange(2021, 11, 2022, 1)" 
+                      class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
+                Holiday Season
+              </button>
+            </div>
           </div>
 
         </div>
@@ -366,12 +457,13 @@
             <select 
               [(ngModel)]="tableSortColumn" 
               (change)="sortTable(tableSortColumn)"
-              class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm">
-              <option value="revenue">Sort by Revenue</option>
-              <option value="orders">Sort by Orders</option>
-              <option value="customers">Sort by Customers</option>
-              <option value="avgOrder">Sort by Avg Order</option>
-              <option value="store">Sort by Store Name</option>
+              class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm"
+              style="color: white;">
+              <option value="revenue" style="color: black; background-color: white;">Sort by Revenue</option>
+              <option value="orders" style="color: black; background-color: white;">Sort by Orders</option>
+              <option value="customers" style="color: black; background-color: white;">Sort by Customers</option>
+              <option value="avgOrder" style="color: black; background-color: white;">Sort by Avg Order</option>
+              <option value="store" style="color: black; background-color: white;">Sort by Store Name</option>
             </select>
             <button 
               (click)="sortTable(tableSortColumn)"

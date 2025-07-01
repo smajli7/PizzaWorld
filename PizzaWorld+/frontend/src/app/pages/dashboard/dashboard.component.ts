@@ -64,9 +64,13 @@ export class DashboardComponent implements OnInit {
   availableMonths: TimePeriodOption[] = [];
   
   // Filter state
-  selectedTimePeriod: 'all-time' | 'year' | 'month' = 'all-time';
+  selectedTimePeriod: 'all-time' | 'year' | 'month' | 'custom' = 'all-time';
   selectedYear?: number;
   selectedMonth?: number;
+  customStartYear?: number;
+  customStartMonth?: number;
+  customEndYear?: number;
+  customEndMonth?: number;
   
   // UI state
   loading = false;
@@ -164,8 +168,22 @@ export class DashboardComponent implements OnInit {
       params = params.set('month', this.selectedMonth.toString());
     }
     
+    let apiUrl = '/api/v2/chart/store-revenue';
+    
+    // Use different endpoint for custom date range
+    if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      apiUrl = '/api/v2/chart/store-revenue/date-range';
+      // Convert to first day of start month and last day of end month
+      const startDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const endDate = new Date(this.customEndYear, this.customEndMonth, 0).toISOString().split('T')[0]; // Last day of month
+      params = params.set('startDate', startDate);
+      params = params.set('endDate', endDate);
+      // Remove timePeriod param for date range endpoint
+      params = params.delete('timePeriod');
+    }
+    
 
-    this.http.get<StoreRevenueData[]>('/api/v2/chart/store-revenue', { 
+    this.http.get<StoreRevenueData[]>(apiUrl, { 
       headers: this.getAuthHeaders(), 
       params 
     }).subscribe({
@@ -185,6 +203,10 @@ export class DashboardComponent implements OnInit {
 
   onTimePeriodChange(): void {
     this.selectedMonth = undefined;
+    this.customStartYear = undefined;
+    this.customStartMonth = undefined;
+    this.customEndYear = undefined;
+    this.customEndMonth = undefined;
     
     if (this.selectedTimePeriod === 'all-time') {
       this.selectedYear = undefined;
@@ -195,6 +217,13 @@ export class DashboardComponent implements OnInit {
         this.selectedYear = this.availableYears[0].year;
       }
       this.loadAvailableMonths();
+    } else if (this.selectedTimePeriod === 'custom') {
+      this.selectedYear = undefined;
+      // Set default custom range (e.g., Q1 2022: Jan to Mar)
+      this.customStartYear = 2022;
+      this.customStartMonth = 1;
+      this.customEndYear = 2022;
+      this.customEndMonth = 3;
     }
     
     this.loadDashboardData();
@@ -210,6 +239,33 @@ export class DashboardComponent implements OnInit {
 
   onMonthChange(): void {
     this.loadDashboardData();
+  }
+  
+  onCustomRangeChange(): void {
+    if (this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      // Validate that start is before end
+      const startDate = new Date(this.customStartYear, this.customStartMonth - 1);
+      const endDate = new Date(this.customEndYear, this.customEndMonth - 1);
+      
+      if (startDate >= endDate) {
+        // Swap if start is after end
+        const tempYear = this.customStartYear;
+        const tempMonth = this.customStartMonth;
+        this.customStartYear = this.customEndYear;
+        this.customStartMonth = this.customEndMonth;
+        this.customEndYear = tempYear;
+        this.customEndMonth = tempMonth;
+      }
+      this.loadDashboardData();
+    }
+  }
+  
+  setCustomRange(startYear: number, startMonth: number, endYear: number, endMonth: number): void {
+    this.customStartYear = startYear;
+    this.customStartMonth = startMonth;
+    this.customEndYear = endYear;
+    this.customEndMonth = endMonth;
+    this.onCustomRangeChange();
   }
 
   applyFilters(): void {
@@ -669,6 +725,13 @@ export class DashboardComponent implements OnInit {
           return monthOption ? monthOption.month_name_label || `${this.selectedMonth}/${this.selectedYear}` : 'Monthly';
         }
         return 'Monthly';
+      case 'custom':
+        if (this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+          const startDate = new Date(this.customStartYear, this.customStartMonth - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          const endDate = new Date(this.customEndYear, this.customEndMonth - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          return `${startDate} - ${endDate}`;
+        }
+        return 'Custom Range';
       default:
         return 'Revenue Analysis';
     }

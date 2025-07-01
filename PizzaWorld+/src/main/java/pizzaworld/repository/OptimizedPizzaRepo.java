@@ -542,44 +542,49 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
     // Date Range Revenue (for custom date range filtering)
     @Query(value = """
         SELECT storeid, city, state_name, state_abbr,
-               SUM(total_revenue) as range_revenue,
-               SUM(order_count) as range_orders,
-               AVG(avg_order_value) as range_avg_order_value,
-               SUM(unique_customers) as range_unique_customers,
-               MIN(order_date) as start_date,
-               MAX(order_date) as end_date
+               SUM(total_revenue) as total_revenue,
+               SUM(order_count) as total_orders,
+               AVG(avg_order_value) as avg_order_value,
+               SUM(unique_customers) as total_unique_customers
         FROM store_revenue_by_time_periods 
-        WHERE order_date BETWEEN :startDate AND :endDate 
+        WHERE (year > EXTRACT(YEAR FROM CAST(:startDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:startDate AS DATE)) AND month >= EXTRACT(MONTH FROM CAST(:startDate AS DATE))))
+          AND (year < EXTRACT(YEAR FROM CAST(:endDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:endDate AS DATE)) AND month <= EXTRACT(MONTH FROM CAST(:endDate AS DATE))))
         GROUP BY storeid, city, state_name, state_abbr
-        ORDER BY range_revenue DESC
+        ORDER BY total_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueByDateRangeHQ(@Param("startDate") String startDate, @Param("endDate") String endDate);
 
     @Query(value = """
         SELECT storeid, city, state_name, state_abbr,
-               SUM(total_revenue) as range_revenue,
-               SUM(order_count) as range_orders,
-               AVG(avg_order_value) as range_avg_order_value,
-               SUM(unique_customers) as range_unique_customers,
-               MIN(order_date) as start_date,
-               MAX(order_date) as end_date
+               SUM(total_revenue) as total_revenue,
+               SUM(order_count) as total_orders,
+               AVG(avg_order_value) as avg_order_value,
+               SUM(unique_customers) as total_unique_customers
         FROM store_revenue_by_time_periods 
-        WHERE state_abbr = :state AND order_date BETWEEN :startDate AND :endDate 
+        WHERE state_abbr = :state 
+          AND (year > EXTRACT(YEAR FROM CAST(:startDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:startDate AS DATE)) AND month >= EXTRACT(MONTH FROM CAST(:startDate AS DATE))))
+          AND (year < EXTRACT(YEAR FROM CAST(:endDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:endDate AS DATE)) AND month <= EXTRACT(MONTH FROM CAST(:endDate AS DATE))))
         GROUP BY storeid, city, state_name, state_abbr
-        ORDER BY range_revenue DESC
+        ORDER BY total_revenue DESC
         """, nativeQuery = true)
     List<Map<String, Object>> getStoreRevenueByDateRangeState(@Param("state") String state, @Param("startDate") String startDate, @Param("endDate") String endDate);
 
     @Query(value = """
         SELECT storeid, city, state_name, state_abbr,
-               SUM(total_revenue) as range_revenue,
-               SUM(order_count) as range_orders,
-               AVG(avg_order_value) as range_avg_order_value,
-               SUM(unique_customers) as range_unique_customers,
-               MIN(order_date) as start_date,
-               MAX(order_date) as end_date
+               SUM(total_revenue) as total_revenue,
+               SUM(order_count) as total_orders,
+               AVG(avg_order_value) as avg_order_value,
+               SUM(unique_customers) as total_unique_customers
         FROM store_revenue_by_time_periods 
-        WHERE storeid = :storeId AND order_date BETWEEN :startDate AND :endDate 
+        WHERE storeid = :storeId 
+          AND (year > EXTRACT(YEAR FROM CAST(:startDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:startDate AS DATE)) AND month >= EXTRACT(MONTH FROM CAST(:startDate AS DATE))))
+          AND (year < EXTRACT(YEAR FROM CAST(:endDate AS DATE)) 
+               OR (year = EXTRACT(YEAR FROM CAST(:endDate AS DATE)) AND month <= EXTRACT(MONTH FROM CAST(:endDate AS DATE))))
         GROUP BY storeid, city, state_name, state_abbr
         """, nativeQuery = true)
     Map<String, Object> getStoreRevenueByDateRangeStore(@Param("storeId") String storeId, @Param("startDate") String startDate, @Param("endDate") String endDate);

@@ -328,60 +328,59 @@ public class OptimizedPizzaController {
 
     @GetMapping("/analytics/hourly-performance")
     public ResponseEntity<List<Map<String, Object>>> getHourlyPerformanceAnalytics(
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getHourlyPerformanceAnalytics(user, year, month));
+        return ResponseEntity.ok(pizzaService.getHourlyPerformanceAnalytics(user));
     }
 
     @GetMapping("/analytics/product-performance")
     public ResponseEntity<List<Map<String, Object>>> getProductPerformanceAnalytics(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(defaultValue = "50") Integer limit,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getProductPerformanceAnalytics(user, category, year, month, limit));
+        return ResponseEntity.ok(pizzaService.getProductPerformanceAnalytics(user, category, null));
     }
 
-    @GetMapping("/analytics/peak-hours")
-    public ResponseEntity<List<Map<String, Object>>> getPeakHoursAnalysis(
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
+    @GetMapping("/analytics/category-performance")
+    public ResponseEntity<List<Map<String, Object>>> getCategoryPerformanceAnalytics(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getPeakHoursAnalysis(user, year, month));
+        return ResponseEntity.ok(pizzaService.getCategoryPerformanceAnalytics(user));
     }
 
-    @GetMapping("/analytics/seasonal-business")
-    public ResponseEntity<List<Map<String, Object>>> getSeasonalBusinessAnalysis(
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String season, // Winter, Spring, Summer, Fall
+    @GetMapping("/analytics/customer-acquisition")
+    public ResponseEntity<List<Map<String, Object>>> getCustomerAcquisitionAnalytics(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getSeasonalBusinessAnalysis(user, year, season));
+        return ResponseEntity.ok(pizzaService.getCustomerAcquisitionAnalytics(user));
     }
 
-    @GetMapping("/analytics/top-products-by-time")
-    public ResponseEntity<List<Map<String, Object>>> getTopProductsByTimePeriod(
-            @RequestParam(required = false) String timePeriod, // Morning, Afternoon, Evening, Night
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
-            @RequestParam(defaultValue = "20") Integer limit,
+    @GetMapping("/analytics/daily-trends")
+    public ResponseEntity<List<Map<String, Object>>> getDailyRevenueTrends(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getTopProductsByTimePeriod(user, timePeriod, year, month, limit));
+        return ResponseEntity.ok(pizzaService.getDailyRevenueTrends(user));
     }
 
-    @GetMapping("/analytics/store-performance-comparison")
+    @GetMapping("/analytics/monthly-trends")
+    public ResponseEntity<List<Map<String, Object>>> getMonthlyRevenueTrends(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getMonthlyRevenueTrends(user));
+    }
+
+    @GetMapping("/analytics/store-comparison")
     public ResponseEntity<List<Map<String, Object>>> getStorePerformanceComparison(
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) Integer month,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getStorePerformanceComparison(user, year, month));
+        return ResponseEntity.ok(pizzaService.getStorePerformanceComparison(user));
+    }
+    
+    @GetMapping("/analytics/state-comparison")
+    public ResponseEntity<List<Map<String, Object>>> getStateRevenueTrends(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStateRevenueTrends(user));
     }
 
     // Export endpoints for comprehensive analytics

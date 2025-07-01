@@ -714,130 +714,175 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
     List<Map<String, Object>> getStoreRevenueChartAllTimeStoreFallback(@Param("storeId") String storeId);
 
     // =================================================================
-    // COMPREHENSIVE ANALYTICS - New Advanced Analytics API
+    // COMPREHENSIVE ANALYTICS - Using Correct Materialized Views
     // =================================================================
 
-    // Hourly Performance Analytics
+    // Hourly Performance Analytics - Role-based using hourly materialized views
     @Query(value = """
-        SELECT storeid, city, state_abbr, hour_of_day, time_period, day_type,
-               COUNT(DISTINCT orderid) as hourly_orders,
-               SUM(product_revenue) as hourly_revenue,
-               COUNT(DISTINCT customerid) as hourly_customers,
-               AVG(order_total) as avg_hourly_order_value,
-               COUNT(DISTINCT sku) as products_sold
-        FROM store_analytics_comprehensive 
-        WHERE (:storeId IS NULL OR storeid = :storeId)
-          AND (:state IS NULL OR state_abbr = :state)
-          AND (:year IS NULL OR year = :year)
-          AND (:month IS NULL OR month = :month)
-        GROUP BY storeid, city, state_abbr, hour_of_day, time_period, day_type
-        ORDER BY hourly_revenue DESC
+        SELECT r.hour, r.revenue, o.orders
+        FROM revenue_by_hour_hq r
+        LEFT JOIN orders_by_hour_hq o ON r.hour = o.hour
+        ORDER BY r.hour ASC
         """, nativeQuery = true)
-    List<Map<String, Object>> getHourlyPerformanceAnalytics(
-        @Param("storeId") String storeId, 
-        @Param("state") String state,
-        @Param("year") Integer year,
-        @Param("month") Integer month);
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsHQ();
 
-    // Product Performance Analytics
     @Query(value = """
-        SELECT sku, product_name, category, size,
-               storeid, city, state_abbr,
-               SUM(quantity_sold) as total_quantity,
-               SUM(product_revenue) as total_revenue,
-               COUNT(DISTINCT orderid) as orders_count,
-               COUNT(DISTINCT customerid) as customers_count,
-               AVG(price) as avg_price,
-               COUNT(DISTINCT date_key) as days_sold,
-               AVG(daily_product_rank_by_revenue) as avg_revenue_rank
-        FROM store_analytics_comprehensive 
-        WHERE (:storeId IS NULL OR storeid = :storeId)
-          AND (:state IS NULL OR state_abbr = :state)
-          AND (:category IS NULL OR category = :category)
-          AND (:year IS NULL OR year = :year)
-          AND (:month IS NULL OR month = :month)
-        GROUP BY sku, product_name, category, size, storeid, city, state_abbr
+        SELECT r.hour, r.revenue, o.orders, r.state
+        FROM revenue_by_hour_state r
+        LEFT JOIN orders_by_hour_state o ON r.hour = o.hour AND r.state = o.state
+        WHERE r.state = :state
+        ORDER BY r.hour ASC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT r.hour, r.revenue, o.orders, r.state, r.store_id
+        FROM revenue_by_hour_store r
+        LEFT JOIN orders_by_hour_store o ON r.hour = o.hour AND r.store_id = o.store_id
+        WHERE r.store_id = :storeId
+        ORDER BY r.hour ASC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // Product Performance Analytics - Role-based using top_products materialized views
+    @Query(value = """
+        SELECT sku, name as product_name, category, size, price,
+               total_quantity, total_revenue, total_orders, unique_customers
+        FROM top_products_hq
+        WHERE (:category IS NULL OR category = :category)
         ORDER BY total_revenue DESC
         LIMIT :limit
         """, nativeQuery = true)
-    List<Map<String, Object>> getProductPerformanceAnalytics(
-        @Param("storeId") String storeId, 
+    List<Map<String, Object>> getProductPerformanceAnalyticsHQ(
+        @Param("category") String category,
+        @Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT sku, name as product_name, category, size, price,
+               total_quantity, total_revenue, total_orders, unique_customers, state
+        FROM top_products_state
+        WHERE state = :state
+          AND (:category IS NULL OR category = :category)
+        ORDER BY total_revenue DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getProductPerformanceAnalyticsState(
         @Param("state") String state,
         @Param("category") String category,
-        @Param("year") Integer year,
-        @Param("month") Integer month,
         @Param("limit") Integer limit);
 
-    // Peak Hours Analysis
     @Query(value = """
-        SELECT hour_of_day, time_period, day_type,
-               COUNT(DISTINCT orderid) as total_orders,
-               SUM(product_revenue) as total_revenue,
-               COUNT(DISTINCT customerid) as total_customers,
-               AVG(order_total) as avg_order_value,
-               COUNT(DISTINCT storeid) as stores_active
-        FROM store_analytics_comprehensive 
-        WHERE (:storeId IS NULL OR storeid = :storeId)
-          AND (:state IS NULL OR state_abbr = :state)
-          AND (:year IS NULL OR year = :year)
-          AND (:month IS NULL OR month = :month)
-        GROUP BY hour_of_day, time_period, day_type
-        ORDER BY total_revenue DESC
-        """, nativeQuery = true)
-    List<Map<String, Object>> getPeakHoursAnalysis(
-        @Param("storeId") String storeId, 
-        @Param("state") String state,
-        @Param("year") Integer year,
-        @Param("month") Integer month);
-
-    // Seasonal Business Analysis
-    @Query(value = """
-        SELECT season, business_period, year, month,
-               storeid, city, state_abbr,
-               COUNT(DISTINCT orderid) as period_orders,
-               SUM(product_revenue) as period_revenue,
-               COUNT(DISTINCT customerid) as period_customers,
-               AVG(order_total) as avg_order_value,
-               COUNT(DISTINCT sku) as products_sold
-        FROM store_analytics_comprehensive 
-        WHERE (:storeId IS NULL OR storeid = :storeId)
-          AND (:state IS NULL OR state_abbr = :state)
-          AND (:year IS NULL OR year = :year)
-          AND (:season IS NULL OR season = :season)
-        GROUP BY season, business_period, year, month, storeid, city, state_abbr
-        ORDER BY period_revenue DESC
-        """, nativeQuery = true)
-    List<Map<String, Object>> getSeasonalBusinessAnalysis(
-        @Param("storeId") String storeId, 
-        @Param("state") String state,
-        @Param("year") Integer year,
-        @Param("season") String season);
-
-    // Top Products by Time Period
-    @Query(value = """
-        SELECT sku, product_name, category, size, ingredients,
-               time_period, day_type,
-               SUM(quantity_sold) as total_quantity,
-               SUM(product_revenue) as total_revenue,
-               COUNT(DISTINCT orderid) as orders_count,
-               AVG(daily_product_rank_by_revenue) as avg_rank
-        FROM store_analytics_comprehensive 
-        WHERE (:storeId IS NULL OR storeid = :storeId)
-          AND (:state IS NULL OR state_abbr = :state)
-          AND (:timePeriod IS NULL OR time_period = :timePeriod)
-          AND (:year IS NULL OR year = :year)
-          AND (:month IS NULL OR month = :month)
-        GROUP BY sku, product_name, category, size, ingredients, time_period, day_type
+        SELECT sku, name as product_name, category, size, price,
+               total_quantity, total_revenue, total_orders, unique_customers, state, store_id
+        FROM top_products_store
+        WHERE store_id = :storeId
+          AND (:category IS NULL OR category = :category)
         ORDER BY total_revenue DESC
         LIMIT :limit
         """, nativeQuery = true)
-    List<Map<String, Object>> getTopProductsByTimePeriod(
-        @Param("storeId") String storeId, 
-        @Param("state") String state,
-        @Param("timePeriod") String timePeriod,
-        @Param("year") Integer year,
-        @Param("month") Integer month,
+    List<Map<String, Object>> getProductPerformanceAnalyticsStore(
+        @Param("storeId") String storeId,
+        @Param("category") String category,
         @Param("limit") Integer limit);
+
+    // Category Performance Analytics - Role-based using category_performance views
+    @Query(value = """
+        SELECT category, total_revenue, units_sold, total_orders, unique_customers, avg_order_value
+        FROM category_performance_hq
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsHQ();
+
+    @Query(value = """
+        SELECT category, total_revenue, units_sold, total_orders, unique_customers, avg_order_value, state
+        FROM category_performance_state
+        WHERE state = :state
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT category, total_revenue, units_sold, total_orders, unique_customers, avg_order_value, state, store_id
+        FROM category_performance_store
+        WHERE store_id = :storeId
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // Customer Acquisition Analytics - Role-based using customer_acquisition views
+    @Query(value = """
+        SELECT year, month, month_name, new_customers, revenue_from_new_customers
+        FROM customer_acquisition_hq
+        ORDER BY year DESC, month DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerAcquisitionAnalyticsHQ();
+
+    @Query(value = """
+        SELECT year, month, month_name, new_customers, revenue_from_new_customers, state
+        FROM customer_acquisition_state
+        WHERE state = :state
+        ORDER BY year DESC, month DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerAcquisitionAnalyticsState(@Param("state") String state);
+
+    // Daily Revenue Trends - Using revenue_by_day_hq (only available for HQ)
+    @Query(value = """
+        SELECT day, revenue, orders, customers
+        FROM revenue_by_day_hq
+        ORDER BY day DESC
+        LIMIT 30
+        """, nativeQuery = true)
+    List<Map<String, Object>> getDailyRevenueTrendsHQ();
+
+    // Monthly Revenue Trends - Role-based using revenue_by_month views
+    @Query(value = """
+        SELECT month, revenue
+        FROM revenue_by_month_hq
+        ORDER BY month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsHQ();
+
+    @Query(value = """
+        SELECT month, revenue, state
+        FROM revenue_by_month_state
+        WHERE state = :state
+        ORDER BY month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT month, revenue, state, store_id
+        FROM revenue_by_month_store
+        WHERE store_id = :storeId
+        ORDER BY month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsStore(@Param("storeId") String storeId);
+
+    // Store Performance Comparison - Role-based using store_performance views
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, unique_customers, avg_order_value
+        FROM store_performance_hq
+        ORDER BY total_revenue DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonHQ(@Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, unique_customers, avg_order_value
+        FROM store_performance_state
+        WHERE state_abbr = :state
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, unique_customers, avg_order_value
+        FROM store_performance_state
+        WHERE storeid = :storeId
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonStore(@Param("storeId") String storeId);
+
+    // Comprehensive analytics using the correct materialized views - fast and accurate!
 
     // Store Performance Comparison
     @Query(value = """
@@ -861,4 +906,131 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
         @Param("state") String state,
         @Param("year") Integer year,
         @Param("month") Integer month);
+
+    // =================================================================
+    // FIXED HOURLY PERFORMANCE - Combined Revenue and Orders
+    // =================================================================
+    
+    @Query(value = """
+        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
+        FROM revenue_by_hour_hq r
+        LEFT JOIN orders_by_hour_hq o ON r.hour = o.hour
+        ORDER BY r.hour ASC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsHQ();
+
+    @Query(value = """
+        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
+        FROM revenue_by_hour_state r
+        LEFT JOIN orders_by_hour_state o ON r.state = o.state AND r.hour = o.hour
+        WHERE r.state = :state
+        ORDER BY r.hour ASC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
+        FROM revenue_by_hour_store r
+        LEFT JOIN orders_by_hour_store o ON r.store_id = o.store_id AND r.hour = o.hour
+        WHERE r.store_id = :storeId
+        ORDER BY r.hour ASC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getHourlyPerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // =================================================================
+    // IMPROVED PRODUCT PERFORMANCE - Using Materialized Views
+    // =================================================================
+    
+    @Query(value = "SELECT * FROM top_products_hq WHERE (:category IS NULL OR category = :category) ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getProductPerformanceAnalyticsHQ(@Param("category") String category, @Param("limit") Integer limit);
+
+    @Query(value = "SELECT * FROM top_products_state WHERE (:category IS NULL OR category = :category) AND state = :state ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getProductPerformanceAnalyticsState(@Param("state") String state, @Param("category") String category, @Param("limit") Integer limit);
+
+    @Query(value = "SELECT * FROM top_products_store WHERE (:category IS NULL OR category = :category) AND store_id = :storeId ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getProductPerformanceAnalyticsStore(@Param("storeId") String storeId, @Param("category") String category, @Param("limit") Integer limit);
+
+    // =================================================================
+    // FIXED CATEGORY PERFORMANCE - Using Materialized Views
+    // =================================================================
+    
+    @Query(value = "SELECT * FROM category_performance_hq ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsHQ();
+
+    @Query(value = "SELECT * FROM category_performance_state WHERE state = :state ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM category_performance_store WHERE store_id = :storeId ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getCategoryPerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // =================================================================
+    // CUSTOMER ACQUISITION - Using Materialized Views
+    // =================================================================
+    
+    @Query(value = "SELECT * FROM customer_acquisition_hq ORDER BY year DESC, month DESC", nativeQuery = true)
+    List<Map<String, Object>> getCustomerAcquisitionAnalyticsHQ();
+
+    @Query(value = "SELECT * FROM customer_acquisition_state WHERE state = :state ORDER BY year DESC, month DESC", nativeQuery = true)
+    List<Map<String, Object>> getCustomerAcquisitionAnalyticsState(@Param("state") String state);
+
+    // =================================================================
+    // DAILY AND MONTHLY TRENDS - Using Materialized Views
+    // =================================================================
+    
+    @Query(value = "SELECT * FROM revenue_by_day_hq ORDER BY day DESC LIMIT 30", nativeQuery = true)
+    List<Map<String, Object>> getDailyRevenueTrendsHQ();
+
+    @Query(value = "SELECT * FROM revenue_by_month_hq ORDER BY month DESC LIMIT 12", nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsHQ();
+
+    @Query(value = "SELECT * FROM revenue_by_month_state WHERE state = :state ORDER BY month DESC LIMIT 12", nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM revenue_by_month_store WHERE store_id = :storeId ORDER BY month DESC LIMIT 12", nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsStore(@Param("storeId") String storeId);
+
+    // =================================================================
+    // STORE COMPARISON - Using Materialized Views
+    // =================================================================
+    
+    @Query(value = "SELECT * FROM store_performance_hq ORDER BY total_revenue DESC LIMIT 20", nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonHQ();
+
+    @Query(value = "SELECT * FROM store_performance_state WHERE state_abbr = :state ORDER BY total_revenue DESC", nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM store_performance_hq WHERE storeid = :storeId", nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceComparisonStore(@Param("storeId") String storeId);
+
+    // =================================================================
+    // STATE REVENUE TRENDS - New for State Comparison Chart
+    // =================================================================
+    
+    @Query(value = """
+        SELECT r.state, r.month, r.revenue,
+               EXTRACT(YEAR FROM TO_DATE(r.month, 'YYYY-MM')) as year,
+               EXTRACT(MONTH FROM TO_DATE(r.month, 'YYYY-MM')) as month_num
+        FROM revenue_by_month_state r
+        WHERE r.state IN (
+            SELECT state FROM (
+                SELECT state, SUM(revenue) as total_revenue
+                FROM revenue_by_month_state
+                GROUP BY state
+                ORDER BY total_revenue DESC
+                LIMIT 4
+            ) top_states
+        )
+        ORDER BY r.state, r.month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStateRevenueTrendsHQ();
+
+    @Query(value = """
+        SELECT r.state, r.month, r.revenue,
+               EXTRACT(YEAR FROM TO_DATE(r.month, 'YYYY-MM')) as year,
+               EXTRACT(MONTH FROM TO_DATE(r.month, 'YYYY-MM')) as month_num
+        FROM revenue_by_month_state r
+        WHERE r.state = :state
+        ORDER BY r.month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStateRevenueTrendsState(@Param("state") String state);
 }

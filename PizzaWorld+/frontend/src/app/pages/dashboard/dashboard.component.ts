@@ -101,21 +101,28 @@ export class DashboardComponent implements OnInit {
   // Comprehensive Analytics Data
   hourlyPerformanceData: any[] = [];
   productPerformanceData: any[] = [];
+  categoryPerformanceData: any[] = [];
+  customerAcquisitionData: any[] = [];
+  dailyTrendsData: any[] = [];
+  monthlyTrendsData: any[] = [];
+  storeComparisonData: any[] = [];
+  stateComparisonData: any[] = [];
   peakHoursData: any[] = [];
-  seasonalData: any[] = [];
   
   // Analytics Chart Options
   hourlyChartOptions: any = null;
   productChartOptions: any = null;
+  categoryChartOptions: any = null;
+  customerAcquisitionChartOptions: any = null;
+  dailyTrendsChartOptions: any = null;
+  monthlyTrendsChartOptions: any = null;
+  storeComparisonChartOptions: any = null;
+  stateComparisonChartOptions: any = null;
   peakHoursChartOptions: any = null;
-  seasonalChartOptions: any = null;
   
   // Analytics Controls
   showAnalytics = false;
-  analyticsTimePeriod: 'Morning' | 'Afternoon' | 'Evening' | 'Night' | '' = '';
-  analyticsSeason: 'Winter' | 'Spring' | 'Summer' | 'Fall' | '' = '';
   analyticsCategory = '';
-  analyticsLimit = 20;
 
   constructor(private http: HttpClient) {}
 
@@ -795,13 +802,20 @@ export class DashboardComponent implements OnInit {
   loadAnalyticsData(): void {
     this.loadHourlyPerformanceData();
     this.loadProductPerformanceData();
-    this.loadPeakHoursData();
-    this.loadSeasonalData();
+    this.loadCategoryPerformanceData();
+    this.loadCustomerAcquisitionData();
+    this.loadDailyTrendsData();
+    this.loadMonthlyTrendsData();
+    this.loadStoreComparisonData();
+    this.loadStateComparisonData();
   }
   
   loadHourlyPerformanceData(): void {
+    // Use dashboard time filtering for consistency
     let params = new HttpParams();
-    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedYear && this.selectedTimePeriod !== 'all-time') {
+      params = params.set('year', this.selectedYear.toString());
+    }
     if (this.selectedMonth && this.selectedTimePeriod === 'month') {
       params = params.set('month', this.selectedMonth.toString());
     }
@@ -819,12 +833,11 @@ export class DashboardComponent implements OnInit {
   }
   
   loadProductPerformanceData(): void {
-    let params = new HttpParams().set('limit', this.analyticsLimit.toString());
-    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
-      params = params.set('month', this.selectedMonth.toString());
+    // Load all products with optional category filter
+    let params = new HttpParams();
+    if (this.analyticsCategory) {
+      params = params.set('category', this.analyticsCategory);
     }
-    if (this.analyticsCategory) params = params.set('category', this.analyticsCategory);
     
     this.http.get<any[]>('/api/v2/analytics/product-performance', {
       headers: this.getAuthHeaders(),
@@ -838,9 +851,84 @@ export class DashboardComponent implements OnInit {
     });
   }
   
+  loadCategoryPerformanceData(): void {
+    this.http.get<any[]>('/api/v2/analytics/category-performance', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.categoryPerformanceData = data;
+        this.buildCategoryChart();
+      },
+      error: (error) => console.error('Failed to load category performance:', error)
+    });
+  }
+  
+  loadCustomerAcquisitionData(): void {
+    this.http.get<any[]>('/api/v2/analytics/customer-acquisition', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.customerAcquisitionData = data;
+        this.buildCustomerAcquisitionChart();
+      },
+      error: (error) => console.error('Failed to load customer acquisition:', error)
+    });
+  }
+  
+  loadDailyTrendsData(): void {
+    this.http.get<any[]>('/api/v2/analytics/daily-trends', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.dailyTrendsData = data;
+        this.buildDailyTrendsChart();
+      },
+      error: (error) => console.error('Failed to load daily trends:', error)
+    });
+  }
+  
+  loadMonthlyTrendsData(): void {
+    this.http.get<any[]>('/api/v2/analytics/monthly-trends', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.monthlyTrendsData = data;
+        this.buildMonthlyTrendsChart();
+      },
+      error: (error) => console.error('Failed to load monthly trends:', error)
+    });
+  }
+  
+  loadStoreComparisonData(): void {
+    this.http.get<any[]>('/api/v2/analytics/store-comparison', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.storeComparisonData = data;
+        this.buildStoreComparisonChart();
+      },
+      error: (error) => console.error('Failed to load store comparison:', error)
+    });
+  }
+  
+  loadStateComparisonData(): void {
+    this.http.get<any[]>('/api/v2/analytics/state-comparison', {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (data) => {
+        this.stateComparisonData = data;
+        this.buildStateComparisonChart();
+      },
+      error: (error) => console.error('Failed to load state comparison:', error)
+    });
+  }
+  
   loadPeakHoursData(): void {
+    // Use dashboard time filtering for consistency (same as hourly performance)
     let params = new HttpParams();
-    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedYear && this.selectedTimePeriod !== 'all-time') {
+      params = params.set('year', this.selectedYear.toString());
+    }
     if (this.selectedMonth && this.selectedTimePeriod === 'month') {
       params = params.set('month', this.selectedMonth.toString());
     }
@@ -857,22 +945,7 @@ export class DashboardComponent implements OnInit {
     });
   }
   
-  loadSeasonalData(): void {
-    let params = new HttpParams();
-    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-    if (this.analyticsSeason) params = params.set('season', this.analyticsSeason);
-    
-    this.http.get<any[]>('/api/v2/analytics/seasonal-business', {
-      headers: this.getAuthHeaders(),
-      params
-    }).subscribe({
-      next: (data) => {
-        this.seasonalData = data;
-        this.buildSeasonalChart();
-      },
-      error: (error) => console.error('Failed to load seasonal data:', error)
-    });
-  }
+  // Removed seasonal data loading - doesn't provide real business value
   
   onAnalyticsFilterChange(): void {
     if (this.showAnalytics) {
@@ -887,39 +960,64 @@ export class DashboardComponent implements OnInit {
       return;
     }
     
+    // Fixed to use proper materialized view data structure (hour 0-23)
     const hours = Array.from({length: 24}, (_, i) => i);
     const hourlyRevenue = hours.map(hour => {
-      const hourData = this.hourlyPerformanceData.find(d => d.hour_of_day === hour);
-      return hourData ? Number(hourData.hourly_revenue) || 0 : 0;
+      const hourData = this.hourlyPerformanceData.find(d => Number(d.hour) === hour);
+      return hourData ? Number(hourData.revenue) || 0 : 0;
+    });
+    
+    const hourlyOrders = hours.map(hour => {
+      const hourData = this.hourlyPerformanceData.find(d => Number(d.hour) === hour);
+      return hourData ? Number(hourData.orders) || 0 : 0;
     });
     
     this.hourlyChartOptions = {
-      series: [{
-        name: 'Hourly Revenue',
-        data: hourlyRevenue
-      }],
+      series: [
+        {
+          name: 'Hourly Revenue',
+          data: hourlyRevenue,
+          type: 'area'
+        },
+        {
+          name: 'Hourly Orders',
+          data: hourlyOrders,
+          type: 'line',
+          yAxisIndex: 1
+        }
+      ],
       chart: {
-        type: 'area',
-        height: 300,
+        type: 'line',
+        height: 350,
         toolbar: { show: true },
         zoom: { enabled: true, type: 'x' }
       },
-      colors: ['#f59e0b'],
+      colors: ['#f59e0b', '#3b82f6'],
       fill: {
-        type: 'gradient',
+        type: ['gradient', 'solid'],
         gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.3 }
       },
-      stroke: { curve: 'smooth', width: 2 },
+      stroke: { curve: 'smooth', width: [2, 3] },
       dataLabels: { enabled: false },
       xaxis: {
-        categories: hours.map(h => `${h}:00`),
+        categories: hours.map(h => `${h.toString().padStart(2, '0')}:00`),
         title: { text: 'Hour of Day' }
       },
-      yaxis: {
-        title: { text: 'Revenue (€)' },
-        labels: { formatter: (val: number) => `€${this.formatNumber(val)}` }
-      },
-      grid: { borderColor: '#e5e7eb' }
+      yaxis: [
+        {
+          title: { text: 'Revenue (€)' },
+          labels: { formatter: (val: number) => `€${this.formatNumber(val)}` }
+        },
+        {
+          opposite: true,
+          title: { text: 'Orders' }
+        }
+      ],
+      grid: { borderColor: '#e5e7eb' },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'center'
+      }
     };
   }
   
@@ -929,16 +1027,19 @@ export class DashboardComponent implements OnInit {
       return;
     }
     
-    const topProducts = this.productPerformanceData.slice(0, 10);
-    const productNames = topProducts.map(p => p.product_name || 'Unknown');
-    const productRevenue = topProducts.map(p => Number(p.total_revenue) || 0);
+    // Show top 15 for chart (all products shown in table below)
+    const topProducts = this.productPerformanceData.slice(0, 15);
+    // Include size in product display name using correct property names
+    const productNames = topProducts.map((p: any) => `${p.name || p.product_name} (${p.size})` || 'Unknown');
+    const productRevenue = topProducts.map((p: any) => Number(p.total_revenue) || 0);
     
     this.productChartOptions = {
       series: [{ name: 'Product Revenue', data: productRevenue }],
       chart: {
         type: 'bar',
         height: 350,
-        toolbar: { show: true }
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'y' }
       },
       colors: ['#dc2626'],
       plotOptions: {
@@ -949,7 +1050,7 @@ export class DashboardComponent implements OnInit {
         categories: productNames,
         title: { text: 'Revenue (€)' }
       },
-      yaxis: { title: { text: 'Products' } }
+      yaxis: { title: { text: 'Products (with Size)' } }
     };
   }
   
@@ -959,6 +1060,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
     
+    // Updated to match new data structure from materialized views
     const hours = this.peakHoursData.map(d => d.hour_of_day);
     const orders = this.peakHoursData.map(d => Number(d.total_orders) || 0);
     
@@ -967,7 +1069,8 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'line',
         height: 300,
-        toolbar: { show: true }
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
       },
       colors: ['#059669'],
       stroke: { curve: 'smooth', width: 3 },
@@ -980,24 +1083,317 @@ export class DashboardComponent implements OnInit {
     };
   }
   
-  buildSeasonalChart(): void {
-    if (!this.seasonalData || this.seasonalData.length === 0) {
-      this.seasonalChartOptions = null;
+  buildCategoryChart(): void {
+    if (!this.categoryPerformanceData || this.categoryPerformanceData.length === 0) {
+      this.categoryChartOptions = null;
       return;
     }
     
-    const periods = this.seasonalData.map(d => d.business_period || d.season);
-    const revenue = this.seasonalData.map(d => Number(d.period_revenue) || 0);
+    const categories = this.categoryPerformanceData.map(d => d.category || 'Unknown');
+    const revenue = this.categoryPerformanceData.map(d => Number(d.total_revenue) || 0);
     
-    this.seasonalChartOptions = {
-      series: revenue,
+    this.categoryChartOptions = {
+      series: [{ name: 'Category Revenue', data: revenue }],
       chart: {
         type: 'donut',
-        height: 350
+        height: 350,
+        toolbar: { show: true }
       },
-      labels: periods,
-      colors: ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'],
-      legend: { position: 'bottom' }
+      labels: categories,
+      colors: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#f97316'],
+      dataLabels: {
+        enabled: true,
+        formatter: (val: number) => `${val.toFixed(1)}%`
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '60%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total Revenue',
+                formatter: () => `€${this.formatNumber(revenue.reduce((a, b) => a + b, 0))}`
+              }
+            }
+          }
+        }
+      },
+      legend: {
+        position: 'bottom',
+        horizontalAlign: 'center'
+      }
     };
   }
+  
+  buildCustomerAcquisitionChart(): void {
+    if (!this.customerAcquisitionData || this.customerAcquisitionData.length === 0) {
+      this.customerAcquisitionChartOptions = null;
+      return;
+    }
+    
+    const months = this.customerAcquisitionData.map(d => d.month_name || `${d.year}-${d.month}`);
+    const newCustomers = this.customerAcquisitionData.map(d => Number(d.new_customers) || 0);
+    const revenue = this.customerAcquisitionData.map(d => Number(d.revenue_from_new_customers) || 0);
+    
+    this.customerAcquisitionChartOptions = {
+      series: [
+        { name: 'New Customers', data: newCustomers, type: 'column' },
+        { name: 'Revenue from New Customers', data: revenue, type: 'line' }
+      ],
+      chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
+      },
+      stroke: {
+        width: [0, 3]
+      },
+      plotOptions: {
+        bar: {
+          columnWidth: '50%'
+        }
+      },
+      colors: ['#06b6d4', '#f59e0b'],
+      xaxis: {
+        categories: months,
+        title: { text: 'Month' }
+      },
+      yaxis: [
+        {
+          title: { text: 'New Customers' },
+          seriesName: 'New Customers'
+        },
+        {
+          opposite: true,
+          title: { text: 'Revenue (€)' },
+          seriesName: 'Revenue from New Customers',
+          labels: {
+            formatter: (val: number) => `€${this.formatNumber(val)}`
+          }
+        }
+      ]
+    };
+  }
+  
+  buildDailyTrendsChart(): void {
+    if (!this.dailyTrendsData || this.dailyTrendsData.length === 0) {
+      this.dailyTrendsChartOptions = null;
+      return;
+    }
+    
+    const dates = this.dailyTrendsData.map(d => d.day || d.order_date);
+    const revenue = this.dailyTrendsData.map(d => Number(d.revenue) || 0);
+    const orders = this.dailyTrendsData.map(d => Number(d.orders) || 0);
+    
+    this.dailyTrendsChartOptions = {
+      series: [
+        { name: 'Daily Revenue', data: revenue },
+        { name: 'Daily Orders', data: orders, yAxisIndex: 1 }
+      ],
+      chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
+      },
+      colors: ['#10b981', '#3b82f6'],
+      stroke: { curve: 'smooth', width: 2 },
+      xaxis: {
+        categories: dates,
+        title: { text: 'Date' },
+        type: 'datetime'
+      },
+      yaxis: [
+        {
+          title: { text: 'Revenue (€)' },
+          labels: {
+            formatter: (val: number) => `€${this.formatNumber(val)}`
+          }
+        },
+        {
+          opposite: true,
+          title: { text: 'Orders' }
+        }
+      ],
+      grid: { borderColor: '#e5e7eb' }
+    };
+  }
+  
+  buildMonthlyTrendsChart(): void {
+    if (!this.monthlyTrendsData || this.monthlyTrendsData.length === 0) {
+      this.monthlyTrendsChartOptions = null;
+      return;
+    }
+    
+    const months = this.monthlyTrendsData.map(d => d.month || `${d.year}-${d.month_num}`);
+    const revenue = this.monthlyTrendsData.map(d => Number(d.revenue) || 0);
+    
+    this.monthlyTrendsChartOptions = {
+      series: [{ name: 'Monthly Revenue', data: revenue }],
+      chart: {
+        type: 'area',
+        height: 350,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
+      },
+      colors: ['#8b5cf6'],
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.7,
+          opacityTo: 0.3
+        }
+      },
+      stroke: { curve: 'smooth', width: 2 },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: months,
+        title: { text: 'Month' }
+      },
+      yaxis: {
+        title: { text: 'Revenue (€)' },
+        labels: {
+          formatter: (val: number) => `€${this.formatNumber(val)}`
+        }
+      },
+      grid: { borderColor: '#e5e7eb' }
+    };
+  }
+  
+  buildStoreComparisonChart(): void {
+    if (!this.storeComparisonData || this.storeComparisonData.length === 0) {
+      this.storeComparisonChartOptions = null;
+      return;
+    }
+    
+    const stores = this.storeComparisonData.map(d => `${d.city || d.storeid} (${d.state_abbr || d.state})`);
+    const revenue = this.storeComparisonData.map(d => Number(d.total_revenue) || 0);
+    const orders = this.storeComparisonData.map(d => Number(d.total_orders) || 0);
+    
+    this.storeComparisonChartOptions = {
+      series: [
+        { name: 'Revenue', data: revenue },
+        { name: 'Orders', data: orders, yAxisIndex: 1 }
+      ],
+      chart: {
+        type: 'bar',
+        height: 400,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'y' }
+      },
+      colors: ['#dc2626', '#059669'],
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '55%',
+          endingShape: 'rounded'
+        }
+      },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: stores,
+        title: { text: 'Stores' },
+        labels: {
+          rotate: -45,
+          style: { fontSize: '12px' }
+        }
+      },
+      yaxis: [
+        {
+          title: { text: 'Revenue (€)' },
+          labels: {
+            formatter: (val: number) => `€${this.formatNumber(val)}`
+          }
+        },
+        {
+          opposite: true,
+          title: { text: 'Orders' }
+        }
+      ],
+      grid: { borderColor: '#e5e7eb' }
+    };
+  }
+  
+  buildStateComparisonChart(): void {
+    if (!this.stateComparisonData || this.stateComparisonData.length === 0) {
+      this.stateComparisonChartOptions = null;
+      return;
+    }
+    
+    // Group data by state and month
+    const stateMonthlyData = new Map<string, Array<{month: string, revenue: number}>>();
+    this.stateComparisonData.forEach((item: any) => {
+      if (!stateMonthlyData.has(item.state)) {
+        stateMonthlyData.set(item.state, []);
+      }
+      stateMonthlyData.get(item.state)!.push({
+        month: item.month || `${item.year}-${item.month_num}`,
+        revenue: Number(item.revenue) || 0
+      });
+    });
+    
+    // Get top 4 states by total revenue
+    const stateRevenues = Array.from(stateMonthlyData.entries()).map(([state, data]) => ({
+      state,
+      totalRevenue: data.reduce((sum: number, item: {month: string, revenue: number}) => sum + item.revenue, 0),
+      data
+    })).sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 4);
+    
+    // Get all unique months and sort them
+    const allMonths = [...new Set(this.stateComparisonData.map((d: any) => d.month || `${d.year}-${d.month_num}`))];
+    allMonths.sort();
+    
+    // Create series for each state
+    const series = stateRevenues.map(({ state, data }) => ({
+      name: state,
+      data: allMonths.map(month => {
+        const monthData = data.find((d: {month: string, revenue: number}) => d.month === month);
+        return monthData ? monthData.revenue : 0;
+      })
+    }));
+    
+    this.stateComparisonChartOptions = {
+      series,
+      chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: true },
+        zoom: { enabled: true, type: 'x' }
+      },
+      colors: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'],
+      stroke: { curve: 'smooth', width: 3 },
+      markers: { size: 5 },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: allMonths,
+        title: { text: 'Month' },
+        labels: {
+          rotate: -45,
+          style: { fontSize: '12px' }
+        }
+      },
+      yaxis: {
+        title: { text: 'Revenue (€)' },
+        labels: {
+          formatter: (val: number) => `€${this.formatNumber(val)}`
+        }
+      },
+      grid: { borderColor: '#e5e7eb' },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'center'
+      },
+      tooltip: {
+        y: {
+          formatter: (val: number) => `€${this.formatNumber(val)}`
+        }
+      }
+    };
+  }
+  
+  // Removed seasonal chart - doesn't provide real business value
 }

@@ -163,14 +163,74 @@
       </div>
     </div>
 
+    <!-- Chart Filters -->
+    <div class="mb-8 bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+      <h4 class="text-lg font-semibold text-gray-900 mb-4">Chart Filters</h4>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Search Stores</label>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm"
+            (input)="onFilterChange()"
+            placeholder="Search by city or state..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+        </div>
+        
+        <!-- State Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+          <select 
+            [(ngModel)]="selectedState"
+            (change)="onFilterChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">All States</option>
+            <option *ngFor="let state of getUniqueStates()" [value]="state">{{ state }}</option>
+          </select>
+        </div>
+        
+        <!-- Min Revenue -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Min Revenue (€)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="minRevenue"
+            (input)="onFilterChange()"
+            placeholder="0"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+        </div>
+        
+        <!-- Clear Filters -->
+        <div class="flex items-end">
+          <button 
+            (click)="clearFilters()"
+            class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       
       <!-- Revenue Chart -->
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
-        <div class="mb-6">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Store Revenue</h3>
-          <p class="text-gray-600">Top performing stores by revenue</p>
+        <div class="mb-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Store Revenue</h3>
+            <p class="text-gray-600">Top performing stores by revenue</p>
+          </div>
+          <button 
+            (click)="toggleChartSort()"
+            class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path *ngIf="!chartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              <path *ngIf="chartSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+            </svg>
+            {{ chartSortAscending ? 'Ascending' : 'Descending' }}
+          </button>
         </div>
         <div *ngIf="revenueChartOptions" class="h-96">
           <apx-chart
@@ -264,8 +324,32 @@
     <!-- Store Performance Table -->
     <div class="mt-8 bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
       <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
-        <h3 class="text-xl font-bold text-white">Store Performance Overview</h3>
-        <p class="text-orange-100">Detailed breakdown of top {{ filteredStoreData.length }} stores</p>
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-white">Store Performance Overview</h3>
+            <p class="text-orange-100">Detailed breakdown of all {{ filteredStoreData.length }} stores</p>
+          </div>
+          <div class="flex gap-2">
+            <select 
+              [(ngModel)]="tableSortColumn" 
+              (change)="sortTable(tableSortColumn)"
+              class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm">
+              <option value="revenue">Sort by Revenue</option>
+              <option value="orders">Sort by Orders</option>
+              <option value="customers">Sort by Customers</option>
+              <option value="avgOrder">Sort by Avg Order</option>
+              <option value="store">Sort by Store Name</option>
+            </select>
+            <button 
+              (click)="sortTable(tableSortColumn)"
+              class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path *ngIf="!tableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                <path *ngIf="tableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -280,7 +364,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let store of filteredStoreData.slice(0, 20); let i = index" 
+            <tr *ngFor="let store of getTableSortedData(); let i = index" 
                 class="hover:bg-orange-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">{{ i + 1 }}</td>
               <td class="px-6 py-4 whitespace-nowrap">

@@ -72,6 +72,19 @@ export class DashboardComponent implements OnInit {
   loading = false;
   error = false;
   
+  // Chart controls
+  chartSortAscending = false; // false = descending (default), true = ascending
+  
+  // Table sorting
+  tableSortColumn: 'revenue' | 'orders' | 'customers' | 'avgOrder' | 'store' = 'revenue';
+  tableSortAscending = false;
+  
+  // Filters
+  searchTerm = '';
+  selectedState = '';
+  minRevenue = 0;
+  maxRevenue = 0;
+  
   // Chart options
   revenueChartOptions: any = null;
   ordersChartOptions: any = null;
@@ -197,8 +210,71 @@ export class DashboardComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.filteredStoreData = [...this.storeRevenueData]
-      .sort((a, b) => this.getRevenue(b) - this.getRevenue(a));
+    this.filteredStoreData = [...this.storeRevenueData].filter(store => {
+      const matchesSearch = !this.searchTerm || 
+        store.city.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        store.state_name?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        store.state_abbr.toLowerCase().includes(this.searchTerm.toLowerCase());
+      
+      const matchesState = !this.selectedState || store.state_abbr === this.selectedState;
+      
+      const revenue = this.getRevenue(store);
+      const matchesRevenue = (!this.minRevenue || revenue >= this.minRevenue) &&
+        (!this.maxRevenue || revenue <= this.maxRevenue);
+      
+      return matchesSearch && matchesState && matchesRevenue;
+    });
+    
+    this.sortStoreData();
+  }
+  
+  sortStoreData(): void {
+    const sortMultiplier = this.chartSortAscending ? 1 : -1;
+    this.filteredStoreData.sort((a, b) => {
+      return (this.getRevenue(a) - this.getRevenue(b)) * sortMultiplier;
+    });
+  }
+  
+  toggleChartSort(): void {
+    this.chartSortAscending = !this.chartSortAscending;
+    this.sortStoreData();
+    this.buildCharts();
+  }
+  
+  sortTable(column: 'revenue' | 'orders' | 'customers' | 'avgOrder' | 'store'): void {
+    if (this.tableSortColumn === column) {
+      this.tableSortAscending = !this.tableSortAscending;
+    } else {
+      this.tableSortColumn = column;
+      this.tableSortAscending = false;
+    }
+  }
+  
+  getTableSortedData(): StoreRevenueData[] {
+    const sortMultiplier = this.tableSortAscending ? 1 : -1;
+    return [...this.filteredStoreData].sort((a, b) => {
+      let aVal: number | string, bVal: number | string;
+      
+      switch (this.tableSortColumn) {
+        case 'revenue': 
+          aVal = this.getRevenue(a); bVal = this.getRevenue(b); break;
+        case 'orders': 
+          aVal = this.getOrders(a); bVal = this.getOrders(b); break;
+        case 'customers': 
+          aVal = this.getCustomers(a); bVal = this.getCustomers(b); break;
+        case 'avgOrder': 
+          aVal = this.getAvgOrderValue(a); bVal = this.getAvgOrderValue(b); break;
+        case 'store': 
+          aVal = a.city; bVal = b.city; break;
+        default: 
+          aVal = this.getRevenue(a); bVal = this.getRevenue(b);
+      }
+      
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return aVal.localeCompare(bVal) * sortMultiplier;
+      }
+      return ((aVal as number) - (bVal as number)) * sortMultiplier;
+    });
   }
 
   buildCharts(): void {
@@ -230,7 +306,23 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'bar',
         height: 400,
-        toolbar: { show: true },
+        toolbar: { 
+          show: true,
+          export: {
+            csv: {
+              filename: `store-revenue-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Store',
+              headerValue: 'Revenue (€)'
+            },
+            svg: {
+              filename: `store-revenue-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `store-revenue-${this.getTimePeriodLabel()}`
+            }
+          }
+        },
         background: 'transparent'
       },
       colors: ['#fb923c'],
@@ -274,7 +366,23 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'line',
         height: 350,
-        toolbar: { show: false },
+        toolbar: { 
+          show: true,
+          export: {
+            csv: {
+              filename: `store-orders-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Store',
+              headerValue: 'Orders'
+            },
+            svg: {
+              filename: `store-orders-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `store-orders-${this.getTimePeriodLabel()}`
+            }
+          }
+        },
         background: 'transparent'
       },
       colors: ['#f97316'],
@@ -306,7 +414,23 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'area',
         height: 350,
-        toolbar: { show: false },
+        toolbar: { 
+          show: true,
+          export: {
+            csv: {
+              filename: `avg-order-value-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Store',
+              headerValue: 'Avg Order (€)'
+            },
+            svg: {
+              filename: `avg-order-value-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `avg-order-value-${this.getTimePeriodLabel()}`
+            }
+          }
+        },
         background: 'transparent'
       },
       colors: ['#ea580c'],
@@ -349,7 +473,23 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'bar',
         height: 350,
-        toolbar: { show: false },
+        toolbar: { 
+          show: true,
+          export: {
+            csv: {
+              filename: `unique-customers-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Store',
+              headerValue: 'Customers'
+            },
+            svg: {
+              filename: `unique-customers-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `unique-customers-${this.getTimePeriodLabel()}`
+            }
+          }
+        },
         background: 'transparent'
       },
       colors: ['#c2410c'],
@@ -450,6 +590,24 @@ export class DashboardComponent implements OnInit {
       default:
         return 'Revenue Analysis';
     }
+  }
+
+  getUniqueStates(): string[] {
+    const states = [...new Set(this.storeRevenueData.map(store => store.state_abbr))];
+    return states.sort();
+  }
+  
+  onFilterChange(): void {
+    this.applyFilters();
+    this.buildCharts();
+  }
+  
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.selectedState = '';
+    this.minRevenue = 0;
+    this.maxRevenue = 0;
+    this.onFilterChange();
   }
 
   refreshData(): void {

@@ -82,6 +82,59 @@ export interface OrderFilters {
   to?: string;
 }
 
+/** Global Store KPIs interface - matches kpis_global_store materialized view */
+export interface GlobalStoreKpi {
+  state: string;
+  store_id: string;
+  revenue: number;
+  orders: number;
+  avg_order_value: number;
+  customers: number;
+  last_updated: string;
+}
+
+/** Store Revenue Chart Data interface - matches store revenue by time periods view */
+export interface StoreRevenueChartData {
+  storeid: string;
+  city: string;
+  state_name?: string;
+  state_abbr: string;
+  year?: number;
+  month?: number;
+  quarter?: number;
+  total_revenue?: number;
+  monthly_revenue?: number;
+  yearly_revenue?: number;
+  quarterly_revenue?: number;
+  order_count?: number;
+  monthly_orders?: number;
+  yearly_orders?: number;
+  quarterly_orders?: number;
+  unique_customers?: number;
+  avg_order_value?: number;
+  last_updated?: string;
+}
+
+/** Time Period Options interface */
+export interface TimePeriodOption {
+  year: number;
+  month?: number;
+  quarter?: number;
+  year_label: string;
+  month_label?: string;
+  month_name_label?: string;
+  quarter_label?: string;
+}
+
+/** Chart Filter Options interface */
+export interface ChartFilterOptions {
+  timePeriod: 'all-time' | 'year' | 'month' | 'quarter';
+  year?: number;
+  month?: number;
+  quarter?: number;
+  selectedStores?: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private http = inject(HttpClient);
@@ -903,5 +956,241 @@ export class KpiService {
           return of(null);
         })
       );
+  }
+
+  /** Fetch global store KPIs from materialized view - v2 optimized */
+  getGlobalStoreKPIs(): Observable<GlobalStoreKpi[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<GlobalStoreKpi[]>('/api/v2/kpis/global-store', { headers })
+      .pipe(
+        map(data => {
+          // Cache the global store KPIs data
+          localStorage.setItem('pizzaWorld_global_store_kpis', JSON.stringify(data));
+          console.log(`✅ Global Store KPIs loaded: ${data.length} stores`);
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cached = localStorage.getItem('pizzaWorld_global_store_kpis');
+          if (cached) {
+            console.log('Using cached global store KPIs data');
+            return of(JSON.parse(cached));
+          }
+          console.error('❌ Global store KPIs loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get cached global store KPIs */
+  getCachedGlobalStoreKPIs(): GlobalStoreKpi[] | null {
+    const cached = localStorage.getItem('pizzaWorld_global_store_kpis');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        console.error('Error parsing cached global store KPIs:', error);
+        localStorage.removeItem('pizzaWorld_global_store_kpis');
+      }
+    }
+    return null;
+  }
+
+  /** Clear global store KPIs cache */
+  clearGlobalStoreKPIsCache(): void {
+    localStorage.removeItem('pizzaWorld_global_store_kpis');
+  }
+
+  // =================================================================
+  // STORE REVENUE CHART API - Dynamic Time Period Filtering
+  // =================================================================
+
+  /** Fetch store revenue chart data with time period filtering */
+  getStoreRevenueChart(filters: ChartFilterOptions): Observable<StoreRevenueChartData[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    // Build query parameters
+    const params = new HttpParams()
+      .set('timePeriod', filters.timePeriod)
+      .set('year', filters.year?.toString() || '')
+      .set('month', filters.month?.toString() || '')
+      .set('quarter', filters.quarter?.toString() || '');
+
+    return this.http.get<StoreRevenueChartData[]>('/api/v2/chart/store-revenue', { headers, params })
+      .pipe(
+        map(data => {
+          // Cache the store revenue chart data
+          const cacheKey = `pizzaWorld_store_revenue_chart_${JSON.stringify(filters)}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          console.log(`✅ Store Revenue Chart data loaded: ${data.length} stores for ${filters.timePeriod}`);
+          return data;
+        }),
+        catchError(error => {
+          // Try to get cached data if API fails
+          const cacheKey = `pizzaWorld_store_revenue_chart_${JSON.stringify(filters)}`;
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            console.log('Using cached store revenue chart data');
+            return of(JSON.parse(cached));
+          }
+          console.error('❌ Store revenue chart loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Fetch store revenue data for custom date range */
+  getStoreRevenueByDateRange(startDate: string, endDate: string): Observable<StoreRevenueChartData[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    const params = new HttpParams()
+      .set('startDate', startDate)
+      .set('endDate', endDate);
+
+    return this.http.get<StoreRevenueChartData[]>('/api/v2/chart/store-revenue/date-range', { headers, params })
+      .pipe(
+        map(data => {
+          // Cache the store revenue data
+          const cacheKey = `pizzaWorld_store_revenue_range_${startDate}_${endDate}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          console.log(`✅ Store Revenue data loaded for date range: ${data.length} stores`);
+          return data;
+        }),
+        catchError(error => {
+          console.error('❌ Store revenue date range loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get available years for time period filtering */
+  getAvailableYears(): Observable<TimePeriodOption[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers })
+      .pipe(
+        map(data => {
+          localStorage.setItem('pizzaWorld_available_years', JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          console.error('❌ Available years loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get available months for a specific year */
+  getAvailableMonthsForYear(year: number): Observable<TimePeriodOption[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    const params = new HttpParams().set('year', year.toString());
+
+    return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', { headers, params })
+      .pipe(
+        map(data => {
+          const cacheKey = `pizzaWorld_available_months_${year}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          console.error('❌ Available months loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get available quarters for a specific year */
+  getAvailableQuartersForYear(year: number): Observable<TimePeriodOption[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    
+    const params = new HttpParams().set('year', year.toString());
+
+    return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/quarters', { headers, params })
+      .pipe(
+        map(data => {
+          const cacheKey = `pizzaWorld_available_quarters_${year}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          console.error('❌ Available quarters loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /** Get cached store revenue chart data */
+  getCachedStoreRevenueChart(filters: ChartFilterOptions): StoreRevenueChartData[] | null {
+    const cacheKey = `pizzaWorld_store_revenue_chart_${JSON.stringify(filters)}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        console.error('Error parsing cached store revenue chart data:', error);
+        localStorage.removeItem(cacheKey);
+      }
+    }
+    return null;
+  }
+
+  /** Get cached available years */
+  getCachedAvailableYears(): TimePeriodOption[] | null {
+    const cached = localStorage.getItem('pizzaWorld_available_years');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (error) {
+        localStorage.removeItem('pizzaWorld_available_years');
+      }
+    }
+    return null;
+  }
+
+  /** Clear store revenue chart cache */
+  clearStoreRevenueChartCache(): void {
+    // Clear all chart-related cache entries
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('pizzaWorld_store_revenue_') || 
+          key.startsWith('pizzaWorld_available_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    console.log('Store revenue chart cache cleared');
+  }
+
+  /** Filter stores by selection (for store filtering functionality) */
+  filterStoresBySelection(allStores: StoreRevenueChartData[], selectedStoreIds: string[]): StoreRevenueChartData[] {
+    if (!selectedStoreIds || selectedStoreIds.length === 0) {
+      return allStores;
+    }
+    return allStores.filter(store => selectedStoreIds.includes(store.storeid));
+  }
+
+  /** Get revenue value from store data (handles different time period fields) */
+  getRevenueValue(store: StoreRevenueChartData): number {
+    return store.total_revenue || 
+           store.monthly_revenue || 
+           store.yearly_revenue || 
+           store.quarterly_revenue || 
+           0;
+  }
+
+  /** Get order count from store data (handles different time period fields) */
+  getOrderCount(store: StoreRevenueChartData): number {
+    return store.order_count || 
+           store.monthly_orders || 
+           store.yearly_orders || 
+           store.quarterly_orders || 
+           0;
   }
 }

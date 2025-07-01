@@ -176,7 +176,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
         CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'ASC' THEN o.orderid END ASC,
         CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'DESC' THEN o.orderid END DESC,
         o.orderdate DESC
-      LIMIT :limit OFFSET :offset
+      LIMIT :maxRows OFFSET :startRow
       """, nativeQuery = true)
   List<Map<String, Object>> dynamicOrderFilterPaginated(
       @Param("storeId") String storeId,
@@ -188,8 +188,8 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
       @Param("nitems") Integer nitems,
       @Param("sortBy") String sortBy,
       @Param("sortOrder") String sortOrder,
-      @Param("limit") int limit,
-      @Param("offset") int offset);
+      @Param("maxRows") int limit,
+      @Param("startRow") int offset);
 
   @Query(value = """
       SELECT COUNT(*) FROM orders o

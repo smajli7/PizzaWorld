@@ -1,107 +1,184 @@
-<aside #sidebar class="sidebar bg-white border-r border-slate-200 shadow-xl flex flex-col" >
+<aside #sidebar class="fixed left-0 top-0 h-full w-64 bg-gradient-to-br from-orange-600 via-orange-500 to-orange-600 shadow-2xl flex flex-col z-40 transition-all duration-300 ease-in-out">
+  
   <!-- Header Section -->
-  <div class="sidebar-header">
-    <div class="brand-text">
-      <h2 class="brand-title">PizzaWorld<span class="plus">+</span></h2>
-      <p class="brand-subtitle">Analytics Dashboard</p>
+  <div class="p-6 border-b border-orange-400/30">
+    <div class="flex items-center justify-between">
+      <div class="brand-section">
+        <h2 class="text-2xl font-bold text-white">
+          PizzaWorld<span class="text-orange-200">+</span>
+        </h2>
+        <p class="text-orange-100 text-sm font-medium mt-1">Analytics Dashboard</p>
+      </div>
+      <button 
+        class="lg:hidden p-2 rounded-lg text-white hover:bg-white/10 transition-colors duration-200" 
+        (click)="toggleSidebar()" 
+        aria-label="Toggle navigation menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
     </div>
-    <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle navigation menu">
-      <i class="bx bx-menu"></i>
-    </button>
+  </div>
+
+  <!-- Search Section -->
+  <div class="p-4">
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="w-5 h-5 text-orange-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="sidebarSearch" 
+        class="w-full pl-10 pr-4 py-2 bg-white/10 border border-orange-400/30 rounded-lg text-white placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 transition-all duration-200" 
+        placeholder="Search dashboard..."
+        aria-label="Search dashboard" />
+    </div>
   </div>
 
   <!-- Navigation Section -->
-  <nav class="sidebar-nav">
-    <!-- Search -->
-    <div class="search-container">
-      <div class="search-input-group">
-        <i class="bx bx-search search-icon"></i>
-        <input 
-          type="text" 
-          id="sidebarSearch" 
-          class="search-input" 
-          placeholder="Search dashboard..."
-          aria-label="Search dashboard" />
-      </div>
-    </div>
+  <nav class="flex-1 px-4 pb-4">
+    <ul class="space-y-2">
+      <!-- Dashboard -->
+      <li>
+        <a 
+          routerLink="/dashboard" 
+          routerLinkActive="active-nav-link"
+          class="flex items-center px-4 py-3 text-orange-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group nav-link">
+          <div class="flex items-center justify-center w-6 h-6 mr-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+          </div>
+          <span class="font-medium">Dashboard</span>
+          <div class="ml-auto w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+        </a>
+      </li>
 
-    <!-- Navigation Links -->
-    <ul class="nav-menu">
-      <li class="nav-item">
-        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
-          <div class="nav-icon">
-            <i class="bx bx-home"></i>
+      <!-- Stores -->
+      <li>
+        <a 
+          routerLink="/stores" 
+          routerLinkActive="active-nav-link"
+          class="flex items-center px-4 py-3 text-orange-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group nav-link">
+          <div class="flex items-center justify-center w-6 h-6 mr-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
           </div>
-          <span class="nav-text">Dashboard</span>
-          <div class="nav-indicator"></div>
+          <span class="font-medium">Stores</span>
+          <div class="ml-auto w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
         </a>
       </li>
-      
-      <li class="nav-item">
-        <a routerLink="/stores" routerLinkActive="active" class="nav-link">
-          <div class="nav-icon">
-            <i class="bx bx-store"></i>
+
+      <!-- Products -->
+      <li>
+        <a 
+          routerLink="/products" 
+          routerLinkActive="active-nav-link"
+          class="flex items-center px-4 py-3 text-orange-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group nav-link">
+          <div class="flex items-center justify-center w-6 h-6 mr-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
           </div>
-          <span class="nav-text">Stores</span>
-          <div class="nav-indicator"></div>
+          <span class="font-medium">Products</span>
+          <div class="ml-auto w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
         </a>
       </li>
-      
-      <li class="nav-item">
-        <a routerLink="/products" routerLinkActive="active" class="nav-link">
-          <div class="nav-icon">
-            <i class="bx bx-food-menu"></i>
+
+      <!-- Sales Analytics -->
+      <li>
+        <a 
+          routerLink="/sales" 
+          routerLinkActive="active-nav-link"
+          class="flex items-center px-4 py-3 text-orange-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group nav-link">
+          <div class="flex items-center justify-center w-6 h-6 mr-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
           </div>
-          <span class="nav-text">Products</span>
-          <div class="nav-indicator"></div>
+          <span class="font-medium">Sales Analytics</span>
+          <div class="ml-auto w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
         </a>
       </li>
-      
-      <li class="nav-item">
-        <a routerLink="/sales" routerLinkActive="active" class="nav-link">
-          <div class="nav-icon">
-            <i class="bx bx-bar-chart-alt-2"></i>
+
+      <!-- Orders -->
+      <li>
+        <a 
+          routerLink="/orders" 
+          routerLinkActive="active-nav-link"
+          class="flex items-center px-4 py-3 text-orange-100 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 group nav-link">
+          <div class="flex items-center justify-center w-6 h-6 mr-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
           </div>
-          <span class="nav-text">Sales Analytics</span>
-          <div class="nav-indicator"></div>
-        </a>
-      </li>
-      
-      <li class="nav-item">
-        <a routerLink="/orders" routerLinkActive="active" class="nav-link">
-          <div class="nav-icon">
-            <i class="bx bx-receipt"></i>
-          </div>
-          <span class="nav-text">Orders</span>
-          <div class="nav-indicator"></div>
+          <span class="font-medium">Orders</span>
+          <div class="ml-auto w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
         </a>
       </li>
     </ul>
+
+    <!-- Quick Stats Section -->
+    <div class="mt-8 p-4 bg-white/5 rounded-lg border border-white/10">
+      <h3 class="text-white font-semibold text-sm mb-3">Quick Stats</h3>
+      <div class="space-y-2">
+        <div class="flex justify-between text-xs">
+          <span class="text-orange-200">Active Stores</span>
+          <span class="text-white font-medium">32</span>
+        </div>
+        <div class="flex justify-between text-xs">
+          <span class="text-orange-200">Today's Orders</span>
+          <span class="text-white font-medium">247</span>
+        </div>
+        <div class="flex justify-between text-xs">
+          <span class="text-orange-200">Revenue</span>
+          <span class="text-white font-medium">€12.4K</span>
+        </div>
+      </div>
+    </div>
   </nav>
 
   <!-- Profile Section -->
-  <div class="sidebar-footer">
-    <div class="user-profile">
-      <a routerLink="/profile" class="profile-link" aria-label="View profile">
-        <div class="profile-avatar">
-          <img src="assets/images/avatar.png" alt="Profile" class="avatar-img" />
-          <div class="status-indicator"></div>
+  <div class="p-4 border-t border-orange-400/30">
+    <div class="flex items-center justify-between">
+      <a 
+        routerLink="/profile" 
+        class="flex items-center space-x-3 text-white hover:bg-white/10 rounded-lg p-2 transition-all duration-200 flex-1"
+        aria-label="View profile">
+        <div class="relative">
+          <div class="w-10 h-10 bg-gradient-to-r from-orange-300 to-orange-400 rounded-full flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+          <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-orange-600 rounded-full"></div>
         </div>
-        <div class="profile-info" *ngIf="user$ | async as u; else loadingProfile">
-          <div class="user-name">{{ u?.username || 'Loading...' }}</div>
-          <div class="user-role">{{ u?.role || 'User' }}</div>
+        <div class="flex-1" *ngIf="user$ | async as u; else loadingProfile">
+          <div class="text-sm font-medium text-white">{{ u?.username || 'Loading...' }}</div>
+          <div class="text-xs text-orange-200">{{ u?.role || 'User' }}</div>
         </div>
         <ng-template #loadingProfile>
-          <div class="profile-info">
-            <div class="user-name">Loading...</div>
-            <div class="user-role">Please wait</div>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-white">Loading...</div>
+            <div class="text-xs text-orange-200">Please wait</div>
           </div>
         </ng-template>
       </a>
       
-      <button class="logout-btn" (click)="logout()" aria-label="Log out">
-        <i class="bx bx-log-out"></i>
+      <button 
+        class="p-2 text-orange-200 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 ml-2" 
+        (click)="logout()" 
+        aria-label="Log out">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+        </svg>
       </button>
     </div>
   </div>
 </aside>
+
+<!-- Mobile overlay -->
+<div class="lg:hidden fixed inset-0 bg-black/50 z-30 opacity-0 pointer-events-none transition-opacity duration-300" id="sidebar-overlay"></div>

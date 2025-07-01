@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import pizzaworld.model.User;
 import pizzaworld.repository.OptimizedPizzaRepo;
 import pizzaworld.dto.DashboardKpiDto;
+import pizzaworld.dto.KpisGlobalStoreDto;
 
 @Service
 public class OptimizedPizzaService {
@@ -365,6 +366,191 @@ public class OptimizedPizzaService {
         List<Map<String, Object>> topProds = getTopProducts(user, null, 10);
 
         return new pizzaworld.dto.ConsolidatedDto(global, revMonth, ordMonth, revStore, topProds);
+    }
+
+    // =================================================================
+    // GLOBAL STORE KPIs - Role-based access to kpis_global_store
+    // =================================================================
+
+    @Cacheable(value = "globalStoreKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getGlobalStoreKPIs(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getAllStoreKPIs();
+            case "STATE_MANAGER" -> repo.getStoreKPIsByState(user.getStateAbbr());
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeKPI = repo.getStoreKPIs(user.getStoreId());
+                yield storeKPI != null ? List.of(storeKPI) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // =================================================================
+    // STORE REVENUE BY TIME PERIODS - Dynamic Chart API
+    // =================================================================
+
+    @Cacheable(value = "storeRevenueChart", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #timePeriod + '_' + #year + '_' + #month + '_' + #quarter")
+    public List<Map<String, Object>> getStoreRevenueByTimePeriod(User user, String timePeriod, Integer year, Integer month, Integer quarter) {
+        
+        return switch (timePeriod.toLowerCase()) {
+            case "all-time", "alltime" -> getStoreRevenueAllTime(user);
+            case "year", "yearly" -> getStoreRevenueByYear(user, year);
+            case "month", "monthly" -> getStoreRevenueByMonth(user, year, month);
+            case "quarter", "quarterly" -> getStoreRevenueByQuarter(user, year, quarter);
+            default -> throw new IllegalArgumentException("Invalid time period: " + timePeriod);
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueAllTime(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueAllTimeHQ();
+            case "STATE_MANAGER" -> repo.getStoreRevenueAllTimeState(user.getStateAbbr());
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreRevenueAllTimeStore(user.getStoreId());
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueByYear(User user, Integer year) {
+        if (year == null) {
+            throw new IllegalArgumentException("Year is required for yearly revenue data");
+        }
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueByYearHQ(year);
+            case "STATE_MANAGER" -> repo.getStoreRevenueByYearState(user.getStateAbbr(), year);
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreRevenueByYearStore(user.getStoreId(), year);
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueByMonth(User user, Integer year, Integer month) {
+        if (year == null || month == null) {
+            throw new IllegalArgumentException("Year and month are required for monthly revenue data");
+        }
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueByMonthHQ(year, month);
+            case "STATE_MANAGER" -> repo.getStoreRevenueByMonthState(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreRevenueByMonthStore(user.getStoreId(), year, month);
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueByQuarter(User user, Integer year, Integer quarter) {
+        if (year == null || quarter == null) {
+            throw new IllegalArgumentException("Year and quarter are required for quarterly revenue data");
+        }
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueByQuarterHQ(year, quarter);
+            case "STATE_MANAGER" -> repo.getStoreRevenueByQuarterState(user.getStateAbbr(), year, quarter);
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreRevenueByQuarterStore(user.getStoreId(), year, quarter);
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeRevenueCustomRange", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #startDate + '_' + #endDate")
+    public List<Map<String, Object>> getStoreRevenueByDateRange(User user, String startDate, String endDate) {
+        if (startDate == null || endDate == null) {
+            throw new IllegalArgumentException("Start date and end date are required for custom date range");
+        }
+        
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueByDateRangeHQ(startDate, endDate);
+            case "STATE_MANAGER" -> repo.getStoreRevenueByDateRangeState(user.getStateAbbr(), startDate, endDate);
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreRevenueByDateRangeStore(user.getStoreId(), startDate, endDate);
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // Utility methods for time period options
+    @Cacheable(value = "availableYears", key = "'years'")
+    public List<Map<String, Object>> getAvailableYears() {
+        return repo.getAvailableYears();
+    }
+
+    @Cacheable(value = "availableMonths", key = "#year")
+    public List<Map<String, Object>> getAvailableMonthsForYear(Integer year) {
+        return repo.getAvailableMonthsForYear(year);
+    }
+
+    @Cacheable(value = "availableQuarters", key = "#year")
+    public List<Map<String, Object>> getAvailableQuartersForYear(Integer year) {
+        return repo.getAvailableQuartersForYear(year);
+    }
+
+    // =================================================================
+    // FINAL STORE REVENUE CHART API - Production Ready
+    // =================================================================
+
+    @Cacheable(value = "storeRevenueChart", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #timePeriod + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getStoreRevenueChart(User user, String timePeriod, Integer year, Integer month) {
+        
+        return switch (timePeriod.toLowerCase()) {
+            case "all-time", "alltime" -> getStoreRevenueChartAllTime(user);
+            case "year", "yearly" -> {
+                if (year == null) throw new IllegalArgumentException("Year is required for yearly data");
+                yield getStoreRevenueChartYear(user, year);
+            }
+            case "month", "monthly" -> {
+                if (year == null || month == null) throw new IllegalArgumentException("Year and month are required for monthly data");
+                yield getStoreRevenueChartMonth(user, year, month);
+            }
+            default -> throw new IllegalArgumentException("Invalid time period: " + timePeriod + ". Use: all-time, year, or month");
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueChartAllTime(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueChartAllTimeHQ();
+            case "STATE_MANAGER" -> repo.getStoreRevenueChartAllTimeState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStoreRevenueChartAllTimeStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueChartYear(User user, Integer year) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueChartYearHQ(year);
+            case "STATE_MANAGER" -> repo.getStoreRevenueChartYearState(user.getStateAbbr(), year);
+            case "STORE_MANAGER" -> repo.getStoreRevenueChartYearStore(user.getStoreId(), year);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    private List<Map<String, Object>> getStoreRevenueChartMonth(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreRevenueChartMonthHQ(year, month);
+            case "STATE_MANAGER" -> repo.getStoreRevenueChartMonthState(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getStoreRevenueChartMonthStore(user.getStoreId(), year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // Chart utility methods
+    @Cacheable(value = "chartYears", key = "'available_years'")
+    public List<Map<String, Object>> getChartAvailableYears() {
+        return repo.getChartAvailableYears();
+    }
+
+    @Cacheable(value = "chartMonths", key = "#year")
+    public List<Map<String, Object>> getChartAvailableMonths(Integer year) {
+        return repo.getChartAvailableMonths(year);
     }
 
     // =================================================================

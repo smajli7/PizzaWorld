@@ -2,270 +2,381 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
+import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-import { LoadingPopupComponent } from '../../shared/loading-popup/loading-popup.component';
-import { KpiService, DashboardKpiDto } from '../../core/kpi.service';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import {
   ApexAxisChartSeries,
   ApexChart,
   ApexXAxis,
   ApexYAxis,
   ApexDataLabels,
-  ApexStroke,
   ApexTooltip,
-  ApexPlotOptions,
-  ApexFill
+  ApexGrid,
+  ApexPlotOptions
 } from 'ng-apexcharts';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+
+interface StoreRevenueData {
+  storeid: string;
+  city: string;
+  state_name?: string;
+  state_abbr: string;
+  year?: number;
+  month?: number;
+  yearly_revenue?: number;
+  monthly_revenue?: number;
+  total_revenue?: number;
+  yearly_orders?: number;
+  monthly_orders?: number;
+  order_count?: number;
+  yearly_unique_customers?: number;
+  monthly_unique_customers?: number;
+  unique_customers?: number;
+  yearly_avg_order_value?: number;
+  monthly_avg_order_value?: number;
+  avg_order_value?: number;
+}
+
+interface TimePeriodOption {
+  year: number;
+  month?: number;
+  year_label: string;
+  month_label?: string;
+  month_name_label?: string;
+}
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, NgApexchartsModule, SidebarComponent, LoadingPopupComponent, RouterModule],
+  imports: [CommonModule, NgApexchartsModule, SidebarComponent, RouterModule, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  // Main data properties
-  globalKPIs: DashboardKpiDto | null = null;
+  // Chart data
+  storeRevenueData: StoreRevenueData[] = [];
+  filteredStoreData: StoreRevenueData[] = [];
+  availableYears: TimePeriodOption[] = [];
+  availableMonths: TimePeriodOption[] = [];
+  
+  // Filter state
+  selectedTimePeriod: 'year' | 'month' = 'year';
+  selectedYear: number = 2023;
+  selectedMonth?: number;
+  
+  // UI state
   loading = false;
   error = false;
-  showLoadingPopup = false;
-  loadingMessage = '';
-  loadingProgress = 0;
-  dataLastUpdated: Date | null = null;
-
-  // Additional data for comprehensive dashboard
-  topStores: any[] = [];
-  recentOrders: any[] = [];
-  revenueByYear: any[] = [];
-
+  
   // Chart options
-  revenueChartOpts: any = null;
-  revenueTrendChartOpts: any = null;
-  orderVolumeChartOpts: any = null;
+  revenueChartOptions: any = null;
+  ordersChartOptions: any = null;
+  avgOrderValueChartOptions: any = null;
+  customersChartOptions: any = null;
 
-  // Add property to hold full data and sort flag
-  revenueByStoreData: any[] = [];
-  revenueSortAsc = false;
-
-  constructor(private kpi: KpiService) {}
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
+    this.loadAvailableYears();
     this.loadDashboardData();
-    this.dataLastUpdated = new Date();
+  }
+
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('authToken');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+  }
+
+  loadAvailableYears(): void {
+    this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers: this.getAuthHeaders() })
+      .subscribe({
+        next: (years) => {
+          this.availableYears = years;
+          if (years.length > 0 && !this.selectedYear) {
+            this.selectedYear = years[0].year;
+          }
+          this.loadAvailableMonths();
+        },
+        error: (error) => console.error('Failed to load available years:', error)
+      });
+  }
+
+  loadAvailableMonths(): void {
+    if (this.selectedYear) {
+      const params = new HttpParams().set('year', this.selectedYear.toString());
+      this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', { 
+        headers: this.getAuthHeaders(), 
+        params 
+      }).subscribe({
+        next: (months) => {
+          this.availableMonths = months;
+        },
+        error: (error) => console.error('Failed to load available months:', error)
+      });
+    }
   }
 
   loadDashboardData(): void {
     this.loading = true;
     this.error = false;
-    this.showLoadingPopup = true;
-    this.loadingMessage = 'Loading comprehensive dashboard data...';
-    this.loadingProgress = 10;
+    
+    const params = new HttpParams()
+      .set('timePeriod', this.selectedTimePeriod)
+      .set('year', this.selectedYear?.toString() || '')
+      .set('month', this.selectedMonth?.toString() || '');
 
-    // Load all dashboard data in parallel
-    forkJoin({
-      globalKPIs: this.kpi.getDashboard().pipe(catchError(() => of(null))),
-      revenueByYear: this.kpi.getRevenueByYear().pipe(catchError(() => of([]))),
-      revenueByStore: this.kpi.getRevenueByStore().pipe(catchError(() => of([]))),
-      ordersByMonth: this.kpi.getOrdersByMonth().pipe(catchError(() => of([]))),
-      recentOrders: this.kpi.getRecentOrders(10).pipe(catchError(() => of([])))
+    this.http.get<StoreRevenueData[]>('/api/v2/store-revenue-chart', { 
+      headers: this.getAuthHeaders(), 
+      params 
     }).subscribe({
-      next: ({ globalKPIs, revenueByYear, revenueByStore, ordersByMonth, recentOrders }) => {
-        this.loadingProgress = 50;
-        
-        if (!globalKPIs) {
-          this.error = true;
-          this.loading = false;
-          this.showLoadingPopup = false;
-          return;
-        }
-
-        // Set data
-        this.globalKPIs = globalKPIs;
-        this.revenueByYear = revenueByYear;
-        this.topStores = revenueByStore.slice(0, 5); // Top 5 stores for insights
-        this.recentOrders = recentOrders;
-
-        // Initialize charts
-        this.initRevenueChart(revenueByStore);
-        this.initRevenueTrendChart(revenueByYear);
-        this.initOrdersByMonthChart(ordersByMonth);
-
+      next: (data) => {
+        this.storeRevenueData = data;
+        this.applyFilters();
+        this.buildCharts();
         this.loading = false;
-        this.showLoadingPopup = false;
-        this.loadingProgress = 100;
-        this.dataLastUpdated = new Date();
       },
       error: (error) => {
         console.error('Dashboard data loading failed:', error);
         this.error = true;
         this.loading = false;
-        this.showLoadingPopup = false;
       }
     });
   }
 
-  refreshData(): void {
-    this.kpi.clearDashboardCache();
+  onTimePeriodChange(): void {
+    this.selectedMonth = undefined;
     this.loadDashboardData();
   }
 
-  // Toggle sort order and rebuild chart
-  toggleRevenueSort(): void {
-    this.revenueSortAsc = !this.revenueSortAsc;
-    this.buildRevenueChart();
+  onYearChange(): void {
+    this.selectedMonth = undefined;
+    this.loadAvailableMonths();
+    this.loadDashboardData();
   }
 
-  // Build chart using current sort order and full dataset
-  private buildRevenueChart(): void {
-    if (!this.revenueByStoreData || this.revenueByStoreData.length === 0) {
+  onMonthChange(): void {
+    this.loadDashboardData();
+  }
+
+  applyFilters(): void {
+    this.filteredStoreData = [...this.storeRevenueData]
+      .sort((a, b) => this.getRevenue(b) - this.getRevenue(a));
+  }
+
+  buildCharts(): void {
+    if (!this.filteredStoreData || this.filteredStoreData.length === 0) {
+      this.revenueChartOptions = null;
+      this.ordersChartOptions = null;
+      this.avgOrderValueChartOptions = null;
+      this.customersChartOptions = null;
       return;
     }
-    const sorted = [...this.revenueByStoreData].sort((a, b) => {
-      const valA = a.total_revenue || a.revenue || 0;
-      const valB = b.total_revenue || b.revenue || 0;
-      return this.revenueSortAsc ? valA - valB : valB - valA;
-    });
 
-    this.revenueChartOpts = {
-      series: [{ name: 'Revenue', data: sorted.map(s => Math.round(s.total_revenue || s.revenue || 0)) }],
+    const topStores = this.filteredStoreData.slice(0, 15);
+    const storeLabels = topStores.map(store => `${store.city}, ${store.state_abbr}`);
+    
+    this.buildRevenueChart(topStores, storeLabels);
+    this.buildOrdersChart(topStores, storeLabels);
+    this.buildAvgOrderChart(topStores, storeLabels);
+    this.buildCustomersChart(topStores, storeLabels);
+  }
+
+  private buildRevenueChart(stores: StoreRevenueData[], labels: string[]): void {
+    const revenueData = stores.map(store => Math.round(this.getRevenue(store)));
+    
+    this.revenueChartOptions = {
+      series: [{
+        name: 'Revenue',
+        data: revenueData
+      }],
       chart: {
         type: 'bar',
-        height: 600,
-        toolbar: { show: false },
+        height: 400,
+        toolbar: { show: true },
         background: 'transparent'
       },
+      colors: ['#fb923c'],
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          columnWidth: '60%',
+          distributed: false
+        }
+      },
+      dataLabels: { enabled: false },
       xaxis: {
-        categories: sorted.map(s => `${s.city}, ${s.state_abbr || s.state}`),
-        labels: { rotate: -45, style: { fontSize: '11px', colors: '#64748b' } }
+        categories: labels,
+        labels: {
+          rotate: -45,
+          style: { colors: '#6b7280', fontSize: '12px' }
+        }
       },
       yaxis: {
-        title: { text: 'Revenue (€)', style: { color: '#64748b' } },
-        labels: { formatter: (v: number) => `€${this.formatNumber(v)}`, style: { colors: '#64748b' } }
+        title: { text: 'Revenue (€)', style: { color: '#6b7280' } },
+        labels: {
+          formatter: (val: number) => `€${this.formatNumber(val)}`,
+          style: { colors: '#6b7280' }
+        }
       },
-      stroke: { curve: 'smooth', width: 2 },
-      dataLabels: { enabled: false },
-      colors: ['#f97316'],
-      plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-      grid: { borderColor: '#e2e8f0', strokeDashArray: 4 }
+      grid: { borderColor: '#e5e7eb', strokeDashArray: 3 },
+      tooltip: {
+        y: { formatter: (val: number) => `€${this.formatNumber(val)}` }
+      }
     };
   }
 
-  // Chart: Revenue by Store (initial build)
-  private initRevenueChart(revenueByStore: any[]): void {
-    this.revenueByStoreData = revenueByStore || [];
-    this.buildRevenueChart();
-  }
-
-  // Chart: Revenue Trend
-  private initRevenueTrendChart(revenueData: any[]): void {
-    // Ensure data is sorted chronologically so the chart starts with the oldest month
-    const sorted = [...revenueData].sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return (a.month || 0) - (b.month || 0);
-    });
-
-    const last12Months = sorted.slice(-12); // take the most recent 12 months in ascending order
-
-    this.revenueTrendChartOpts = {
+  private buildOrdersChart(stores: StoreRevenueData[], labels: string[]): void {
+    const ordersData = stores.map(store => this.getOrders(store));
+    
+    this.ordersChartOptions = {
       series: [{
-        name: 'Revenue Trend',
-        data: last12Months.map(item => Math.round(item.revenue || 0))
+        name: 'Orders',
+        data: ordersData
       }],
       chart: {
-        type: 'area',
-        height: 250,
+        type: 'line',
+        height: 350,
         toolbar: { show: false },
         background: 'transparent'
       },
+      colors: ['#f97316'],
+      stroke: { curve: 'smooth', width: 3 },
+      dataLabels: { enabled: false },
       xaxis: {
-        categories: last12Months.map(item => item.month ? `${item.year}-${String(item.month).padStart(2, '0')}` : `${item.year}`),
+        categories: labels,
         labels: {
-          style: { colors: '#64748b' }
+          rotate: -45,
+          style: { colors: '#6b7280', fontSize: '12px' }
         }
       },
       yaxis: {
-        labels: {
-          formatter: (value: number) => `€${this.formatNumber(value)}`,
-          style: { colors: '#64748b' }
-        }
+        title: { text: 'Orders', style: { color: '#6b7280' } },
+        labels: { style: { colors: '#6b7280' } }
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3
+      grid: { borderColor: '#e5e7eb', strokeDashArray: 3 }
+    };
+  }
+
+  private buildAvgOrderChart(stores: StoreRevenueData[], labels: string[]): void {
+    const avgData = stores.map(store => Math.round(this.getAvgOrderValue(store) * 100) / 100);
+    
+    this.avgOrderValueChartOptions = {
+      series: [{
+        name: 'Avg Order Value',
+        data: avgData
+      }],
+      chart: {
+        type: 'area',
+        height: 350,
+        toolbar: { show: false },
+        background: 'transparent'
       },
+      colors: ['#ea580c'],
       fill: {
         type: 'gradient',
         gradient: {
           shadeIntensity: 1,
           opacityFrom: 0.7,
-          opacityTo: 0.1,
-          stops: [0, 90, 100]
+          opacityTo: 0.3
         }
       },
-      colors: ['#f97316'],
-      grid: {
-        borderColor: '#e2e8f0',
-        strokeDashArray: 4
+      stroke: { curve: 'smooth', width: 2 },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: labels,
+        labels: {
+          rotate: -45,
+          style: { colors: '#6b7280', fontSize: '12px' }
+        }
       },
-      tooltip: {
-        y: { formatter: (value: number) => this.formatCurrency(value) }
-      }
+      yaxis: {
+        title: { text: 'Avg Order (€)', style: { color: '#6b7280' } },
+        labels: {
+          formatter: (val: number) => `€${val.toFixed(2)}`,
+          style: { colors: '#6b7280' }
+        }
+      },
+      grid: { borderColor: '#e5e7eb', strokeDashArray: 3 }
     };
   }
 
-  // Chart: Order Volume
-  private initOrdersByMonthChart(orderData: any[]): void {
-    if (!orderData || orderData.length === 0) return;
-
-    this.orderVolumeChartOpts = {
+  private buildCustomersChart(stores: StoreRevenueData[], labels: string[]): void {
+    const customersData = stores.map(store => this.getCustomers(store));
+    
+    this.customersChartOptions = {
       series: [{
-        name: 'Monthly Orders',
-        data: orderData.sort((a,b)=>{
-          if(a.year!==b.year) return a.year-b.year; return (a.month||0)-(b.month||0);
-        }).map(r => [ Date.UTC(r.year, (r.month||1)-1, 1), r.total_orders || r.count || 0 ])
+        name: 'Unique Customers',
+        data: customersData
       }],
       chart: {
-        type: 'line',
-        height: 250,
+        type: 'bar',
+        height: 350,
         toolbar: { show: false },
         background: 'transparent'
       },
-      xaxis: {
-        type: 'datetime',
-        labels: { style: { colors: '#64748b' } }
-      },
-      yaxis: {
-        labels: {
-          formatter: (value: number) => Math.round(value).toString(),
-          style: { colors: '#64748b' }
+      colors: ['#c2410c'],
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          columnWidth: '70%',
+          distributed: false
         }
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: labels,
+        labels: {
+          rotate: -45,
+          style: { colors: '#6b7280', fontSize: '12px' }
+        }
       },
-      colors: ['#3b82f6'],
-      grid: {
-        borderColor: '#e2e8f0',
-        strokeDashArray: 4
+      yaxis: {
+        title: { text: 'Customers', style: { color: '#6b7280' } },
+        labels: { style: { colors: '#6b7280' } }
       },
-      dataLabels: {
-        enabled: false
-      },
-      tooltip: {
-        y: { formatter: (value: number) => `${Math.round(value)} orders` }
-      }
+      grid: { borderColor: '#e5e7eb', strokeDashArray: 3 }
     };
   }
 
-  // Formatting helpers for template
+  // Data accessor methods
+  getRevenue(store: StoreRevenueData): number {
+    return store.yearly_revenue || store.monthly_revenue || store.total_revenue || 0;
+  }
+
+  getOrders(store: StoreRevenueData): number {
+    return store.yearly_orders || store.monthly_orders || store.order_count || 0;
+  }
+
+  getCustomers(store: StoreRevenueData): number {
+    return store.yearly_unique_customers || store.monthly_unique_customers || store.unique_customers || 0;
+  }
+
+  getAvgOrderValue(store: StoreRevenueData): number {
+    return store.yearly_avg_order_value || store.monthly_avg_order_value || store.avg_order_value || 0;
+  }
+
+  // Summary calculations
+  getTotalRevenue(): number {
+    return this.filteredStoreData.reduce((sum, store) => sum + this.getRevenue(store), 0);
+  }
+
+  getTotalOrders(): number {
+    return this.filteredStoreData.reduce((sum, store) => sum + this.getOrders(store), 0);
+  }
+
+  getTotalCustomers(): number {
+    return this.filteredStoreData.reduce((sum, store) => sum + this.getCustomers(store), 0);
+  }
+
+  getOverallAvgOrder(): number {
+    const totalRevenue = this.getTotalRevenue();
+    const totalOrders = this.getTotalOrders();
+    return totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  }
+
+  // Utility methods
   formatCurrency(value: number): string {
-    if (!value) return '€0';
-    return new Intl.NumberFormat('de-DE', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
@@ -273,17 +384,25 @@ export class DashboardComponent implements OnInit {
   }
 
   formatNumber(value: number): string {
-    if (!value) return '0';
-    return new Intl.NumberFormat('de-DE').format(Math.round(value));
+    return new Intl.NumberFormat('en-US').format(value);
   }
 
-  formatAvgOrder(value: number): string {
-    if (!value) return '€0';
-    return new Intl.NumberFormat('de-DE', { 
-      style: 'currency', 
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+  getTimePeriodLabel(): string {
+    switch (this.selectedTimePeriod) {
+      case 'year':
+        return this.selectedYear ? `Year ${this.selectedYear}` : 'Yearly';
+      case 'month':
+        if (this.selectedYear && this.selectedMonth) {
+          const monthOption = this.availableMonths.find(m => m.month === this.selectedMonth);
+          return monthOption ? monthOption.month_name_label || `${this.selectedMonth}/${this.selectedYear}` : 'Monthly';
+        }
+        return 'Monthly';
+      default:
+        return 'Revenue Analysis';
+    }
+  }
+
+  refreshData(): void {
+    this.loadDashboardData();
   }
 }

@@ -321,6 +321,146 @@ public class OptimizedPizzaController {
     }
 
     // =================================================================
+    // GLOBAL STORE KPIs - Materialized View Access
+    // =================================================================
+
+    @GetMapping("/kpis/global-store")
+    public ResponseEntity<List<Map<String, Object>>> getGlobalStoreKPIs(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getGlobalStoreKPIs(user));
+    }
+
+    @GetMapping("/kpis/global-store/export")
+    public void exportGlobalStoreKPIs(@AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getGlobalStoreKPIs(user);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "global-store-kpis.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "global-store-kpis.csv");
+    }
+
+    // =================================================================
+    // STORE REVENUE CHART - Dynamic Time Period Filtering
+    // =================================================================
+
+    @GetMapping("/chart/store-revenue")
+    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueChart(
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreRevenueByTimePeriod(user, timePeriod, year, month, quarter));
+    }
+
+    @GetMapping("/chart/store-revenue/date-range")
+    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueByDateRange(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreRevenueByDateRange(user, startDate, endDate));
+    }
+
+    @GetMapping("/chart/store-revenue/export")
+    public void exportStoreRevenueChart(
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getStoreRevenueByTimePeriod(user, timePeriod, year, month, quarter);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-revenue-chart.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "store-revenue-chart.csv");
+    }
+
+    // Time period utility endpoints
+    @GetMapping("/chart/time-periods/years")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableYears() {
+        return ResponseEntity.ok(pizzaService.getAvailableYears());
+    }
+
+    @GetMapping("/chart/time-periods/months")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableMonthsForYear(@RequestParam Integer year) {
+        return ResponseEntity.ok(pizzaService.getAvailableMonthsForYear(year));
+    }
+
+    @GetMapping("/chart/time-periods/quarters")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableQuartersForYear(@RequestParam Integer year) {
+        return ResponseEntity.ok(pizzaService.getAvailableQuartersForYear(year));
+    }
+
+    // =================================================================
+    // FINAL STORE REVENUE CHART API - Production Ready
+    // =================================================================
+
+    @GetMapping("/store-revenue-chart")
+    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueChart(
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreRevenueChart(user, timePeriod, year, month));
+    }
+
+    @GetMapping("/store-revenue-chart/export")
+    public void exportStoreRevenueChart(
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getStoreRevenueChart(user, timePeriod, year, month);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-revenue-chart.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "store-revenue-chart.csv");
+    }
+
+    @GetMapping("/store-revenue-chart/years")
+    public ResponseEntity<List<Map<String, Object>>> getChartAvailableYears() {
+        return ResponseEntity.ok(pizzaService.getChartAvailableYears());
+    }
+
+    @GetMapping("/store-revenue-chart/months")
+    public ResponseEntity<List<Map<String, Object>>> getChartAvailableMonths(@RequestParam Integer year) {
+        return ResponseEntity.ok(pizzaService.getChartAvailableMonths(year));
+    }
+
+    // =================================================================
     // HEALTH CHECK
     // =================================================================
 

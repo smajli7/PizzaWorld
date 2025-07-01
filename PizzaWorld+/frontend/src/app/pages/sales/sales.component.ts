@@ -119,6 +119,9 @@ export class SalesComponent implements OnInit {
   showAllProducts = false;
   hasLoadedAllTime = false;
 
+  // Hold the full time‐series to allow fast client-side filtering
+  private fullSalesTrend: SalesTrend[] = [];
+
   constructor(private kpi: KpiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
@@ -169,35 +172,23 @@ export class SalesComponent implements OnInit {
 
   onPeriodChange(): void {
     this.initializeDateRange();
-    this.loadSalesData();
+    // Instead of re-loading from API we now filter the pre-fetched full dataset
+    this.applyTemporalFilter();
   }
 
   onCustomDateChange(): void {
     if (this.customFromDate && this.customToDate) {
       this.fromDate = this.customFromDate;
       this.toDate = this.customToDate;
-      this.loadSalesData();
+      this.applyTemporalFilter();
     }
   }
 
   onTimePeriodChange(dateRange: { from: string; to: string }): void {
     this.fromDate = dateRange.from;
     this.toDate = dateRange.to;
-    
-    // ALWAYS try to load cached data first for this date range
-    const kpis = this.kpi.getCachedAllTimeSalesKPIs(this.fromDate, this.toDate);
-    if (kpis) {
-      this.loadCachedAllTimeData();
-      this.hasLoadedAllTime = true;
-      this.loading = false;
-      console.log('✅ Sales data loaded INSTANTLY from cache for date range');
-      return;
-    }
-    
-    // Only if NO cached data exists for this range, then load from API
-    this.hasLoadedAllTime = false;
-    console.log('⚠️ No cached data for date range - loading from API');
-    this.loadSalesData();
+    // Directly apply client-side filtering on the already loaded full dataset
+    this.applyTemporalFilter();
   }
 
   private loadSalesData(): void {
@@ -245,6 +236,10 @@ export class SalesComponent implements OnInit {
           revenue: t.revenue || 0,
           orders: t.orders || 0
         }));
+        // Cache full dataset for client-side filter only once
+        if (this.fullSalesTrend.length === 0) {
+          this.fullSalesTrend = [...this.salesTrend];
+        }
         this.initializeSalesTrendChart();
         // Category Revenue
         this.categoryRevenue = categories.map((c: any) => ({
@@ -289,6 +284,11 @@ export class SalesComponent implements OnInit {
   }
 
   private initializeSalesTrendChart(): void {
+    // Guard in case we call before data present
+    if (!this.salesTrend || this.salesTrend.length === 0) {
+      return;
+    }
+
     this.salesTrendChart = {
       series: [
         {
@@ -550,6 +550,9 @@ export class SalesComponent implements OnInit {
       this.cdr.detectChanges();
       this.loading = false;
       this.hasLoadedAllTime = true;
+
+      // Save the complete sales trend for later local filtering
+      this.fullSalesTrend = [...this.salesTrend];
     } else {
       console.log('⚠️ Incomplete cached data - will load from API');
       // Set default values if cache is incomplete
@@ -560,5 +563,42 @@ export class SalesComponent implements OnInit {
       this.categoryRevenue = [];
       this.loading = true; // Keep loading true so API call can proceed
     }
+  }
+
+  // ------------------------------------------------------------------
+  // ⏱️  CLIENT-SIDE DATE FILTERING LOGIC
+  // ------------------------------------------------------------------
+  private applyTemporalFilter(): void {
+    if (this.fullSalesTrend.length === 0) {
+      return;
+    }
+
+    const from = new Date(this.fromDate);
+    const to = new Date(this.toDate);
+
+    // Protect against invalid date inputs
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) {
+      this.salesTrend = [...this.fullSalesTrend];
+    } else {
+      this.salesTrend = this.fullSalesTrend.filter(item => {
+        const d = new Date(item.day);
+        return d >= from && d <= to;
+      });
+    }
+
+    // Re-aggregate KPI numbers on the fly
+    const totalRevenue = this.salesTrend.reduce((sum, r) => sum + (r.revenue || 0), 0);
+    const totalOrders = this.salesTrend.reduce((sum, r) => sum + (r.orders || 0), 0);
+
+    if (!this.salesKPI) {
+      this.salesKPI = { revenue: 0, totalOrders: 0, uniqueCustomers: 0, avgOrder: 0 };
+    }
+    this.salesKPI.revenue = totalRevenue;
+    this.salesKPI.totalOrders = totalOrders;
+    this.salesKPI.avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Update chart visuals
+    this.initializeSalesTrendChart();
+    this.cdr.detectChanges();
   }
 }

@@ -156,77 +156,7 @@ public interface PizzaRepo extends JpaRepository<User, Long> {
             @Param("orderId") Integer orderId,
             @Param("nitems") Integer nitems);
 
-<<<<<<< HEAD
-  @Query(value = """
-      SELECT o.* FROM orders o
-      JOIN stores s ON o.storeid = s.storeid
-      WHERE (:storeId IS NULL OR o.storeid = :storeId)
-        AND (:customerId IS NULL OR o.customerid = :customerId)
-        AND (:state IS NULL OR s.state_abbr = :state)
-        AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
-        AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
-        AND (:orderId IS NULL OR o.orderid = :orderId)
-        AND (:nitems IS NULL OR o.nitems = :nitems)
-      ORDER BY 
-        CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'ASC' THEN o.orderdate END ASC,
-        CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'DESC' THEN o.orderdate END DESC,
-        CASE WHEN :sortBy = 'total' AND :sortOrder = 'ASC' THEN o.total END ASC,
-        CASE WHEN :sortBy = 'total' AND :sortOrder = 'DESC' THEN o.total END DESC,
-        CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'ASC' THEN o.nitems END ASC,
-        CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'DESC' THEN o.nitems END DESC,
-        CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'ASC' THEN o.orderid END ASC,
-        CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'DESC' THEN o.orderid END DESC,
-        o.orderdate DESC
-      LIMIT :maxRows OFFSET :startRow
-      """, nativeQuery = true)
-  List<Map<String, Object>> dynamicOrderFilterPaginated(
-      @Param("storeId") String storeId,
-      @Param("customerId") String customerId,
-      @Param("state") String state,
-      @Param("fromDate") String fromDate,
-      @Param("toDate") String toDate,
-      @Param("orderId") Integer orderId,
-      @Param("nitems") Integer nitems,
-      @Param("sortBy") String sortBy,
-      @Param("sortOrder") String sortOrder,
-      @Param("maxRows") int limit,
-      @Param("startRow") int offset);
-=======
-    @Query(value = """
-            SELECT o.* FROM orders o
-            JOIN stores s ON o.storeid = s.storeid
-            WHERE (:storeId IS NULL OR o.storeid = :storeId)
-              AND (:customerId IS NULL OR o.customerid = :customerId)
-              AND (:state IS NULL OR s.state_abbr = :state)
-              AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
-              AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
-              AND (:orderId IS NULL OR o.orderid = :orderId)
-              AND (:nitems IS NULL OR o.nitems = :nitems)
-            ORDER BY
-              CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'ASC' THEN o.orderdate END ASC,
-              CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'DESC' THEN o.orderdate END DESC,
-              CASE WHEN :sortBy = 'total' AND :sortOrder = 'ASC' THEN o.total END ASC,
-              CASE WHEN :sortBy = 'total' AND :sortOrder = 'DESC' THEN o.total END DESC,
-              CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'ASC' THEN o.nitems END ASC,
-              CASE WHEN :sortBy = 'nitems' AND :sortOrder = 'DESC' THEN o.nitems END DESC,
-              CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'ASC' THEN o.orderid END ASC,
-              CASE WHEN :sortBy = 'orderid' AND :sortOrder = 'DESC' THEN o.orderid END DESC,
-              o.orderdate DESC
-            LIMIT :limit OFFSET :offset
-            """, nativeQuery = true)
-    List<Map<String, Object>> dynamicOrderFilterPaginated(
-            @Param("storeId") String storeId,
-            @Param("customerId") String customerId,
-            @Param("state") String state,
-            @Param("fromDate") String fromDate,
-            @Param("toDate") String toDate,
-            @Param("orderId") Integer orderId,
-            @Param("nitems") Integer nitems,
-            @Param("sortBy") String sortBy,
-            @Param("sortOrder") String sortOrder,
-            @Param("limit") int limit,
-            @Param("offset") int offset);
->>>>>>> 258886759431a979722c24b6c2639c4424dd1b26
+
 
     @Query(value = """
             SELECT COUNT(*) FROM orders o

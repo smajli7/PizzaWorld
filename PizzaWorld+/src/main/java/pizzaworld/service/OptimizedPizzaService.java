@@ -1611,6 +1611,14 @@ public class OptimizedPizzaService {
         
         // Calculate summary metrics
         Map<String, Object> summary = calculateRangeSummary(monthlyData);
+        
+        // Get best product and category for the custom range
+        Map<String, Object> bestProduct = getBestProductForCustomRange(storeId, startYear, startMonth, endYear, endMonth);
+        Map<String, Object> bestCategory = getBestCategoryForCustomRange(storeId, startYear, startMonth, endYear, endMonth);
+        
+        summary.put("bestProduct", bestProduct);
+        summary.put("bestCategory", bestCategory);
+        
         result.put("summary", summary);
         result.put("monthlyBreakdown", monthlyData);
         result.put("period", Map.of(
@@ -1810,6 +1818,22 @@ public class OptimizedPizzaService {
         summary.put("avgRevenuePerMonth", !monthlyData.isEmpty() ? totalRevenue / monthlyData.size() : 0);
         summary.put("monthsCount", monthlyData.size());
         
+        // Performance Metrics - Find peak month
+        if (!monthlyData.isEmpty()) {
+            Map<String, Object> peakMonth = monthlyData.stream()
+                .max((a, b) -> Double.compare(
+                    ((Number) a.getOrDefault("total_revenue", 0)).doubleValue(),
+                    ((Number) b.getOrDefault("total_revenue", 0)).doubleValue()
+                ))
+                .orElse(new HashMap<>());
+            
+            summary.put("peakMonth", Map.of(
+                "month", peakMonth.get("month"),
+                "year", peakMonth.get("year"),
+                "total_revenue", peakMonth.get("total_revenue")
+            ));
+        }
+        
         return summary;
     }
 
@@ -1950,5 +1974,123 @@ public class OptimizedPizzaService {
         } else {
             return year.toString();
         }
+    }
+
+    // =================================================================
+    // CUSTOM RANGE PERFORMANCE METRICS - Best Product and Category
+    // =================================================================
+
+    private Map<String, Object> getBestProductForCustomRange(String storeId, Integer startYear, Integer startMonth, 
+                                                           Integer endYear, Integer endMonth) {
+        String sql;
+        List<Object> params = new ArrayList<>();
+        
+        if (startYear.equals(endYear)) {
+            // Same year - simple month range
+            sql = """
+                SELECT p.sku, p.name, p.size, p.category,
+                       SUM(oi.quantity * p.price) as total_revenue,
+                       SUM(oi.quantity) as total_quantity,
+                       COUNT(DISTINCT o.orderid) as orders_count
+                FROM orders o
+                JOIN order_items oi ON o.orderid = oi.orderid
+                JOIN products p ON oi.sku = p.sku
+                WHERE o.storeid = ? AND EXTRACT(YEAR FROM o.orderdate) = ?
+                  AND EXTRACT(MONTH FROM o.orderdate) >= ? AND EXTRACT(MONTH FROM o.orderdate) <= ?
+                GROUP BY p.sku, p.name, p.size, p.category
+                ORDER BY total_revenue DESC
+                LIMIT 1
+                """;
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(endMonth);
+        } else {
+            // Different years - more complex range
+            sql = """
+                SELECT p.sku, p.name, p.size, p.category,
+                       SUM(oi.quantity * p.price) as total_revenue,
+                       SUM(oi.quantity) as total_quantity,
+                       COUNT(DISTINCT o.orderid) as orders_count
+                FROM orders o
+                JOIN order_items oi ON o.orderid = oi.orderid
+                JOIN products p ON oi.sku = p.sku
+                WHERE o.storeid = ? AND
+                      ((EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) >= ?) OR
+                       (EXTRACT(YEAR FROM o.orderdate) > ? AND EXTRACT(YEAR FROM o.orderdate) < ?) OR
+                       (EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) <= ?))
+                GROUP BY p.sku, p.name, p.size, p.category
+                ORDER BY total_revenue DESC
+                LIMIT 1
+                """;
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(startYear);
+            params.add(endYear);
+            params.add(endYear);
+            params.add(endMonth);
+        }
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, params.toArray());
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
+    }
+
+    private Map<String, Object> getBestCategoryForCustomRange(String storeId, Integer startYear, Integer startMonth, 
+                                                            Integer endYear, Integer endMonth) {
+        String sql;
+        List<Object> params = new ArrayList<>();
+        
+        if (startYear.equals(endYear)) {
+            // Same year - simple month range
+            sql = """
+                SELECT p.category,
+                       SUM(oi.quantity * p.price) as total_revenue,
+                       SUM(oi.quantity) as total_quantity,
+                       COUNT(DISTINCT o.orderid) as orders_count,
+                       COUNT(DISTINCT p.sku) as products_count
+                FROM orders o
+                JOIN order_items oi ON o.orderid = oi.orderid
+                JOIN products p ON oi.sku = p.sku
+                WHERE o.storeid = ? AND EXTRACT(YEAR FROM o.orderdate) = ?
+                  AND EXTRACT(MONTH FROM o.orderdate) >= ? AND EXTRACT(MONTH FROM o.orderdate) <= ?
+                GROUP BY p.category
+                ORDER BY total_revenue DESC
+                LIMIT 1
+                """;
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(endMonth);
+        } else {
+            // Different years - more complex range
+            sql = """
+                SELECT p.category,
+                       SUM(oi.quantity * p.price) as total_revenue,
+                       SUM(oi.quantity) as total_quantity,
+                       COUNT(DISTINCT o.orderid) as orders_count,
+                       COUNT(DISTINCT p.sku) as products_count
+                FROM orders o
+                JOIN order_items oi ON o.orderid = oi.orderid
+                JOIN products p ON oi.sku = p.sku
+                WHERE o.storeid = ? AND
+                      ((EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) >= ?) OR
+                       (EXTRACT(YEAR FROM o.orderdate) > ? AND EXTRACT(YEAR FROM o.orderdate) < ?) OR
+                       (EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) <= ?))
+                GROUP BY p.category
+                ORDER BY total_revenue DESC
+                LIMIT 1
+                """;
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(startYear);
+            params.add(endYear);
+            params.add(endYear);
+            params.add(endMonth);
+        }
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, params.toArray());
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
     }
 }

@@ -310,8 +310,14 @@
           <div class="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
             <h4 class="font-semibold text-gray-700 mb-2">Performance Metrics</h4>
             <div class="space-y-1 text-sm">
-              <div>Peak Month: {{ customRangeData.monthlyBreakdown?.[0]?.month }}/{{ customRangeData.monthlyBreakdown?.[0]?.year }}</div>
-              <div>Best Revenue: {{ formatCurrency(customRangeData.monthlyBreakdown?.[0]?.revenue || 0) }}</div>
+              <div>Peak Month: {{ customRangeData.summary?.peakMonth?.month }}/{{ customRangeData.summary?.peakMonth?.year }}</div>
+              <div>Best Revenue: {{ formatCurrency(customRangeData.summary?.peakMonth?.total_revenue || 0) }}</div>
+              <div *ngIf="customRangeData.summary?.bestProduct">
+                Best Product: {{ customRangeData.summary.bestProduct.name }} ({{ customRangeData.summary.bestProduct.sku }}, {{ customRangeData.summary.bestProduct.size }})
+              </div>
+              <div *ngIf="customRangeData.summary?.bestCategory">
+                Best Category: {{ customRangeData.summary.bestCategory.category }}
+              </div>
             </div>
           </div>
         </div>

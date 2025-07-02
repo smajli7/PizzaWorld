@@ -43,6 +43,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
   fromDateFilter = '';
   toDateFilter = '';
 
+  // Sorting
+  sortBy = 'orderdate';
+  sortOrder = 'desc';
+
   // UI State
   loading = false;
   error = false;
@@ -106,7 +110,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.orderIdFilter || undefined,
       this.searchFilter || undefined,
       this.fromDateFilter || undefined,
-      this.toDateFilter || undefined
+      this.toDateFilter || undefined,
+      this.sortBy,
+      this.sortOrder
     ).subscribe({
       next: (response: PaginatedOrdersResponse) => {
         this.orders = response.orders as OrderExtended[];
@@ -149,6 +155,40 @@ export class OrdersComponent implements OnInit, OnDestroy {
   onDateFilterChange(): void {
     this.currentPage = 0;
     this.loadOrders();
+  }
+
+  // Sorting methods
+  onSortChange(field: string): void {
+    if (this.sortBy === field) {
+      // Cycle through: desc -> asc -> none (deselect)
+      if (this.sortOrder === 'desc') {
+        this.sortOrder = 'asc';
+      } else if (this.sortOrder === 'asc') {
+        // Deselect: reset to default sorting
+        this.sortBy = 'orderdate';
+        this.sortOrder = 'desc';
+      }
+    } else {
+      // Change field and default to descending
+      this.sortBy = field;
+      this.sortOrder = 'desc';
+    }
+    this.currentPage = 0;
+    this.loadOrders();
+  }
+
+  getSortIcon(field: string): string {
+    if (this.sortBy !== field) {
+      return 'sort'; // Default sort icon (both arrows)
+    }
+    return this.sortOrder === 'asc' ? 'sort-up' : 'sort-down';
+  }
+
+  getSortClass(field: string): string {
+    if (this.sortBy === field) {
+      return 'text-orange-600 font-semibold';
+    }
+    return 'text-gray-500 hover:text-orange-500';
   }
 
   clearFilters(): void {

@@ -979,7 +979,9 @@ export class KpiService {
     orderid?: string,
     search?: string,
     from?: string,
-    to?: string
+    to?: string,
+    sortBy: string = 'orderdate',
+    sortOrder: string = 'desc'
   ): Observable<PaginatedOrdersResponse> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
@@ -995,6 +997,8 @@ export class KpiService {
     if (search && search.trim()) params.append('search', search);
     if (from && from.trim()) params.append('from', from);
     if (to && to.trim()) params.append('to', to);
+    params.append('sortBy', sortBy);
+    params.append('sortOrder', sortOrder);
 
     return this.http.get<PaginatedOrdersResponse>(`/api/v2/orders?${params.toString()}`, { headers })
       .pipe(

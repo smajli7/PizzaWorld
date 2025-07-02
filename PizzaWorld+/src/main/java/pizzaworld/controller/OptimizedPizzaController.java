@@ -1316,12 +1316,14 @@ public class OptimizedPizzaController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "orderdate") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         User user = userDetails.getUser();
         
         Map<String, Object> result = pizzaService.getOrdersWithFiltersAndPagination(
-            page, limit, store, state, orderid, search, from, to, user);
+            page, limit, store, state, orderid, search, from, to, sortBy, sortOrder, user);
         
         return ResponseEntity.ok(result);
     }
@@ -1341,7 +1343,7 @@ public class OptimizedPizzaController {
         
         // Get all orders without pagination for export
         Map<String, Object> result = pizzaService.getOrdersWithFiltersAndPagination(
-            0, 10000, store, state, orderid, search, from, to, user);
+            0, 10000, store, state, orderid, search, from, to, "orderdate", "desc", user);
         
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> orders = (List<Map<String, Object>>) result.get("orders");

@@ -2811,7 +2811,7 @@ public class OptimizedPizzaService {
 
     public Map<String, Object> getOrdersWithFiltersAndPagination(
             int page, int limit, String store, String state, String orderid, 
-            String search, String from, String to, User user) {
+            String search, String from, String to, String sortBy, String sortOrder, User user) {
         
         // Build parameterized query using the materialized view
         StringBuilder sql = new StringBuilder("""
@@ -2900,7 +2900,43 @@ public class OptimizedPizzaService {
         Long totalCount = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
         
         // Add ordering and pagination
-        sql.append(" ORDER BY orderdate DESC, orderid DESC");
+        String orderClause = " ORDER BY ";
+        if (sortBy != null && !sortBy.trim().isEmpty()) {
+            switch (sortBy.toLowerCase()) {
+                case "orderid":
+                    orderClause += "orderid";
+                    break;
+                case "total":
+                case "order_value":
+                    orderClause += "order_value";
+                    break;
+                case "orderdate":
+                    orderClause += "orderdate";
+                    break;
+                case "nitems":
+                case "items":
+                    orderClause += "nitems";
+                    break;
+                default:
+                    orderClause += "orderdate"; // Default sort
+            }
+            
+            // Add sort direction
+            if (sortOrder != null && sortOrder.equalsIgnoreCase("asc")) {
+                orderClause += " ASC";
+            } else {
+                orderClause += " DESC"; // Default to descending
+            }
+            
+            // Add secondary sort for consistency
+            if (!sortBy.toLowerCase().equals("orderid")) {
+                orderClause += ", orderid DESC";
+            }
+        } else {
+            orderClause += "orderdate DESC, orderid DESC"; // Default sort
+        }
+        
+        sql.append(orderClause);
         sql.append(" LIMIT ? OFFSET ?");
         params.add(limit);
         params.add(page * limit);

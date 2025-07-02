@@ -1004,6 +1004,17 @@ public class OptimizedPizzaController {
         return ResponseEntity.ok(pizzaService.getProductsList(user));
     }
 
+    @GetMapping("/products/overview-chart")
+    public ResponseEntity<List<Map<String, Object>>> getProductsOverviewChart(
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getProductsOverviewChart(user, timePeriod, year, month));
+    }
+
     private Map<String, Object> buildProductFilters(String sku, String timePeriod, Integer year, Integer month,
                                                    Integer startYear, Integer startMonth, Integer endYear, Integer endMonth,
                                                    boolean sinceLaunch) {

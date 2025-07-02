@@ -2128,7 +2128,10 @@ public class OptimizedPizzaService {
     public Map<String, Object> getProductKPI(User user, Map<String, Object> filters) {
         String sku = (String) filters.get("sku");
         String timePeriod = (String) filters.get("timePeriod");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
         
+        // Use products_info_all materialized view
         StringBuilder sql = new StringBuilder("""
             SELECT 
                 revenue,
@@ -2144,11 +2147,23 @@ public class OptimizedPizzaService {
         List<Object> params = new ArrayList<>();
         params.add(sku);
         
-        // Add time period filtering
-        addProductTimeFilters(sql, params, filters);
+        // Add time period filtering based on materialized view structure
+        if ("all-time".equals(timePeriod)) {
+            // For all-time, get the aggregated row where both year and month are NULL
+            sql.append(" AND year IS NULL AND month IS NULL");
+        } else if ("year".equals(timePeriod) && year != null) {
+            // For year, get the row where year matches and month is NULL
+            sql.append(" AND year = ? AND month IS NULL");
+            params.add(year);
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            // For month, get the row where both year and month match
+            sql.append(" AND year = ? AND month = ?");
+            params.add(year);
+            params.add(month);
+        }
         
-        // Add role-based filtering
-        addRoleBasedProductFilters(sql, params, user);
+        // Note: The products_info_all MV doesn't include store/state filtering
+        // If role-based filtering is needed, it would require extending the MV
         
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql.toString(), params.toArray());
         return result.isEmpty() ? new HashMap<>() : result.get(0);
@@ -2159,7 +2174,7 @@ public class OptimizedPizzaService {
         String metric = (String) filters.get("metric");
         String interval = (String) filters.get("interval");
         
-        // Map metric parameter to column name
+        // Map metric parameter to column name in materialized view
         String columnName = switch (metric) {
             case "revenue" -> "revenue";
             case "orders" -> "orders";
@@ -2169,25 +2184,24 @@ public class OptimizedPizzaService {
             default -> "revenue";
         };
         
+        // Use products_info_all materialized view for trends
         StringBuilder sql = new StringBuilder(String.format("""
             SELECT
                 COALESCE(year, 0) AS yr,
                 COALESCE(month, 0) AS mo,
-                SUM(%s) AS metric_value
+                %s AS metric_value
             FROM products_info_all
             WHERE sku = ?
+              AND year IS NOT NULL 
+              AND month IS NOT NULL
+            ORDER BY yr, mo
             """, columnName));
         
         List<Object> params = new ArrayList<>();
         params.add(sku);
         
-        // Add time period filtering
-        addProductTimeFilters(sql, params, filters);
-        
-        // Add role-based filtering
-        addRoleBasedProductFilters(sql, params, user);
-        
-        sql.append(" GROUP BY yr, mo ORDER BY yr, mo");
+        // Note: The products_info_all MV doesn't include store/state filtering
+        // If role-based filtering is needed, it would require extending the MV
         
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
@@ -2227,22 +2241,28 @@ public class OptimizedPizzaService {
     }
 
     public List<Map<String, Object>> getProductsList(User user) {
+        // Use direct query from products table like the dashboard
         StringBuilder sql = new StringBuilder("""
-            SELECT DISTINCT 
-                sku, 
-                product_name, 
-                category, 
-                size, 
-                launch_date
-            FROM products_info_all
+            SELECT DISTINCT p.sku, p.name as product_name, p.category, p.size, p.launch_date
+            FROM products p
             """);
         
         List<Object> params = new ArrayList<>();
         
-        // Add role-based filtering
-        addRoleBasedProductFilters(sql, params, user);
+        // Add role-based filtering if needed (for now, show all products)
+        switch (user.getRole()) {
+            case "HQ_ADMIN" -> {
+                // Show all products
+            }
+            case "STATE_MANAGER" -> {
+                // Could filter by products sold in the state, but for now show all
+            }
+            case "STORE_MANAGER" -> {
+                // Could filter by products sold in the store, but for now show all
+            }
+        }
         
-        sql.append(" ORDER BY product_name");
+        sql.append(" ORDER BY p.name");
         
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
@@ -2261,16 +2281,21 @@ public class OptimizedPizzaService {
             sql.append(" AND (year IS NULL OR year >= (SELECT EXTRACT(YEAR FROM launch_date) FROM products_info_all WHERE sku = ? LIMIT 1))");
             params.add(filters.get("sku"));
         } else if ("all-time".equals(timePeriod)) {
-            // No additional filters for all-time
+            // For all-time, get the aggregated row where both year and month are NULL
+            sql.append(" AND year IS NULL AND month IS NULL");
         } else if ("year".equals(timePeriod) && year != null) {
-            sql.append(" AND (year IS NULL OR year = ?)");
+            // For year, get the row where year matches and month is NULL
+            sql.append(" AND year = ? AND month IS NULL");
             params.add(year);
         } else if ("month".equals(timePeriod) && year != null && month != null) {
+            // For month, get the row where both year and month match
             sql.append(" AND year = ? AND month = ?");
             params.add(year);
             params.add(month);
         } else if ("custom-range".equals(timePeriod) && startYear != null && startMonth != null && endYear != null && endMonth != null) {
+            // For custom range, sum up all monthly data within the range
             sql.append("""
+                AND year IS NOT NULL AND month IS NOT NULL
                 AND ((year > ? OR (year = ? AND month >= ?))
                 AND (year < ? OR (year = ? AND month <= ?)))
                 """);
@@ -2301,5 +2326,46 @@ public class OptimizedPizzaService {
                 // params.add(user.getStoreId());
                 break;
         }
+    }
+
+    // Products overview chart - use products_info_all materialized view
+    public List<Map<String, Object>> getProductsOverviewChart(User user, String timePeriod, Integer year, Integer month) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                sku, 
+                product_name, 
+                category, 
+                size,
+                units_sold as total_units,
+                revenue as total_revenue,
+                orders as total_orders,
+                unique_customers
+            FROM products_info_all
+            WHERE 1=1
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Add time period filtering based on materialized view structure
+        if ("all-time".equals(timePeriod)) {
+            // For all-time, get the aggregated row where both year and month are NULL
+            sql.append(" AND year IS NULL AND month IS NULL");
+        } else if ("year".equals(timePeriod) && year != null) {
+            // For year, get the row where year matches and month is NULL
+            sql.append(" AND year = ? AND month IS NULL");
+            params.add(year);
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            // For month, get the row where both year and month match
+            sql.append(" AND year = ? AND month = ?");
+            params.add(year);
+            params.add(month);
+        }
+        
+        // Note: Role-based filtering not implemented in MV yet
+        // For now, all users see the same data
+        
+        sql.append(" ORDER BY total_revenue DESC LIMIT 20");
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
 }

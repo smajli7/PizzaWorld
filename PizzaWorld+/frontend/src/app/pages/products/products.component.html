@@ -1,52 +1,35 @@
 <div class="min-h-screen bg-gray-50">
   <app-sidebar></app-sidebar>
-  
+
   <div class="lg:ml-64 p-6">
     <!-- Header Section -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Product Analytics</h1>
-      <p class="text-gray-600">Comprehensive product performance metrics and insights</p>
+      <p class="text-gray-600">Comprehensive product performance metrics and insights across all products</p>
     </div>
 
-    <!-- Product Selection and Filters -->
+    <!-- Time Period Filters -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        <!-- Product Selection -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Select Product</label>
-          <select 
-            [(ngModel)]="selectedSku" 
-            (change)="onProductChange()"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-            <option value="">Choose a product...</option>
-            <option *ngFor="let product of productsList" [value]="product.sku">
-              {{product.product_name}} ({{product.sku}})
-            </option>
-          </select>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
         <!-- Time Period Selection -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
-          <select 
-            [(ngModel)]="selectedTimePeriod" 
+          <select
+            [(ngModel)]="selectedTimePeriod"
             (change)="onTimePeriodChange()"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
             <option value="all-time">All Time</option>
             <option value="year">Year</option>
             <option value="month">Month</option>
-            <option value="custom-range">Custom Range</option>
-            <option value="since-launch">Since Launch</option>
-            <option value="compare">Compare</option>
           </select>
         </div>
 
         <!-- Year Selection -->
         <div *ngIf="selectedTimePeriod === 'year' || selectedTimePeriod === 'month'">
           <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
-          <select 
-            [(ngModel)]="selectedYear" 
+          <select
+            [(ngModel)]="selectedYear"
             (change)="onYearChange()"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
             <option value="">Select Year</option>
@@ -59,8 +42,8 @@
         <!-- Month Selection -->
         <div *ngIf="selectedTimePeriod === 'month' && selectedYear">
           <label class="block text-sm font-medium text-gray-700 mb-2">Month</label>
-          <select 
-            [(ngModel)]="selectedMonth" 
+          <select
+            [(ngModel)]="selectedMonth"
             (change)="onMonthChange()"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
             <option value="">Select Month</option>
@@ -70,66 +53,23 @@
           </select>
         </div>
 
-      </div>
-
-      <!-- Custom Range Inputs -->
-      <div *ngIf="selectedTimePeriod === 'custom-range'" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Start Year</label>
-          <input 
-            type="number" 
-            [(ngModel)]="customStartYear" 
-            (change)="onCustomRangeChange()"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="2024">
+        <!-- Refresh Button -->
+        <div class="flex items-end">
+          <button
+            (click)="loadOverviewData()"
+            [disabled]="loading"
+            class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="pi pi-refresh mr-2"></i>
+            Refresh
+          </button>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Start Month</label>
-          <input 
-            type="number" 
-            [(ngModel)]="customStartMonth" 
-            (change)="onCustomRangeChange()"
-            min="1" max="12"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="1">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">End Year</label>
-          <input 
-            type="number" 
-            [(ngModel)]="customEndYear" 
-            (change)="onCustomRangeChange()"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="2024">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">End Month</label>
-          <input 
-            type="number" 
-            [(ngModel)]="customEndMonth" 
-            (change)="onCustomRangeChange()"
-            min="1" max="12"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="12">
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="mt-4 flex justify-end space-x-3">
-        <button 
-          (click)="refreshData()"
-          [disabled]="loading || chartsLoading"
-          class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          <i class="pi pi-refresh mr-2"></i>
-          Refresh Data
-        </button>
       </div>
     </div>
 
     <!-- Loading State -->
     <div *ngIf="loading" class="flex justify-center items-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
-      <span class="ml-3 text-gray-600">Loading products...</span>
+      <span class="ml-3 text-gray-600">Loading products overview...</span>
     </div>
 
     <!-- Error State -->
@@ -143,361 +83,354 @@
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div *ngIf="!loading && !error && selectedSku">
-      
-      <!-- Product Info Header -->
-      <div *ngIf="currentProduct" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div class="flex items-center justify-between">
+    <!-- Products Overview Content -->
+    <div *ngIf="!loading && !error">
+
+      <!-- Products Overview Chart -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900">{{currentProduct.product_name}}</h2>
-            <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-              <span><strong>SKU:</strong> {{currentProduct.sku}}</span>
-              <span><strong>Category:</strong> {{currentProduct.category}}</span>
-              <span><strong>Size:</strong> {{currentProduct.size}}</span>
-              <span><strong>Launch Date:</strong> {{currentProduct.launch_date | date:'mediumDate'}}</span>
-            </div>
+            <h2 class="text-xl font-bold text-gray-900">Products Performance Overview</h2>
+            <p class="text-sm text-gray-600">Revenue performance across all products for {{getTimePeriodLabel()}}</p>
           </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-500">{{getTimePeriodLabel()}}</p>
+          <div class="flex space-x-2">
+            <button
+              (click)="exportOverviewChart()"
+              class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+              <i class="pi pi-download mr-1"></i>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="overviewChartLoading" class="flex justify-center items-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <span class="ml-3 text-gray-600">Loading chart...</span>
+        </div>
+
+        <div *ngIf="!overviewChartLoading && overviewChartOptions">
+          <apx-chart
+            [series]="overviewChartOptions.series || []"
+            [chart]="overviewChartOptions.chart || {type: 'bar'}"
+            [xaxis]="overviewChartOptions.xaxis || {}"
+            [yaxis]="overviewChartOptions.yaxis || {}"
+            [colors]="overviewChartOptions.colors || []"
+            [dataLabels]="overviewChartOptions.dataLabels || {enabled: false}"
+            [plotOptions]="overviewChartOptions.plotOptions || {}"
+            [tooltip]="overviewChartOptions.tooltip || {}"
+            [grid]="overviewChartOptions.grid || {}"
+            height="400">
+          </apx-chart>
+        </div>
+
+        <div *ngIf="!overviewChartLoading && !overviewChartOptions" class="text-center py-12 text-gray-500">
+          No data available for the selected time period
+        </div>
+      </div>
+
+      <!-- More Insights Section -->
+      <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
+        <div class="text-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Need More Detailed Analytics?</h3>
+          <p class="text-gray-600 mb-4">Get comprehensive insights, trends, and KPIs for individual products</p>
+
+          <button
+            (click)="toggleMoreInsights()"
+            [class]="showMoreInsights ? 'bg-red-600 hover:bg-red-700' : 'bg-purple-600 hover:bg-purple-700'"
+            class="px-6 py-3 text-white rounded-lg font-medium transition-colors shadow-lg">
+            <i [class]="showMoreInsights ? 'pi pi-times' : 'pi pi-chart-line'" class="mr-2"></i>
+            {{ showMoreInsights ? 'Hide Detailed Analytics' : 'Show More Insights' }}
+          </button>
+        </div>
+
+        <!-- Detailed Analytics Section (Hidden by default) -->
+        <div *ngIf="showMoreInsights" class="border-t pt-6">
+
+          <!-- Product Selection for Detailed Analytics -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Product for Detailed Analysis</label>
+            <select
+              [(ngModel)]="selectedSku"
+              (change)="onProductChange()"
+              class="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+              <option value="">Choose a product...</option>
+              <option *ngFor="let product of productsList" [value]="product.sku">
+                {{product.product_name}} ({{product.sku}})
+              </option>
+            </select>
+          </div>
+
+          <!-- Detailed Product Analytics (Only when product is selected) -->
+          <div *ngIf="selectedSku && currentProduct">
+
+            <!-- Product Info Header -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900">{{currentProduct.product_name}}</h3>
+                  <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                    <span><strong>SKU:</strong> {{currentProduct.sku}}</span>
+                    <span><strong>Category:</strong> {{currentProduct.category}}</span>
+                    <span><strong>Size:</strong> {{currentProduct.size}}</span>
+                    <span><strong>Launch Date:</strong> {{currentProduct.launch_date | date:'mediumDate'}}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI Cards Row (when detailed analytics are loaded) -->
+            <div *ngIf="currentKPI" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+
+              <!-- Revenue Card -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <i class="pi pi-dollar text-white text-xl"></i>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm font-medium text-gray-500">Revenue</p>
+                      <p class="text-2xl font-bold text-gray-900">{{formatCurrency(currentKPI.revenue)}}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <p class="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Orders Card -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="pi pi-shopping-cart text-white text-xl"></i>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm font-medium text-gray-500">Orders</p>
+                      <p class="text-2xl font-bold text-gray-900">{{formatNumber(currentKPI.orders)}}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <p class="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Units Sold Card -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                        <i class="pi pi-box text-white text-xl"></i>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm font-medium text-gray-500">Units Sold</p>
+                      <p class="text-2xl font-bold text-gray-900">{{formatNumber(currentKPI.units_sold)}}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <p class="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Unique Customers Card -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="pi pi-users text-white text-xl"></i>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm font-medium text-gray-500">Unique Customers</p>
+                      <p class="text-2xl font-bold text-gray-900">{{formatNumber(currentKPI.unique_customers)}}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <p class="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Average Price Card -->
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                      <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                        <i class="pi pi-tag text-white text-xl"></i>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <p class="text-sm font-medium text-gray-500">Avg Price</p>
+                      <p class="text-2xl font-bold text-gray-900">{{formatCurrency(currentKPI.avg_price)}}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <p class="text-xs text-gray-500">All Time</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detailed Analytics Charts -->
+            <div *ngIf="currentKPI" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              <!-- Revenue Trend Chart -->
+              <div *ngIf="revenueTrendChartOptions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h4>
+                <apx-chart
+                  [series]="revenueTrendChartOptions.series || []"
+                  [chart]="revenueTrendChartOptions.chart || {type: 'area'}"
+                  [xaxis]="revenueTrendChartOptions.xaxis || {}"
+                  [yaxis]="revenueTrendChartOptions.yaxis || {}"
+                  [colors]="revenueTrendChartOptions.colors || []"
+                  [dataLabels]="revenueTrendChartOptions.dataLabels || {enabled: false}"
+                  [fill]="revenueTrendChartOptions.fill || {}"
+                  [stroke]="revenueTrendChartOptions.stroke || {}"
+                  [tooltip]="revenueTrendChartOptions.tooltip || {}"
+                  [grid]="revenueTrendChartOptions.grid || {}"
+                  height="300">
+                </apx-chart>
+              </div>
+
+              <!-- Orders Trend Chart -->
+              <div *ngIf="ordersTrendChartOptions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Orders Trend</h4>
+                <apx-chart
+                  [series]="ordersTrendChartOptions.series || []"
+                  [chart]="ordersTrendChartOptions.chart || {type: 'line'}"
+                  [xaxis]="ordersTrendChartOptions.xaxis || {}"
+                  [yaxis]="ordersTrendChartOptions.yaxis || {}"
+                  [colors]="ordersTrendChartOptions.colors || []"
+                  [dataLabels]="ordersTrendChartOptions.dataLabels || {enabled: false}"
+                  [stroke]="ordersTrendChartOptions.stroke || {}"
+                  [tooltip]="ordersTrendChartOptions.tooltip || {}"
+                  [grid]="ordersTrendChartOptions.grid || {}"
+                  height="300">
+                </apx-chart>
+              </div>
+
+              <!-- Units Trend Chart -->
+              <div *ngIf="unitsTrendChartOptions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Units Sold Trend</h4>
+                <apx-chart
+                  [series]="unitsTrendChartOptions.series || []"
+                  [chart]="unitsTrendChartOptions.chart || {type: 'bar'}"
+                  [xaxis]="unitsTrendChartOptions.xaxis || {}"
+                  [yaxis]="unitsTrendChartOptions.yaxis || {}"
+                  [colors]="unitsTrendChartOptions.colors || []"
+                  [dataLabels]="unitsTrendChartOptions.dataLabels || {enabled: false}"
+                  [plotOptions]="unitsTrendChartOptions.plotOptions || {}"
+                  [tooltip]="unitsTrendChartOptions.tooltip || {}"
+                  [grid]="unitsTrendChartOptions.grid || {}"
+                  height="300">
+                </apx-chart>
+              </div>
+
+              <!-- AOV Trend Chart -->
+              <div *ngIf="aovTrendChartOptions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Average Order Value Trend</h4>
+                <apx-chart
+                  [series]="aovTrendChartOptions.series || []"
+                  [chart]="aovTrendChartOptions.chart || {type: 'line'}"
+                  [xaxis]="aovTrendChartOptions.xaxis || {}"
+                  [yaxis]="aovTrendChartOptions.yaxis || {}"
+                  [colors]="aovTrendChartOptions.colors || []"
+                  [dataLabels]="aovTrendChartOptions.dataLabels || {enabled: false}"
+                  [stroke]="aovTrendChartOptions.stroke || {}"
+                  [tooltip]="aovTrendChartOptions.tooltip || {}"
+                  [grid]="aovTrendChartOptions.grid || {}"
+                  height="300">
+                </apx-chart>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
 
-      <!-- KPI Cards Row (K1-K5) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-        <!-- Loading skeletons for cards -->
-        <ng-container *ngIf="chartsLoading">
-          <div *ngFor="let i of [1,2,3,4,5]" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
-            <div class="p-6">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="w-12 h-12 bg-gray-200 rounded-lg"></div>
-                </div>
-                <div class="ml-4">
-                  <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                  <div class="h-6 bg-gray-200 rounded w-24"></div>
-                </div>
-              </div>
-              <div class="mt-4">
-                <div class="h-3 bg-gray-200 rounded w-32"></div>
-              </div>
+      <!-- All Products Performance Table -->
+      <div class="bg-white rounded-xl shadow-lg border border-purple-100 overflow-hidden mb-8">
+        <div class="px-6 py-4 bg-gradient-to-r from-purple-500 to-purple-600">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-xl font-bold text-white">All Products Performance</h3>
+              <p class="text-purple-100">Complete list of all products with performance metrics for {{getTimePeriodLabel()}}</p>
             </div>
-          </div>
-        </ng-container>
-        <!-- Real KPI cards -->
-        <div *ngIf="!chartsLoading && revenueCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                  <i class="pi pi-dollar text-white text-xl"></i>
-                </div>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Revenue</p>
-                <p class="text-2xl font-bold text-gray-900">{{revenueCardData.value}}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <p class="text-xs text-gray-500">{{revenueCardData.subtitle}}</p>
+            <div class="flex gap-2">
+              <select
+                [(ngModel)]="productTableSortColumn"
+                (change)="sortProductTable(productTableSortColumn)"
+                class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm"
+                style="color: white;">
+                <option value="total_revenue" style="color: black; background-color: white;">Sort by Revenue</option>
+                <option value="total_quantity" style="color: black; background-color: white;">Sort by Quantity</option>
+                <option value="product_name" style="color: black; background-color: white;">Sort by Product Name</option>
+                <option value="category" style="color: black; background-color: white;">Sort by Category</option>
+                <option value="size" style="color: black; background-color: white;">Sort by Size</option>
+              </select>
+              <button
+                (click)="sortProductTable(productTableSortColumn)"
+                class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path *ngIf="!productTableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                  <path *ngIf="productTableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-        <div *ngIf="!chartsLoading && ordersCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                  <i class="pi pi-shopping-cart text-white text-xl"></i>
-                </div>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Orders</p>
-                <p class="text-2xl font-bold text-gray-900">{{ordersCardData.value}}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <p class="text-xs text-gray-500">{{ordersCardData.subtitle}}</p>
-            </div>
-          </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity Sold</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let product of getProductTableSortedData(); let i = index"
+                  class="hover:bg-purple-50 transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-purple-600">{{ i + 1 }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ product.name || product.product_name }}</div>
+                  <div class="text-sm text-gray-500">SKU: {{ product.sku }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ product.category }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ product.size }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {{ formatCurrency(product.total_revenue) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatNumber(product.total_quantity || product.total_units) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatNumber(product.total_orders) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div *ngIf="!chartsLoading && unitsCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                  <i class="pi pi-box text-white text-xl"></i>
-                </div>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Units Sold</p>
-                <p class="text-2xl font-bold text-gray-900">{{unitsCardData.value}}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <p class="text-xs text-gray-500">{{unitsCardData.subtitle}}</p>
-            </div>
-          </div>
-        </div>
-        <div *ngIf="!chartsLoading && customersCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <i class="pi pi-users text-white text-xl"></i>
-                </div>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Unique Customers</p>
-                <p class="text-2xl font-bold text-gray-900">{{customersCardData.value}}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <p class="text-xs text-gray-500">{{customersCardData.subtitle}}</p>
-            </div>
-          </div>
-        </div>
-        <div *ngIf="!chartsLoading && avgPriceCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div class="p-6">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <i class="pi pi-tag text-white text-xl"></i>
-                </div>
-              </div>
-              <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Avg Price</p>
-                <p class="text-2xl font-bold text-gray-900">{{avgPriceCardData.value}}</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <p class="text-xs text-gray-500">{{avgPriceCardData.subtitle}}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Charts Loading State -->
-      <div *ngIf="chartsLoading" class="flex justify-center items-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-        <span class="ml-3 text-gray-600">Loading charts...</span>
-      </div>
-
-      <!-- Charts Grid -->
-      <div *ngIf="!chartsLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- C1 - Revenue Trend (Area Chart) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Revenue Trend</h3>
-            <button 
-              (click)="exportChartData('revenue')"
-              class="text-sm text-orange-600 hover:text-orange-800">
-              <i class="pi pi-download mr-1"></i>Export
-            </button>
-          </div>
-          <ng-container *ngIf="revenueTrendChartOptions; else noRevenueData">
-            <apx-chart
-              [series]="revenueTrendChartOptions?.series ?? []"
-              [chart]="revenueTrendChartOptions?.chart ?? { type: 'line' }"
-              [xaxis]="revenueTrendChartOptions?.xaxis ?? {}"
-              [yaxis]="revenueTrendChartOptions?.yaxis ?? {}"
-              [colors]="revenueTrendChartOptions?.colors ?? []"
-              [stroke]="revenueTrendChartOptions?.stroke ?? {}"
-              [fill]="revenueTrendChartOptions?.fill ?? {}"
-              [dataLabels]="revenueTrendChartOptions?.dataLabels ?? {}"
-              [grid]="revenueTrendChartOptions?.grid ?? {}"
-              [tooltip]="revenueTrendChartOptions?.tooltip ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noRevenueData>
-            <div class="text-center text-gray-400 py-8">No revenue data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C2 - Orders Trend (Line Chart) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Orders Trend</h3>
-            <button 
-              (click)="exportChartData('orders')"
-              class="text-sm text-orange-600 hover:text-orange-800">
-              <i class="pi pi-download mr-1"></i>Export
-            </button>
-          </div>
-          <ng-container *ngIf="ordersTrendChartOptions; else noOrdersData">
-            <apx-chart
-              [series]="ordersTrendChartOptions?.series ?? []"
-              [chart]="ordersTrendChartOptions?.chart ?? { type: 'line' }"
-              [xaxis]="ordersTrendChartOptions?.xaxis ?? {}"
-              [yaxis]="ordersTrendChartOptions?.yaxis ?? {}"
-              [colors]="ordersTrendChartOptions?.colors ?? []"
-              [stroke]="ordersTrendChartOptions?.stroke ?? {}"
-              [dataLabels]="ordersTrendChartOptions?.dataLabels ?? {}"
-              [grid]="ordersTrendChartOptions?.grid ?? {}"
-              [tooltip]="ordersTrendChartOptions?.tooltip ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noOrdersData>
-            <div class="text-center text-gray-400 py-8">No orders data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C3 - Units Trend (Column Chart) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Units Sold Trend</h3>
-            <button 
-              (click)="exportChartData('units')"
-              class="text-sm text-orange-600 hover:text-orange-800">
-              <i class="pi pi-download mr-1"></i>Export
-            </button>
-          </div>
-          <ng-container *ngIf="unitsTrendChartOptions; else noUnitsData">
-            <apx-chart
-              [series]="unitsTrendChartOptions?.series ?? []"
-              [chart]="unitsTrendChartOptions?.chart ?? { type: 'bar' }"
-              [xaxis]="unitsTrendChartOptions?.xaxis ?? {}"
-              [yaxis]="unitsTrendChartOptions?.yaxis ?? {}"
-              [colors]="unitsTrendChartOptions?.colors ?? []"
-              [plotOptions]="unitsTrendChartOptions?.plotOptions ?? {}"
-              [dataLabels]="unitsTrendChartOptions?.dataLabels ?? {}"
-              [grid]="unitsTrendChartOptions?.grid ?? {}"
-              [tooltip]="unitsTrendChartOptions?.tooltip ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noUnitsData>
-            <div class="text-center text-gray-400 py-8">No units data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C4 - AOV Trend (Line Chart) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Average Order Value Trend</h3>
-            <button 
-              (click)="exportChartData('aov')"
-              class="text-sm text-orange-600 hover:text-orange-800">
-              <i class="pi pi-download mr-1"></i>Export
-            </button>
-          </div>
-          <ng-container *ngIf="aovTrendChartOptions; else noAovData">
-            <apx-chart
-              [series]="aovTrendChartOptions?.series ?? []"
-              [chart]="aovTrendChartOptions?.chart ?? { type: 'line' }"
-              [xaxis]="aovTrendChartOptions?.xaxis ?? {}"
-              [yaxis]="aovTrendChartOptions?.yaxis ?? {}"
-              [colors]="aovTrendChartOptions?.colors ?? []"
-              [stroke]="aovTrendChartOptions?.stroke ?? {}"
-              [dataLabels]="aovTrendChartOptions?.dataLabels ?? {}"
-              [grid]="aovTrendChartOptions?.grid ?? {}"
-              [tooltip]="aovTrendChartOptions?.tooltip ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noAovData>
-            <div class="text-center text-gray-400 py-8">No AOV data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C5 - Launch Progress (RadialBar) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Launch-to-Date Progress</h3>
-          </div>
-          <ng-container *ngIf="launchProgressChartOptions; else noLaunchData">
-            <apx-chart
-              [series]="launchProgressChartOptions?.series ?? []"
-              [chart]="launchProgressChartOptions?.chart ?? { type: 'radialBar' }"
-              [colors]="launchProgressChartOptions?.colors ?? []"
-              [plotOptions]="launchProgressChartOptions?.plotOptions ?? {}"
-              [fill]="launchProgressChartOptions?.fill ?? {}"
-              [labels]="launchProgressChartOptions?.labels ?? []">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noLaunchData>
-            <div class="text-center text-gray-400 py-8">No launch data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C6 - Year-over-Year Revenue (Grouped Column) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Year-over-Year Revenue</h3>
-          </div>
-          <ng-container *ngIf="yearOverYearChartOptions; else noYearOverYearData">
-            <apx-chart
-              [series]="yearOverYearChartOptions?.series ?? []"
-              [chart]="yearOverYearChartOptions?.chart ?? { type: 'bar' }"
-              [xaxis]="yearOverYearChartOptions?.xaxis ?? {}"
-              [yaxis]="yearOverYearChartOptions?.yaxis ?? {}"
-              [colors]="yearOverYearChartOptions?.colors ?? []"
-              [plotOptions]="yearOverYearChartOptions?.plotOptions ?? {}"
-              [dataLabels]="yearOverYearChartOptions?.dataLabels ?? {}"
-              [legend]="yearOverYearChartOptions?.legend ?? {}"
-              [grid]="yearOverYearChartOptions?.grid ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noYearOverYearData>
-            <div class="text-center text-gray-400 py-8">No year-over-year data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C7 - Month-over-Month Orders (Column) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Month-over-Month Orders</h3>
-          </div>
-          <ng-container *ngIf="monthOverMonthChartOptions; else noMonthOverMonthData">
-            <apx-chart
-              [series]="monthOverMonthChartOptions?.series ?? []"
-              [chart]="monthOverMonthChartOptions?.chart ?? { type: 'bar' }"
-              [xaxis]="monthOverMonthChartOptions?.xaxis ?? {}"
-              [yaxis]="monthOverMonthChartOptions?.yaxis ?? {}"
-              [colors]="monthOverMonthChartOptions?.colors ?? []"
-              [plotOptions]="monthOverMonthChartOptions?.plotOptions ?? {}"
-              [dataLabels]="monthOverMonthChartOptions?.dataLabels ?? {}"
-              [grid]="monthOverMonthChartOptions?.grid ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noMonthOverMonthData>
-            <div class="text-center text-gray-400 py-8">No month-over-month data available for this period.</div>
-          </ng-template>
-        </div>
-
-        <!-- C8 - Revenue Share by Category (Pie) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Revenue Share by Category</h3>
-          </div>
-          <ng-container *ngIf="categoryShareChartOptions; else noCategoryData">
-            <apx-chart
-              [series]="categoryShareChartOptions?.series ?? []"
-              [chart]="categoryShareChartOptions?.chart ?? { type: 'pie' }"
-              [labels]="categoryShareChartOptions?.labels ?? []"
-              [colors]="categoryShareChartOptions?.colors ?? []"
-              [dataLabels]="categoryShareChartOptions?.dataLabels ?? {}"
-              [plotOptions]="categoryShareChartOptions?.plotOptions ?? {}"
-              [legend]="categoryShareChartOptions?.legend ?? {}">
-            </apx-chart>
-          </ng-container>
-          <ng-template #noCategoryData>
-            <div class="text-center text-gray-400 py-8">No category data available for this period.</div>
-          </ng-template>
-        </div>
-
-      </div>
-
-    </div>
-
-    <!-- No Selection State -->
-    <div *ngIf="!loading && !error && !selectedSku" class="text-center py-12">
-      <div class="max-w-md mx-auto">
-        <i class="pi pi-box text-4xl text-gray-400 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Select a Product</h3>
-        <p class="text-gray-500">Choose a product from the dropdown above to view detailed analytics and performance metrics.</p>
       </div>
     </div>
-
   </div>
 </div>

@@ -100,50 +100,41 @@ interface PieChartOptions {
   styleUrls: ['./products.component.scss']
 })
 export class ProductsComponent implements OnInit {
-  // Product selection and static data
-  selectedSku: string = '';
-  productsList: ProductInfo[] = [];
-  currentProduct: ProductInfo | null = null;
-  availableYears: TimePeriodOption[] = [];
-  availableMonths: TimePeriodOption[] = [];
-
-  // Filter state
+  // Overview filtering
   selectedTimePeriod: TimePeriod = 'all-time';
   selectedYear?: number;
   selectedMonth?: number;
-  customStartYear?: number;
-  customStartMonth?: number;
-  customEndYear?: number;
-  customEndMonth?: number;
+  availableYears: TimePeriodOption[] = [];
+  availableMonths: TimePeriodOption[] = [];
 
   // UI state
   loading = false;
   error = false;
-  chartsLoading = false;
+  overviewChartLoading = false;
 
-  // KPI data
+  // Overview chart
+  overviewChartOptions: Partial<ChartOptions> | null = null;
+
+  // More Insights functionality
+  showMoreInsights = false;
+  productsList: ProductInfo[] = [];
+  selectedSku: string = '';
+  currentProduct: ProductInfo | null = null;
   currentKPI: ProductKPI | null = null;
 
-  // Chart options - all 8 charts from spec
-  // KPI Cards (K1-K5)
-  revenueCardData: any = null;
-  ordersCardData: any = null;
-  unitsCardData: any = null;
-  customersCardData: any = null;
-  avgPriceCardData: any = null;
-
-  // Charts (C1-C8)
-  revenueTrendChartOptions: Partial<ChartOptions> | null = null;  // C1 - Area
-  ordersTrendChartOptions: Partial<ChartOptions> | null = null;   // C2 - Line
-  unitsTrendChartOptions: Partial<ChartOptions> | null = null;    // C3 - Column
-  aovTrendChartOptions: Partial<ChartOptions> | null = null;      // C4 - Line
-  launchProgressChartOptions: any = null;                         // C5 - RadialBar
-  yearOverYearChartOptions: Partial<ChartOptions> | null = null;  // C6 - Grouped Column
-  monthOverMonthChartOptions: Partial<ChartOptions> | null = null; // C7 - Column
-  categoryShareChartOptions: Partial<PieChartOptions> | null = null; // C8 - Pie
+  // Detailed analytics charts
+  revenueTrendChartOptions: Partial<ChartOptions> | null = null;
+  ordersTrendChartOptions: Partial<ChartOptions> | null = null;
+  unitsTrendChartOptions: Partial<ChartOptions> | null = null;
+  aovTrendChartOptions: Partial<ChartOptions> | null = null;
 
   // Color palette from spec
   colorPalette = ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'];
+
+  // Product table properties
+  productTableData: any[] = [];
+  productTableSortColumn: 'total_revenue' | 'total_quantity' | 'product_name' | 'category' | 'size' = 'total_revenue';
+  productTableSortAscending = false;
 
   readonly LAUNCH_PROGRESS_TARGET_MULTIPLIER = 1.5;
 
@@ -162,21 +153,15 @@ export class ProductsComponent implements OnInit {
     this.loading = true;
     this.error = false;
 
-    // Load products list and time periods
+    // Load time periods and products list, then load overview data
     forkJoin({
-      products: this.http.get<ProductInfo[]>('/api/v2/products/list', { headers: this.getAuthHeaders() }),
-      years: this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers: this.getAuthHeaders() })
+      years: this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers: this.getAuthHeaders() }),
+      products: this.http.get<ProductInfo[]>('/api/v2/products/list', { headers: this.getAuthHeaders() })
     }).subscribe({
       next: (result) => {
-        this.productsList = result.products;
         this.availableYears = result.years;
-        
-        if (this.productsList.length > 0) {
-          this.selectedSku = this.productsList[0].sku;
-          this.currentProduct = this.productsList[0];
-          this.onTimePeriodChange();
-        }
-        this.loading = false;
+        this.productsList = result.products;
+        this.loadOverviewData();
       },
       error: (error) => {
         console.error('Error loading initial data:', error);
@@ -186,24 +171,12 @@ export class ProductsComponent implements OnInit {
     });
   }
 
-  onProductChange(): void {
-    this.currentProduct = this.productsList.find(p => p.sku === this.selectedSku) || null;
-    this.onTimePeriodChange();
-  }
-
   onTimePeriodChange(): void {
     this.selectedMonth = undefined;
-    this.customStartYear = undefined;
-    this.customStartMonth = undefined;
-    this.customEndYear = undefined;
-    this.customEndMonth = undefined;
-
-    if (this.selectedTimePeriod === 'all-time' || this.selectedTimePeriod === 'since-launch') {
-      this.loadProductData();
-    } else if (this.selectedTimePeriod === 'month') {
+    if (this.selectedTimePeriod === 'year' || this.selectedTimePeriod === 'month') {
       this.loadAvailableMonths();
     } else {
-      this.loadProductData();
+      this.loadOverviewData();
     }
   }
 
@@ -211,33 +184,26 @@ export class ProductsComponent implements OnInit {
     if (this.selectedTimePeriod === 'month') {
       this.loadAvailableMonths();
     } else {
-      this.loadProductData();
+      this.loadOverviewData();
     }
   }
 
   onMonthChange(): void {
-    this.loadProductData();
-  }
-
-  onCustomRangeChange(): void {
-    if (this.customStartYear && this.customStartMonth && 
-        this.customEndYear && this.customEndMonth) {
-      this.loadProductData();
-    }
+    this.loadOverviewData();
   }
 
   loadAvailableMonths(): void {
     if (!this.selectedYear) return;
 
-    this.http.get<TimePeriodOption[]>(`/api/v2/chart/time-periods/months/${this.selectedYear}`, 
+    this.http.get<TimePeriodOption[]>(`/api/v2/chart/time-periods/months/${this.selectedYear}`,
       { headers: this.getAuthHeaders() })
       .subscribe({
         next: (months) => {
           this.availableMonths = months;
-          if (months.length > 0 && !this.selectedMonth) {
+          if (months.length > 0 && !this.selectedMonth && this.selectedTimePeriod === 'month') {
             this.selectedMonth = months[0].month;
           }
-          this.loadProductData();
+          this.loadOverviewData();
         },
         error: (error) => {
           console.error('Error loading months:', error);
@@ -246,172 +212,197 @@ export class ProductsComponent implements OnInit {
       });
   }
 
-  loadProductData(): void {
-    if (!this.selectedSku) return;
-
-    this.chartsLoading = true;
+    loadOverviewData(): void {
+    this.overviewChartLoading = true;
     this.error = false;
 
-    const filters = this.buildFilterOptions();
-    
-    // Build API parameters
-    let params = new HttpParams().set('sku', this.selectedSku);
-    
-    if (filters.timePeriod !== 'all-time') {
-      params = params.set('timePeriod', filters.timePeriod);
-      if (filters.year) params = params.set('year', filters.year.toString());
-      if (filters.month) params = params.set('month', filters.month.toString());
-      if (filters.startYear) params = params.set('startYear', filters.startYear.toString());
-      if (filters.startMonth) params = params.set('startMonth', filters.startMonth.toString());
-      if (filters.endYear) params = params.set('endYear', filters.endYear.toString());
-      if (filters.endMonth) params = params.set('endMonth', filters.endMonth.toString());
+    // Build API parameters for overview chart
+    let params = new HttpParams();
+    params = params.set('timePeriod', this.selectedTimePeriod);
+
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
+
+    this.http.get<any[]>('/api/v2/products/overview-chart', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (data) => {
+        this.buildOverviewChart(data);
+        this.overviewChartLoading = false;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading overview data:', error);
+        this.error = true;
+        this.overviewChartLoading = false;
+        this.loading = false;
+      }
+    });
+  }
+
+    private buildOverviewChart(data: any[]): void {
+    if (!data || data.length === 0) {
+      this.overviewChartOptions = null;
+      this.productTableData = [];
+      return;
     }
 
-    if (filters.timePeriod === 'since-launch') {
-      params = params.set('sinceLaunch', 'true');
-    }
+    // Store table data
+    this.productTableData = data;
 
-    // Load KPI and trend data
+    // Transform data for chart
+    const chartData = data.map(item => ({
+      x: item.product_name,
+      y: item.total_revenue,
+      sku: item.sku,
+      category: item.category,
+      orders: item.total_orders,
+      units: item.total_units
+    }));
+
+    this.overviewChartOptions = {
+      series: [{
+        name: 'Revenue',
+        data: chartData.map(item => item.y)
+      }],
+      chart: {
+        type: 'bar',
+        height: 400,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: `products-overview-${this.getTimePeriodLabel()}`
+            },
+            svg: {
+              filename: `products-overview-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `products-overview-${this.getTimePeriodLabel()}`
+            }
+          }
+        }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: false,
+          columnWidth: '55%',
+          borderRadius: 4
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      xaxis: {
+        categories: chartData.map(item => item.x),
+        labels: {
+          rotate: -45,
+          style: {
+            fontSize: '12px'
+          }
+        }
+      },
+      yaxis: {
+        title: {
+          text: 'Revenue ($)'
+        },
+        labels: {
+          formatter: (value: number) => this.formatCurrency(value)
+        }
+      },
+      colors: [this.colorPalette[0]],
+      tooltip: {
+        y: {
+          formatter: (value: number, opts: any) => {
+            const dataIndex = opts.dataPointIndex;
+            const item = chartData[dataIndex];
+            return `<div>
+              <strong>Revenue:</strong> ${this.formatCurrency(value)}<br/>
+              <strong>Orders:</strong> ${this.formatNumber(item.orders)}<br/>
+              <strong>Units:</strong> ${this.formatNumber(item.units)}<br/>
+              <strong>Category:</strong> ${item.category}
+            </div>`;
+          }
+        }
+      },
+      grid: {
+        borderColor: '#f1f5f9'
+      }
+    };
+  }
+
+  toggleMoreInsights(): void {
+    this.showMoreInsights = !this.showMoreInsights;
+    if (this.showMoreInsights && this.productsList.length > 0 && !this.selectedSku) {
+      // Auto-select first product when opening insights
+      this.selectedSku = this.productsList[0].sku;
+      this.onProductChange();
+    }
+  }
+
+  onProductChange(): void {
+    this.currentProduct = this.productsList.find(p => p.sku === this.selectedSku) || null;
+    if (this.currentProduct) {
+      this.loadProductAnalytics();
+    }
+  }
+
+    private loadProductAnalytics(): void {
+    if (!this.selectedSku) return;
+
+    // Build API parameters for detailed product analytics
+    let params = new HttpParams().set('sku', this.selectedSku).set('timePeriod', this.selectedTimePeriod);
+
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
+
+    // Load KPI and trend data for the selected product
     forkJoin({
-      kpi: this.http.get<ProductKPI>('/api/v2/products/kpi', { 
-        headers: this.getAuthHeaders(), 
-        params 
+      kpi: this.http.get<ProductKPI>('/api/v2/products/kpi', {
+        headers: this.getAuthHeaders(),
+        params
       }),
-      revenueTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', { 
-        headers: this.getAuthHeaders(), 
+      revenueTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', {
+        headers: this.getAuthHeaders(),
         params: params.set('metric', 'revenue').set('interval', 'month')
       }),
-      ordersTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', { 
-        headers: this.getAuthHeaders(), 
+      ordersTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', {
+        headers: this.getAuthHeaders(),
         params: params.set('metric', 'orders').set('interval', 'month')
       }),
-      unitsTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', { 
-        headers: this.getAuthHeaders(), 
+      unitsTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', {
+        headers: this.getAuthHeaders(),
         params: params.set('metric', 'units').set('interval', 'month')
       }),
-      aovTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', { 
-        headers: this.getAuthHeaders(), 
+      aovTrend: this.http.get<TrendDataPoint[]>('/api/v2/products/trend', {
+        headers: this.getAuthHeaders(),
         params: params.set('metric', 'aov').set('interval', 'month')
       })
     }).subscribe({
       next: (result) => {
         this.currentKPI = result.kpi;
-        this.updateKpiCards();
-        this.buildAllCharts(result);
-        this.chartsLoading = false;
+        this.buildRevenueTrendChart(result.revenueTrend);
+        this.buildOrdersTrendChart(result.ordersTrend);
+        this.buildUnitsTrendChart(result.unitsTrend);
+        this.buildAOVTrendChart(result.aovTrend);
       },
       error: (error) => {
-        console.error('Error loading product data:', error);
-        this.error = true;
-        this.chartsLoading = false;
+        console.error('Error loading product analytics:', error);
+        // Reset charts on error
+        this.currentKPI = null;
+        this.revenueTrendChartOptions = null;
+        this.ordersTrendChartOptions = null;
+        this.unitsTrendChartOptions = null;
+        this.aovTrendChartOptions = null;
       }
     });
   }
 
-  private buildFilterOptions(): ProductFilterOptions {
-    const filters: ProductFilterOptions = {
-      timePeriod: this.selectedTimePeriod
-    };
-
-    if (this.selectedTimePeriod === 'since-launch' && this.currentProduct) {
-      const launchDate = new Date(this.currentProduct.launch_date);
-      filters.startYear = launchDate.getFullYear();
-      filters.startMonth = launchDate.getMonth() + 1;
-      filters.endYear = new Date().getFullYear();
-      filters.endMonth = new Date().getMonth() + 1;
-    } else if (this.selectedTimePeriod !== 'all-time') {
-      filters.year = this.selectedYear;
-      filters.month = this.selectedMonth;
-      filters.startYear = this.customStartYear;
-      filters.startMonth = this.customStartMonth;
-      filters.endYear = this.customEndYear;
-      filters.endMonth = this.customEndMonth;
-    }
-
-    return filters;
-  }
-
-  updateKpiCards(): void {
-    if (!this.currentKPI) return;
-
-    const colorTheme = this.getColorTheme();
-
-    this.revenueCardData = {
-      title: 'Revenue',
-      value: this.formatCurrency(this.currentKPI.revenue),
-      subtitle: this.getTimePeriodLabel(),
-      icon: 'pi pi-dollar',
-      ...colorTheme
-    };
-
-    this.ordersCardData = {
-      title: 'Orders',
-      value: this.formatNumber(this.currentKPI.orders),
-      subtitle: this.getTimePeriodLabel(),
-      icon: 'pi pi-shopping-cart',
-      ...colorTheme
-    };
-
-    this.unitsCardData = {
-      title: 'Units Sold',
-      value: this.formatNumber(this.currentKPI.units_sold),
-      subtitle: this.getTimePeriodLabel(),
-      icon: 'pi pi-box',
-      ...colorTheme
-    };
-
-    this.customersCardData = {
-      title: 'Unique Customers',
-      value: this.formatNumber(this.currentKPI.unique_customers),
-      subtitle: this.getTimePeriodLabel(),
-      icon: 'pi pi-users',
-      ...colorTheme
-    };
-
-    this.avgPriceCardData = {
-      title: 'Avg Price',
-      value: this.formatCurrency(this.currentKPI.avg_price),
-      subtitle: this.getTimePeriodLabel(),
-      icon: 'pi pi-tag',
-      ...colorTheme
-    };
-  }
-
-  private getColorTheme() {
-    switch (this.selectedTimePeriod) {
-      case 'custom-range':
-        return {
-          color: 'bg-gradient-to-r from-purple-500 to-purple-600',
-          textColor: 'text-white'
-        };
-      case 'compare':
-        return {
-          color: 'bg-gradient-to-r from-blue-500 to-blue-600',
-          textColor: 'text-white'
-        };
-      default:
-        return {
-          color: 'bg-gradient-to-r from-orange-500 to-orange-600',
-          textColor: 'text-white'
-        };
-    }
-  }
-
-  buildAllCharts(data: any): void {
-    this.buildRevenueTrendChart(data.revenueTrend);      // C1 - Area
-    this.buildOrdersTrendChart(data.ordersTrend);        // C2 - Line
-    this.buildUnitsTrendChart(data.unitsTrend);          // C3 - Column
-    this.buildAOVTrendChart(data.aovTrend);              // C4 - Line
-    this.buildLaunchProgressChart();                     // C5 - RadialBar
-    this.loadYearOverYearChart();                        // C6 - Grouped Column (real data)
-    this.buildMonthOverMonthChart(data.ordersTrend);     // C7 - Column (orders)
-    this.loadCategoryShareChart();                       // C8 - Pie (real data)
-  }
-
-  // C1 - Revenue Trend (Area Chart)
-  buildRevenueTrendChart(data: TrendDataPoint[]): void {
+  // Chart building methods
+  private buildRevenueTrendChart(data: TrendDataPoint[]): void {
     const chartData = this.processTrendData(data);
-    
+
     this.revenueTrendChartOptions = {
       series: [{
         name: 'Revenue',
@@ -419,41 +410,41 @@ export class ProductsComponent implements OnInit {
       }],
       chart: {
         type: 'area',
-        height: 350,
-        toolbar: {
-          show: true,
-          export: {
-            csv: { filename: `revenue-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` },
-            svg: { filename: `revenue-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` },
-            png: { filename: `revenue-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` }
-          }
-        }
+        height: 300,
+        toolbar: { show: true }
       },
       colors: [this.colorPalette[0]],
+      dataLabels: { enabled: false },
       stroke: { curve: 'smooth', width: 2 },
       fill: {
         type: 'gradient',
         gradient: {
           shadeIntensity: 1,
-          type: 'vertical',
-          gradientToColors: [this.colorPalette[0]],
-          stops: [0, 100]
+          opacityFrom: 0.7,
+          opacityTo: 0.3
         }
       },
-      dataLabels: { enabled: false },
-      xaxis: { categories: chartData.labels },
-      yaxis: { title: { text: 'Revenue ($)' } },
-      grid: { borderColor: '#f1f5f9' },
+      xaxis: {
+        categories: chartData.labels,
+        labels: { style: { fontSize: '12px' } }
+      },
+      yaxis: {
+        labels: {
+          formatter: (value: number) => this.formatCurrency(value)
+        }
+      },
       tooltip: {
-        y: { formatter: (val: number) => this.formatCurrency(val) }
-      }
+        y: {
+          formatter: (value: number) => this.formatCurrency(value)
+        }
+      },
+      grid: { borderColor: '#f1f5f9' }
     };
   }
 
-  // C2 - Orders Trend (Line Chart)
-  buildOrdersTrendChart(data: TrendDataPoint[]): void {
+  private buildOrdersTrendChart(data: TrendDataPoint[]): void {
     const chartData = this.processTrendData(data);
-    
+
     this.ordersTrendChartOptions = {
       series: [{
         name: 'Orders',
@@ -461,30 +452,33 @@ export class ProductsComponent implements OnInit {
       }],
       chart: {
         type: 'line',
-        height: 350,
-        toolbar: {
-          show: true,
-          export: {
-            csv: { filename: `orders-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` }
-          }
-        }
+        height: 300,
+        toolbar: { show: true }
       },
       colors: [this.colorPalette[1]],
-      stroke: { curve: 'smooth', width: 3 },
       dataLabels: { enabled: false },
-      xaxis: { categories: chartData.labels },
-      yaxis: { title: { text: 'Orders' } },
-      grid: { borderColor: '#f1f5f9' },
+      stroke: { curve: 'smooth', width: 3 },
+      xaxis: {
+        categories: chartData.labels,
+        labels: { style: { fontSize: '12px' } }
+      },
+      yaxis: {
+        labels: {
+          formatter: (value: number) => this.formatNumber(value)
+        }
+      },
       tooltip: {
-        y: { formatter: (val: number) => this.formatNumber(val) }
-      }
+        y: {
+          formatter: (value: number) => this.formatNumber(value)
+        }
+      },
+      grid: { borderColor: '#f1f5f9' }
     };
   }
 
-  // C3 - Units Trend (Column Chart)
-  buildUnitsTrendChart(data: TrendDataPoint[]): void {
+  private buildUnitsTrendChart(data: TrendDataPoint[]): void {
     const chartData = this.processTrendData(data);
-    
+
     this.unitsTrendChartOptions = {
       series: [{
         name: 'Units Sold',
@@ -492,264 +486,106 @@ export class ProductsComponent implements OnInit {
       }],
       chart: {
         type: 'bar',
-        height: 350,
-        toolbar: {
-          show: true,
-          export: {
-            csv: { filename: `units-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` }
-          }
-        }
+        height: 300,
+        toolbar: { show: true }
       },
       colors: [this.colorPalette[2]],
       plotOptions: {
         bar: {
-          borderRadius: 8,
-          columnWidth: '60%'
+          columnWidth: '60%',
+          borderRadius: 8
         }
       },
       dataLabels: { enabled: false },
-      xaxis: { categories: chartData.labels },
-      yaxis: { title: { text: 'Units Sold' } },
-      grid: { borderColor: '#f1f5f9' },
+      xaxis: {
+        categories: chartData.labels,
+        labels: { style: { fontSize: '12px' } }
+      },
+      yaxis: {
+        labels: {
+          formatter: (value: number) => this.formatNumber(value)
+        }
+      },
       tooltip: {
-        y: { formatter: (val: number) => this.formatNumber(val) }
-      }
-    };
-  }
-
-  // C4 - AOV Trend (Line Chart)
-  buildAOVTrendChart(data: TrendDataPoint[]): void {
-    const chartData = this.processTrendData(data);
-    
-    this.aovTrendChartOptions = {
-      series: [{
-        name: 'Average Order Value',
-        data: chartData.values
-      }],
-      chart: {
-        type: 'line',
-        height: 350,
-        toolbar: {
-          show: true,
-          export: {
-            csv: { filename: `aov-trend-${this.selectedSku}-${this.getTimePeriodLabel()}` }
-          }
+        y: {
+          formatter: (value: number) => this.formatNumber(value)
         }
       },
-      colors: [this.colorPalette[3]],
-      stroke: { curve: 'smooth', width: 3 },
-      dataLabels: { enabled: false },
-      xaxis: { categories: chartData.labels },
-      yaxis: { title: { text: 'Average Order Value ($)' } },
-      grid: { borderColor: '#f1f5f9' },
-      tooltip: {
-        y: { formatter: (val: number) => this.formatCurrency(val) }
-      }
-    };
-  }
-
-  // C5 - Launch-to-Date Progress (RadialBar)
-  buildLaunchProgressChart(): void {
-    const target = this.currentKPI ? this.currentKPI.revenue * this.LAUNCH_PROGRESS_TARGET_MULTIPLIER : 100000;
-    const current = this.currentKPI ? this.currentKPI.revenue : 0;
-    const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-    this.launchProgressChartOptions = {
-      series: [percentage],
-      chart: { type: 'radialBar', height: 350 },
-      colors: [this.colorPalette[4]],
-      plotOptions: { radialBar: { startAngle: -90, endAngle: 90, dataLabels: { name: { fontSize: '16px', color: undefined, offsetY: 120 }, value: { offsetY: 76, fontSize: '22px', color: undefined, formatter: (val: number) => val.toFixed(1) + '%' } } } },
-      fill: { type: 'gradient', gradient: { shade: 'light', shadeIntensity: 0.4, inverseColors: false, opacityFrom: 1, opacityTo: 1, stops: [0, 50, 53, 91] } },
-      labels: ['Progress to Target']
-    };
-  }
-
-  // C6 - Year-over-Year Revenue (Grouped Column)
-  loadYearOverYearChart(): void {
-    if (!this.selectedSku) return;
-    // Use current year and previous year for comparison
-    const year = this.selectedYear || new Date().getFullYear();
-    this.kpiService.getProductComparison(this.selectedSku, 'year', year).subscribe(result => {
-      if (result && result.current && result.previous) {
-        this.yearOverYearChartOptions = {
-          series: [
-            { name: 'Current Year', data: result.current.monthlyRevenue },
-            { name: 'Previous Year', data: result.previous.monthlyRevenue }
-          ],
-          chart: { type: 'bar', height: 350, toolbar: { show: true } },
-          colors: [this.colorPalette[0], this.colorPalette[1]],
-          plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 } },
-          dataLabels: { enabled: false },
-          xaxis: { categories: result.current.months },
-          yaxis: { title: { text: 'Revenue ($)' } },
-          legend: { position: 'top' },
-          grid: { borderColor: '#f1f5f9' }
-        };
-      } else {
-        this.yearOverYearChartOptions = null;
-      }
-    });
-  }
-
-  // C7 - Month-over-Month Orders (Column)
-  buildMonthOverMonthChart(data: TrendDataPoint[]): void {
-    const chartData = this.processTrendData(data);
-    
-    this.monthOverMonthChartOptions = {
-      series: [{
-        name: 'Monthly Orders',
-        data: chartData.values
-      }],
-      chart: {
-        type: 'bar',
-        height: 350,
-        toolbar: { show: true }
-      },
-      colors: [this.colorPalette[5]],
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          columnWidth: '60%'
-        }
-      },
-      dataLabels: { enabled: false },
-      xaxis: { categories: chartData.labels },
-      yaxis: { title: { text: 'Orders' } },
       grid: { borderColor: '#f1f5f9' }
     };
   }
 
-  // C8 - Revenue Share by Category (Pie)
-  loadCategoryShareChart(): void {
-    if (!this.selectedSku) return;
-    // Use the trend endpoint with metric 'revenue' and group by category
-    const params = new HttpParams().set('sku', this.selectedSku).set('metric', 'revenue').set('interval', 'category');
-    this.http.get<any[]>('/api/v2/products/trend', { headers: this.getAuthHeaders(), params }).subscribe(data => {
-      if (data && data.length > 0) {
-        const labels = data.map(d => d.category);
-        const series = data.map(d => d.revenue);
-        this.categoryShareChartOptions = {
-          series,
-          chart: { type: 'pie', height: 350 },
-          labels,
-          colors: this.colorPalette,
-          dataLabels: { enabled: true, formatter: (val: number) => val.toFixed(1) + '%' },
-          plotOptions: { pie: { donut: { size: '65%' } } },
-          legend: { position: 'bottom' }
-        };
-      } else {
-        this.categoryShareChartOptions = null;
-      }
-    });
+  private buildAOVTrendChart(data: TrendDataPoint[]): void {
+    const chartData = this.processTrendData(data);
+
+    this.aovTrendChartOptions = {
+      series: [{
+        name: 'Avg Order Value',
+        data: chartData.values
+      }],
+      chart: {
+        type: 'line',
+        height: 300,
+        toolbar: { show: true }
+      },
+      colors: [this.colorPalette[4]],
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth', width: 3 },
+      xaxis: {
+        categories: chartData.labels,
+        labels: { style: { fontSize: '12px' } }
+      },
+      yaxis: {
+        labels: {
+          formatter: (value: number) => this.formatCurrency(value)
+        }
+      },
+      tooltip: {
+        y: {
+          formatter: (value: number) => this.formatCurrency(value)
+        }
+      },
+      grid: { borderColor: '#f1f5f9' }
+    };
   }
 
   private processTrendData(data: TrendDataPoint[]) {
-    const labels: string[] = [];
-    const values: number[] = [];
-
-    data.forEach(point => {
-      if (point.mo === 0) {
-        labels.push(point.yr.toString());
-      } else {
-        labels.push(`${point.yr}-${point.mo.toString().padStart(2, '0')}`);
-      }
-      values.push(point.metric_value);
+    const sortedData = data.sort((a, b) => {
+      if (a.yr !== b.yr) return a.yr - b.yr;
+      return a.mo - b.mo;
     });
+
+    const labels = sortedData.map(item => {
+      if (item.yr === 0 && item.mo === 0) return 'All Time';
+      if (item.mo === 0) return `${item.yr}`;
+      return `${item.yr}-${item.mo.toString().padStart(2, '0')}`;
+    });
+
+    const values = sortedData.map(item => item.metric_value);
 
     return { labels, values };
   }
 
-  exportChartData(chartType: string): void {
-    if (chartType === 'launch-progress') {
-      // Export launch progress as CSV
-      const csv = `Metric,Value\nRevenue,${this.currentKPI?.revenue || 0}\nTarget,${this.LAUNCH_PROGRESS_TARGET_MULTIPLIER * (this.currentKPI?.revenue || 0)}\nProgress,${this.launchProgressChartOptions?.series?.[0] || 0}%`;
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `launch-progress-${this.selectedSku}.csv`;
-      link.click();
-      return;
-    }
-    if (chartType === 'year-over-year') {
-      // Export year-over-year as CSV
-      if (this.yearOverYearChartOptions && this.yearOverYearChartOptions.series && this.yearOverYearChartOptions.xaxis && (this.yearOverYearChartOptions.xaxis as any).categories) {
-        const csv = ['Month,' + (this.yearOverYearChartOptions.series as any[]).map(s => s.name).join(',')];
-        const months = (this.yearOverYearChartOptions.xaxis as any).categories || [];
-        for (let i = 0; i < months.length; i++) {
-          const row = [months[i]];
-          for (const s of (this.yearOverYearChartOptions.series as any[])) {
-            row.push(s.data[i]);
-          }
-          csv.push(row.join(','));
-        }
-        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `year-over-year-${this.selectedSku}.csv`;
-        link.click();
-      }
-      return;
-    }
-    if (chartType === 'category-share') {
-      // Export category share as CSV
-      if (this.categoryShareChartOptions && this.categoryShareChartOptions.labels && this.categoryShareChartOptions.series) {
-        const csv = ['Category,Revenue'];
-        for (let i = 0; i < this.categoryShareChartOptions.labels.length; i++) {
-          csv.push(`${this.categoryShareChartOptions.labels[i]},${this.categoryShareChartOptions.series[i]}`);
-        }
-        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `category-share-${this.selectedSku}.csv`;
-        link.click();
-      }
-      return;
-    }
-    // Default: trend export
-    const filters = this.buildFilterOptions();
-    let params = new HttpParams().set('sku', this.selectedSku).set('metric', chartType);
-    if (filters.timePeriod !== 'all-time') {
-      params = params.set('timePeriod', filters.timePeriod);
-      if (filters.year) params = params.set('year', filters.year.toString());
-      if (filters.month) params = params.set('month', filters.month.toString());
-    }
-    const url = `/api/v2/products/trend/export?${params.toString()}`;
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `product-${chartType}-${this.selectedSku}.csv`;
-    link.click();
-  }
-
-  refreshData(): void {
-    this.loadProductData();
+  exportOverviewChart(): void {
+    // This will be handled by the chart's built-in export functionality
+    console.log('Export overview chart');
   }
 
   getTimePeriodLabel(): string {
     switch (this.selectedTimePeriod) {
       case 'all-time':
-        return 'All Time Data';
+        return 'All Time';
       case 'year':
-        return this.selectedYear ? `Year ${this.selectedYear}` : 'Year View';
+        return this.selectedYear ? `Year ${this.selectedYear}` : 'Year';
       case 'month':
-        if (this.selectedYear && this.selectedMonth) {
-          const monthData = this.availableMonths.find(m => m.month === this.selectedMonth);
-          return monthData ? `${monthData.month_name_label} ${this.selectedYear}` : `Month ${this.selectedMonth}, ${this.selectedYear}`;
-        }
-        return 'Month View';
-      case 'custom-range':
-        if (this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
-          return `Custom: ${this.customStartMonth}/${this.customStartYear} - ${this.customEndMonth}/${this.customEndYear}`;
-        }
-        return 'Custom Range';
-      case 'since-launch':
-        return 'Since Launch';
-      case 'compare':
-        return 'Comparison View';
+        return this.selectedYear && this.selectedMonth
+          ? `${this.selectedYear}-${this.selectedMonth.toString().padStart(2, '0')}`
+          : 'Month';
       default:
-        return 'Unknown Period';
+        return 'All Time';
     }
   }
 
-  // Utility methods
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -761,5 +597,59 @@ export class ProductsComponent implements OnInit {
 
   formatNumber(value: number): string {
     return new Intl.NumberFormat('en-US').format(value);
+  }
+
+  // Product table methods
+  sortProductTable(column: 'total_revenue' | 'total_quantity' | 'product_name' | 'category' | 'size'): void {
+    if (this.productTableSortColumn === column) {
+      this.productTableSortAscending = !this.productTableSortAscending;
+    } else {
+      this.productTableSortColumn = column;
+      this.productTableSortAscending = false;
+    }
+  }
+
+  getProductTableSortedData(): any[] {
+    if (!this.productTableData || this.productTableData.length === 0) {
+      return [];
+    }
+
+    const sorted = [...this.productTableData].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      switch (this.productTableSortColumn) {
+        case 'total_revenue':
+          aVal = a.total_revenue || 0;
+          bVal = b.total_revenue || 0;
+          break;
+        case 'total_quantity':
+          aVal = a.total_quantity || a.total_units || 0;
+          bVal = b.total_quantity || b.total_units || 0;
+          break;
+        case 'product_name':
+          aVal = (a.name || a.product_name || '').toLowerCase();
+          bVal = (b.name || b.product_name || '').toLowerCase();
+          break;
+        case 'category':
+          aVal = (a.category || '').toLowerCase();
+          bVal = (b.category || '').toLowerCase();
+          break;
+        case 'size':
+          aVal = (a.size || '').toLowerCase();
+          bVal = (b.size || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aVal === 'string') {
+        return this.productTableSortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      } else {
+        return this.productTableSortAscending ? aVal - bVal : bVal - aVal;
+      }
+    });
+
+    return sorted;
   }
 }

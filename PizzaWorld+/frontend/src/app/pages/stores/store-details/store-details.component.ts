@@ -2,9 +2,19 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar.component';
-import { KpiService, StoreInfo, PerformanceData, StorePerformance } from '../../../core/kpi.service';
+import {
+  KpiService,
+  StoreInfo,
+  PerformanceData,
+  StorePerformance,
+  TimePeriodOption,
+  ChartFilterOptions,
+  StoreRevenueTrend
+} from '../../../core/kpi.service';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { TableModule } from 'primeng/table';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import {
   ApexAxisChartSeries,
@@ -19,6 +29,7 @@ import {
   ApexResponsive,
   ApexLegend
 } from 'ng-apexcharts';
+import { forkJoin } from 'rxjs';
 
 export type ChartOptions = {
   series: ApexAxisChartSeries;
@@ -56,6 +67,8 @@ export type PieChartOptions = {
     CommonModule,
     CardModule,
     ButtonModule,
+    ProgressBarModule,
+    TableModule,
     NgApexchartsModule
   ],
   templateUrl: './store-details.component.html',
@@ -70,6 +83,42 @@ export class StoreDetailsComponent implements OnInit {
   storePerformance: StorePerformance | null = null;
   chartsReady = false;
 
+  // New comprehensive analytics properties
+  storeOverview: any = null;
+  revenueTrends: any[] = [];
+  hourlyPerformance: any[] = [];
+  categoryPerformance: any[] = [];
+  dailyOperations: any[] = [];
+  customerInsights: any[] = [];
+  productPerformance: any[] = [];
+  recentOrders: any[] = [];
+  efficiencyMetrics: any = null;
+
+  // KPI Cards data (same structure as dashboard/stores pages)
+  kpiCards: Array<{ title: string; value: string; subtitle: string; icon: string; color: string; textColor: string }> = [];
+
+  // Chart loading states
+  chartsLoading = {
+    revenueTrends: true,
+    hourlyPerformance: true,
+    categoryPerformance: true,
+    dailyOperations: true,
+    customerInsights: true,
+    productPerformance: true,
+    efficiencyMetrics: true,
+    recentOrders: true
+  };
+
+  // Chart instances
+  revenueTrendChart: any = null;
+  hourlyHeatmapChart: any = null;
+  categoryDonutChart: any = null;
+  dailyTrendsChart: any = null;
+  customerGrowthChart: any = null;
+  productBarChart: any = null;
+  efficiencyGaugeChart: any = null;
+  weeklyPatternChart: any = null;
+
   // Chart options - initialized lazily
   revenueChartOptions: Partial<ChartOptions> | null = null;
   ordersChartOptions: Partial<ChartOptions> | null = null;
@@ -77,6 +126,17 @@ export class StoreDetailsComponent implements OnInit {
   revenueComparisonChartOptions: Partial<ChartOptions> | null = null;
   ordersComparisonChartOptions: Partial<ChartOptions> | null = null;
   performanceComparisonChartOptions: Partial<ChartOptions> | null = null;
+
+  // ===== Time filter state (same pattern as dashboard) =====
+  selectedTimePeriod: 'all-time' | 'year' | 'month' | 'quarter' = 'all-time';
+  availableYears: TimePeriodOption[] = [];
+  availableMonths: TimePeriodOption[] = [];
+  selectedYear?: number;
+  selectedMonth?: number;
+  selectedQuarter?: number;
+
+  // ===== Fetch flags =====
+  analyticsLoading = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -95,577 +155,174 @@ export class StoreDetailsComponent implements OnInit {
   loadStoreDetails(): void {
     this.loading = true;
     this.error = false;
-    this.chartsReady = false;
 
-    console.log('Loading store details for:', this.storeId);
-
-    // Load from cached data - this should be instant
     const cachedStores = this.kpi.getCachedStoresData();
-    const storePerformance = this.kpi.getStorePerformance(this.storeId);
-
-    console.log('Cached stores:', cachedStores?.length);
-    console.log('Store performance:', storePerformance);
-
-    if (cachedStores && storePerformance) {
-      this.store = cachedStores.find(s => s.storeid === this.storeId) || null;
-      this.storePerformance = storePerformance;
-
-      if (this.store && this.storePerformance) {
-        console.log('Found store and performance data in cache');
-        this.prepareStoreStats();
-        this.error = false;
-
-        // Defer chart initialization to next tick for faster initial render
-        setTimeout(() => {
-          this.initializeCharts();
-          this.chartsReady = true;
-          this.cdr.detectChanges();
-        }, 0);
-      } else {
-        console.log('Store or performance data missing from cache');
-        this.error = true;
-      }
-    } else if (cachedStores) {
-      // Store exists but no performance data - try to load it
-      this.store = cachedStores.find(s => s.storeid === this.storeId) || null;
-      if (this.store) {
-        console.log('Store found in cache, loading performance from API');
-        this.loadFromAPI();
-      } else {
-        console.log('Store not found in cache');
-        this.error = true;
-      }
-    } else {
-      // No cached data at all - try to load from API
-      console.log('No cached data, loading from API');
-      this.loadFromAPI();
+    if (!cachedStores) {
+      // If stores cache missing, fetch first then retry
+      this.kpi.getAllStores().subscribe({
+        next: () => this.loadStoreDetails(),
+        error: () => {
+          this.error = true;
+          this.loading = false;
+        }
+      });
+      return;
     }
 
-          this.loading = false;
-  }
+    this.store = cachedStores.find(s => s.storeid === this.storeId) || null;
+    if (!this.store) {
+      this.error = true;
+      this.loading = false;
+      return;
+    }
 
-  private loadFromAPI(): void {
-    // This is a fallback - should rarely happen since data is preloaded
-    this.kpi.getAllStores().subscribe({
-      next: (stores) => {
-        this.store = stores.find(s => s.storeid === this.storeId) || null;
-        if (this.store) {
-          this.kpi.getStoreStats(this.storeId).subscribe({
-            next: (stats) => {
-              if (stats) {
-                this.prepareStoreStatsFromAPI(stats);
-                setTimeout(() => {
-                  this.initializeCharts();
-                  this.chartsReady = true;
-                  this.cdr.detectChanges();
-                }, 0);
-              } else {
-                this.error = true;
-              }
+    // Load time-period reference data then analytics
+    this.kpi.getAvailableYears().subscribe({
+      next: (years) => {
+        this.availableYears = years;
+        if (this.selectedTimePeriod !== 'all-time' && years.length > 0) {
+          this.selectedYear = years[0].year;
+        }
+        if (this.selectedTimePeriod === 'month' && this.selectedYear) {
+          this.kpi.getAvailableMonthsForYear(this.selectedYear).subscribe({
+            next: (months) => {
+              this.availableMonths = months;
+              if (months.length > 0) this.selectedMonth = months[0].month;
+              this.loadAnalyticsData();
             },
-            error: (err) => {
-              console.error('Store stats loading error:', err);
+            error: () => {
               this.error = true;
+              this.loading = false;
             }
           });
         } else {
-          this.error = true;
+          this.loadAnalyticsData();
         }
+      },
+      error: () => {
+        this.error = true;
+        this.loading = false;
+      }
+    });
+  }
+
+  // ===== Build Http filter options =====
+  private buildFilterOptions(): Partial<ChartFilterOptions> {
+    return {
+      timePeriod: this.selectedTimePeriod,
+      year: this.selectedYear,
+      month: this.selectedMonth,
+      quarter: this.selectedQuarter
+    };
+  }
+
+  // ===== Load analytics for store =====
+  loadAnalyticsData(): void {
+    if (!this.store) return;
+
+    this.analyticsLoading = true;
+    const filters = this.buildFilterOptions();
+
+    forkJoin({
+      overview: this.kpi.getStoreAnalyticsOverview(this.store.storeid, filters),
+      revenueTrends: this.kpi.getStoreRevenueTrends(this.store.storeid, filters),
+      hourly: this.kpi.getStoreHourlyPerformance(this.store.storeid, filters),
+      category: this.kpi.getStoreCategoryPerformance(this.store.storeid, filters),
+      efficiency: this.kpi.getStoreEfficiencyMetrics(this.store.storeid, filters),
+      recentOrders: this.kpi.getStoreRecentOrders(this.store.storeid, 50)
+    }).subscribe({
+      next: (res) => {
+        // KPI cards
+        this.kpiCards = [
+          {
+            title: 'Revenue',
+            value: this.formatCurrency(res.overview.revenue),
+            subtitle: this.getTimePeriodLabel(),
+            icon: 'pi pi-dollar',
+            color: 'bg-gradient-to-r from-green-400 to-emerald-500',
+            textColor: 'text-white'
+          },
+          {
+            title: 'Orders',
+            value: this.formatNumber(res.overview.orders),
+            subtitle: this.getTimePeriodLabel(),
+            icon: 'pi pi-shopping-cart',
+            color: 'bg-gradient-to-r from-blue-400 to-indigo-500',
+            textColor: 'text-white'
+          },
+          {
+            title: 'Avg Order',
+            value: this.formatCurrency(res.overview.avg_order_value),
+            subtitle: this.getTimePeriodLabel(),
+            icon: 'pi pi-chart-line',
+            color: 'bg-gradient-to-r from-purple-400 to-pink-500',
+            textColor: 'text-white'
+          },
+          {
+            title: 'Customers',
+            value: this.formatNumber(res.overview.customers),
+            subtitle: this.getTimePeriodLabel(),
+            icon: 'pi pi-users',
+            color: 'bg-gradient-to-r from-orange-400 to-red-500',
+            textColor: 'text-white'
+          }
+        ];
+
+        // Charts
+        this.buildRevenueTrendChart(res.revenueTrends);
+        this.hourlyHeatmapChart = null;
+        this.categoryDonutChart = null;
+        // TODO build more charts using res.hourly, res.category, etc.
+
+        // Efficiency metrics & orders table
+        this.efficiencyMetrics = res.efficiency;
+        this.recentOrders = res.recentOrders;
+
+        Object.keys(this.chartsLoading).forEach(k => (this.chartsLoading as any)[k] = false);
+        this.analyticsLoading = false;
+        this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Stores loading error:', err);
+        console.error('Store analytics load error', err);
         this.error = true;
-        }
-      });
-  }
-
-  private prepareStoreStats(): void {
-    if (this.storePerformance) {
-      this.storeStats = {
-        totalOrders: this.storePerformance.totalOrders,
-        totalRevenue: this.storePerformance.totalRevenue,
-        avgOrderValue: this.storePerformance.avgOrderValue,
-        uniqueCustomers: this.storePerformance.uniqueCustomers,
-        lastUpdated: this.storePerformance.lastUpdated
-      };
-    }
-  }
-
-  private prepareStoreStatsFromAPI(stats: any): void {
-            this.storeStats = {
-              totalOrders: stats.kpis?.orders || 0,
-              totalRevenue: stats.kpis?.revenue || 0,
-              avgOrderValue: stats.kpis?.avg_order || 0,
-              uniqueCustomers: stats.kpis?.customers || 0,
-              topProducts: Array.isArray(stats.topProducts)
-                ? stats.topProducts.map((p: any) => ({
-                    name: p.name || 'No data available',
-                    size: p.size || '',
-                    sku: p.sku || ''
-                  }))
-                : [],
-              worstProducts: Array.isArray(stats.worstProducts)
-                ? stats.worstProducts.map((p: any) => ({
-                    name: p.name || 'No data available',
-                    size: p.size || '',
-                    sku: p.sku || ''
-                  }))
-                : []
-            };
-  }
-
-  private initializeCharts(): void {
-    this.initializeRevenueChart();
-    this.initializeOrdersChart();
-    this.initializePerformanceChart();
-    this.initializeComparisonCharts();
-  }
-
-  private initializeComparisonCharts(): void {
-    this.initializeRevenueComparisonChart();
-    this.initializeOrdersComparisonChart();
-    this.initializePerformanceComparisonChart();
-  }
-
-  private initializeRevenueChart(): void {
-    const revenue = this.storePerformance?.totalRevenue || 0;
-    this.revenueChartOptions = {
-      series: [{
-        name: 'Revenue',
-        data: [revenue]
-      }],
-      chart: {
-        type: 'bar',
-        height: 200,
-        toolbar: { show: false },
-        animations: { enabled: false },
-        background: '#ffffff',
-        foreColor: '#ff6b35'
-      },
-      plotOptions: {
-        bar: {
-          horizontal: false,
-          columnWidth: '70%',
-          borderRadius: 8,
-          colors: {
-            ranges: [{
-              from: 0,
-              to: 999999,
-              color: '#ff6b35'
-            }]
-          }
-        }
-      },
-      dataLabels: {
-        enabled: true,
-        style: {
-          colors: ['#ff6b35'],
-          fontSize: '14px',
-          fontWeight: 'bold'
-        },
-        formatter: (val: number) => '$' + val.toLocaleString()
-      },
-      stroke: { show: true, width: 2, colors: ['transparent'] },
-      xaxis: {
-        categories: ['Total Revenue'],
-        labels: {
-          style: {
-            colors: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
-          }
-        }
-      },
-      yaxis: {
-        title: {
-          text: 'Revenue ($)',
-          style: {
-            color: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
-          }
-        },
-        labels: {
-          style: {
-            colors: '#ff6b35',
-            fontSize: '12px'
-          },
-          formatter: (val: number) => '$' + val.toLocaleString()
-        }
-      },
-      fill: { opacity: 1 },
-      tooltip: {
-        theme: 'light',
-        style: {
-          fontSize: '12px'
-        },
-        y: { formatter: (val: number) => '$' + val.toLocaleString() }
-      },
-      title: {
-        text: 'Store Revenue',
-        align: 'center',
-        style: {
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: '#ff6b35'
-        }
-      },
-      colors: ['#ff6b35']
-    };
-  }
-
-  private initializeOrdersChart(): void {
-    const orders = this.storePerformance?.totalOrders || 0;
-    this.ordersChartOptions = {
-      series: [{
-        name: 'Orders',
-        data: [orders]
-      }],
-      chart: {
-        type: 'line',
-        height: 200,
-        toolbar: { show: false },
-        animations: { enabled: false },
-        background: '#ffffff',
-        foreColor: '#ff6b35'
-      },
-      stroke: {
-        curve: 'smooth',
-        width: 4,
-        colors: ['#ff6b35']
-      },
-      xaxis: {
-        categories: ['Total Orders'],
-        labels: {
-          style: {
-            colors: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
-          }
-        }
-      },
-      yaxis: {
-        title: {
-          text: 'Number of Orders',
-          style: {
-            color: '#ff6b35',
-            fontSize: '14px',
-            fontWeight: '600'
-          }
-        },
-        labels: {
-          style: {
-            colors: '#ff6b35',
-            fontSize: '12px'
-          },
-          formatter: (val: number) => val.toLocaleString()
-        }
-      },
-      tooltip: {
-        theme: 'light',
-        style: {
-          fontSize: '12px'
-        },
-        y: { formatter: (val: number) => val.toLocaleString() + ' orders' }
-      },
-      title: {
-        text: 'Store Orders',
-        align: 'center',
-        style: {
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: '#ff6b35'
-        }
-      },
-      colors: ['#ff6b35']
-    };
-  }
-
-  private initializePerformanceChart(): void {
-    const avgOrderValue = this.storePerformance?.avgOrderValue || 0;
-    const uniqueCustomers = this.storePerformance?.uniqueCustomers || 0;
-
-    this.performanceChartOptions = {
-      series: [avgOrderValue, uniqueCustomers] as number[],
-      chart: {
-        type: 'donut',
-        height: 250,
-        toolbar: { show: false },
-        animations: { enabled: false },
-        background: '#ffffff',
-        foreColor: '#ff6b35'
-      },
-      labels: ['Avg Order Value', 'Unique Customers'],
-      dataLabels: {
-        enabled: true,
-        style: {
-          colors: ['#ffffff'],
-          fontSize: '12px',
-          fontWeight: 'bold'
-        },
-        formatter: (val: number, opts: any) => {
-          if (opts.seriesIndex === 0) {
-            return '$' + avgOrderValue.toFixed(2);
-          } else {
-            return uniqueCustomers.toLocaleString();
-          }
-        }
-      },
-      plotOptions: {
-        pie: {
-          donut: {
-            size: '60%',
-            labels: {
-              show: true,
-              total: {
-                show: true,
-                label: 'Performance',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#ff6b35'
-              }
-            }
-          }
-        }
-      },
-      colors: ['#ff6b35', '#f7931e'],
-      title: {
-        text: 'Store Performance Metrics',
-        align: 'center',
-        style: {
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: '#ff6b35'
-        }
-      },
-      legend: {
-        position: 'bottom',
-        labels: {
-          colors: '#ff6b35'
-        }
+        this.analyticsLoading = false;
+        this.loading = false;
       }
-    };
-  }
-
-  private initializeRevenueComparisonChart(): void {
-    const allStores = this.kpi.getCachedPerformanceData();
-    if (!this.storePerformance || !allStores) return;
-
-    const currentStoreRevenue = this.storePerformance.totalRevenue;
-
-    // Get top 10 stores by revenue for comparison
-    const topStores = Object.entries(allStores.storePerformance)
-      .sort(([, a], [, b]) => b.totalRevenue - a.totalRevenue)
-      .slice(0, 10);
-
-    const storeIds = topStores.map(([id]) => id);
-    const revenues = topStores.map(([, data]) => data.totalRevenue);
-
-    // Color coding: green for good (top performers), red for poor performers
-    const colors: string[] = revenues.map(revenue => {
-      const maxRevenue = Math.max(...revenues);
-      const minRevenue = Math.min(...revenues);
-      const percentage = (revenue - minRevenue) / (maxRevenue - minRevenue);
-
-      if (percentage >= 0.7) return '#10B981'; // Green for top 30%
-      if (percentage >= 0.4) return '#F59E0B'; // Yellow for middle 30%
-      return '#EF4444'; // Red for bottom 40%
     });
+  }
 
-    // Highlight current store
-    const currentStoreIndex = storeIds.indexOf(this.storeId);
-    if (currentStoreIndex !== -1) {
-      colors[currentStoreIndex] = '#3B82F6'; // Blue for current store
-    }
+  private buildRevenueTrendChart(data: StoreRevenueTrend[]): void {
+    if (!data || data.length === 0) return;
+    const dates = data.map(d => d.date);
+    const revenues = data.map(d => d.revenue);
+    const orders = data.map(d => d.orders);
 
-    this.revenueComparisonChartOptions = {
-      series: [{
-        name: 'Revenue',
-        data: revenues
-      }],
-      chart: {
-        type: 'bar',
-        height: 350,
-        toolbar: { show: false }
-      },
-      colors: colors,
-      xaxis: {
-        categories: storeIds.map(id => `Store ${id}`),
-        labels: { rotate: -45 }
-      },
-      yaxis: {
-        title: { text: 'Revenue ($)' }
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (value: number) => `$${(value / 1000).toFixed(0)}k`
-      },
-      tooltip: {
-        y: {
-          formatter: (value: number) => `$${value.toLocaleString()}`
-        }
-      },
-      title: {
-        text: 'Store Revenue Comparison (Top 10)',
-        align: 'center'
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          dataLabels: {
-            position: 'top'
-          }
-        }
-      }
+    this.revenueTrendChart = {
+      series: [
+        { name: 'Revenue', type: 'area', data: revenues },
+        { name: 'Orders', type: 'line', data: orders }
+      ],
+      chart: { type: 'line', height: 350, toolbar: { show: false } },
+      xaxis: { categories: dates },
+      yaxis: [ { title: { text: 'Revenue ($)' } }, { opposite: true, title: { text: 'Orders' } } ],
+      colors: ['#ff6b35', '#3b82f6'],
+      stroke: { width: [0, 2] },
+      fill: { type: ['gradient', 'solid'] }
     };
   }
 
-  private initializeOrdersComparisonChart(): void {
-    const allStores = this.kpi.getCachedPerformanceData();
-    if (!this.storePerformance || !allStores) return;
-
-    // Get top 10 stores by orders for comparison
-    const topStores = Object.entries(allStores.storePerformance)
-      .sort(([, a], [, b]) => b.totalOrders - a.totalOrders)
-      .slice(0, 10);
-
-    const storeIds = topStores.map(([id]) => id);
-    const orders = topStores.map(([, data]) => data.totalOrders);
-
-    // Color coding: green for good (top performers), red for poor performers
-    const colors: string[] = orders.map(orderCount => {
-      const maxOrders = Math.max(...orders);
-      const minOrders = Math.min(...orders);
-      const percentage = (orderCount - minOrders) / (maxOrders - minOrders);
-
-      if (percentage >= 0.7) return '#10B981'; // Green for top 30%
-      if (percentage >= 0.4) return '#F59E0B'; // Yellow for middle 30%
-      return '#EF4444'; // Red for bottom 40%
-    });
-
-    // Highlight current store
-    const currentStoreIndex = storeIds.indexOf(this.storeId);
-    if (currentStoreIndex !== -1) {
-      colors[currentStoreIndex] = '#3B82F6'; // Blue for current store
+  private getTimePeriodLabel(): string {
+    switch (this.selectedTimePeriod) {
+      case 'year':
+        return this.selectedYear ? `Year ${this.selectedYear}` : '';
+      case 'month':
+        return this.selectedMonth && this.selectedYear ? `${this.selectedMonth}/${this.selectedYear}` : '';
+      case 'quarter':
+        return this.selectedQuarter && this.selectedYear ? `Q${this.selectedQuarter} ${this.selectedYear}` : '';
+      default:
+        return 'All-time';
     }
-
-    this.ordersComparisonChartOptions = {
-      series: [{
-        name: 'Orders',
-        data: orders
-      }],
-      chart: {
-        type: 'bar',
-        height: 350,
-        toolbar: { show: false }
-      },
-      colors: colors,
-      xaxis: {
-        categories: storeIds.map(id => `Store ${id}`),
-        labels: { rotate: -45 }
-      },
-      yaxis: {
-        title: { text: 'Total Orders' }
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (value: number) => value.toLocaleString()
-      },
-      tooltip: {
-        y: {
-          formatter: (value: number) => value.toLocaleString()
-        }
-      },
-      title: {
-        text: 'Store Orders Comparison (Top 10)',
-        align: 'center'
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          dataLabels: {
-            position: 'top'
-          }
-        }
-      }
-    };
-  }
-
-  private initializePerformanceComparisonChart(): void {
-    const allStores = this.kpi.getCachedPerformanceData();
-    if (!this.storePerformance || !allStores) return;
-
-    // Calculate performance score (combination of revenue and orders)
-    const storeScores = Object.entries(allStores.storePerformance).map(([id, data]) => ({
-      id,
-      score: (data.totalRevenue / 1000) + (data.totalOrders / 10), // Normalized score
-      revenue: data.totalRevenue,
-      orders: data.totalOrders
-    }));
-
-    // Get top 10 stores by performance score
-    const topStores = storeScores
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
-    const storeIds = topStores.map(store => store.id);
-    const scores = topStores.map(store => store.score);
-
-    // Color coding: green for good (top performers), red for poor performers
-    const colors: string[] = scores.map(score => {
-      const maxScore = Math.max(...scores);
-      const minScore = Math.min(...scores);
-      const percentage = (score - minScore) / (maxScore - minScore);
-
-      if (percentage >= 0.7) return '#10B981'; // Green for top 30%
-      if (percentage >= 0.4) return '#F59E0B'; // Yellow for middle 30%
-      return '#EF4444'; // Red for bottom 40%
-    });
-
-    // Highlight current store
-    const currentStoreIndex = storeIds.indexOf(this.storeId);
-    if (currentStoreIndex !== -1) {
-      colors[currentStoreIndex] = '#3B82F6'; // Blue for current store
-    }
-
-    this.performanceComparisonChartOptions = {
-      series: [{
-        name: 'Performance Score',
-        data: scores
-      }],
-      chart: {
-        type: 'line',
-        height: 350,
-        toolbar: { show: false }
-      },
-      colors: ['#3B82F6'],
-      xaxis: {
-        categories: storeIds.map(id => `Store ${id}`),
-        labels: { rotate: -45 }
-      },
-      yaxis: {
-        title: { text: 'Performance Score' }
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: (value: number) => value.toFixed(0)
-      },
-      tooltip: {
-        y: {
-          formatter: (value: number) => `Score: ${value.toFixed(0)}`
-        }
-      },
-      title: {
-        text: 'Store Performance Comparison (Top 10)',
-        align: 'center'
-      },
-      fill: {
-        opacity: 0.3
-      },
-      stroke: {
-        width: 2
-      }
-    };
   }
 
   goBack(): void {
@@ -687,5 +344,60 @@ export class StoreDetailsComponent implements OnInit {
 
   formatNumber(value: number): string {
     return value.toLocaleString();
+  }
+
+  // New methods for comprehensive analytics
+  calculateEfficiencyScore(metrics: any): string {
+    if (!metrics || !metrics.efficiency_score) return '0%';
+    return `${Math.round(metrics.efficiency_score)}%`;
+  }
+
+  calculateEfficiencyScoreNumeric(metrics: any): number {
+    if (!metrics || !metrics.efficiency_score) return 0;
+    return Math.round(metrics.efficiency_score);
+  }
+
+  getPerformanceClass(score: number): string {
+    if (score >= 80) return 'performance-excellent';
+    if (score >= 60) return 'performance-good';
+    return 'performance-poor';
+  }
+
+  formatPercentage(value: number): string {
+    return `${(value || 0).toFixed(1)}%`;
+  }
+
+  formatDate(date: string): string {
+    return new Date(date).toLocaleDateString();
+  }
+
+  formatTime(date: string): string {
+    return new Date(date).toLocaleTimeString();
+  }
+
+  formatDateTime(date: string): string {
+    return new Date(date).toLocaleString();
+  }
+
+  formatCompactNumber(value: number): string {
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`;
+    }
+    return value?.toLocaleString() || '0';
+  }
+
+  getRevenueGrowthClass(growth: number): string {
+    if (growth > 0) return 'text-green-600';
+    if (growth < 0) return 'text-red-600';
+    return 'text-gray-600';
+  }
+
+  getRevenueGrowthIcon(growth: number): string {
+    if (growth > 0) return 'pi pi-arrow-up';
+    if (growth < 0) return 'pi pi-arrow-down';
+    return 'pi pi-minus';
   }
 }

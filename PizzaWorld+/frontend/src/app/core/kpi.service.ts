@@ -135,6 +135,66 @@ export interface ChartFilterOptions {
   selectedStores?: string[];
 }
 
+// New interfaces for store-specific analytics
+export interface StoreAnalyticsOverview {
+  revenue: number;
+  orders: number;
+  avg_order_value: number;
+  customers: number;
+  last_updated: string;
+}
+
+export interface StoreRevenueTrend {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface HourlyPerformancePoint {
+  hour: number;
+  revenue: number;
+  orders: number;
+}
+
+export interface CategoryPerformancePoint {
+  category: string;
+  total_revenue: number;
+  units_sold: number;
+  avg_order_value: number;
+}
+
+export interface DailyOperationsPoint {
+  date: string;
+  revenue: number;
+  orders: number;
+  customers: number;
+  avg_order_value: number;
+}
+
+export interface CustomerInsightsPoint {
+  week_start: string;
+  new_customers: number;
+  returning_customers: number;
+  total_revenue: number;
+}
+
+export interface ProductPerformancePoint {
+  sku: string;
+  product_name: string;
+  total_revenue: number;
+  total_quantity: number;
+  orders_count: number;
+}
+
+export interface EfficiencyMetrics {
+  efficiency_score: number;
+  avg_orders_per_day: number;
+  active_days: number;
+  total_items_sold: number;
+  avg_order_value: number;
+  revenue_per_customer?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class KpiService {
   private http = inject(HttpClient);
@@ -455,7 +515,7 @@ export class KpiService {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('pizzaWorld_sales_') || 
+      if (key && key.startsWith('pizzaWorld_sales_') ||
           key && key.startsWith('pizzaWorld_best_products_') ||
           key && key.startsWith('pizzaWorld_stores_revenue_') ||
           key && key.startsWith('pizzaWorld_sales_trend_') ||
@@ -625,7 +685,7 @@ export class KpiService {
   /** Debug method to check cache status */
   debugCacheStatus(): void {
     console.log('🔍 Cache Status Report:');
-    
+
     // Check in-memory caches
     console.log('📦 In-Memory Caches:');
     console.log(`  - Dashboard: ${this.dashboardCache$ ? '✅ Loaded' : '❌ Empty'}`);
@@ -634,7 +694,7 @@ export class KpiService {
     console.log(`  - Stores Data: ${this.storesDataCache ? `✅ ${this.storesDataCache.length} stores` : '❌ Empty'}`);
     console.log(`  - Performance Data: ${this.performanceDataCache ? '✅ Loaded' : '❌ Empty'}`);
     console.log(`  - Products Data: ${this.productsDataCache ? `✅ ${this.productsDataCache.length} products` : '❌ Empty'}`);
-    
+
     // Check localStorage caches
     console.log('💾 LocalStorage Caches:');
     const pizzaWorldKeys = [];
@@ -644,7 +704,7 @@ export class KpiService {
         pizzaWorldKeys.push(key);
       }
     }
-    
+
     if (pizzaWorldKeys.length > 0) {
       pizzaWorldKeys.forEach(key => {
         const value = localStorage.getItem(key);
@@ -675,16 +735,16 @@ export class KpiService {
     const storesData = this.getCachedStoresData();
     const productsData = this.getCachedProducts();
     const performanceData = this.getCachedPerformanceData();
-    
+
     const hasStores = storesData !== null && storesData.length > 0;
     const hasProducts = productsData !== null && productsData.length > 0;
     const hasPerformance = performanceData !== null;
-    
+
     console.log('🔍 Essential Data Cache Check:');
     console.log(`  - Stores: ${hasStores ? '✅' : '❌'}`);
     console.log(`  - Products: ${hasProducts ? '✅' : '❌'}`);
     console.log(`  - Performance: ${hasPerformance ? '✅' : '❌'}`);
-    
+
     return hasStores && hasProducts && hasPerformance;
   }
 
@@ -837,7 +897,7 @@ export class KpiService {
   getTopStoresByRevenue(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/dashboard/analytics/top-stores', { headers })
       .pipe(
         catchError(error => {
@@ -851,7 +911,7 @@ export class KpiService {
   getRevenueByYear(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/v2/analytics/revenue/by-year', { headers })
       .pipe(
         catchError(error => {
@@ -865,7 +925,7 @@ export class KpiService {
   getRevenueByMonth(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/v2/analytics/revenue/by-month', { headers })
       .pipe(
         catchError(error => {
@@ -893,7 +953,7 @@ export class KpiService {
   getProductCategoryPerformance(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/dashboard/analytics/product-category-performance', { headers })
       .pipe(
         catchError(error => {
@@ -907,7 +967,7 @@ export class KpiService {
   getCustomerAcquisitionByMonth(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/dashboard/analytics/customer-acquisition', { headers })
       .pipe(
         catchError(error => {
@@ -921,7 +981,7 @@ export class KpiService {
   getAverageOrderValueTrend(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/dashboard/analytics/avg-order-value-trend', { headers })
       .pipe(
         catchError(error => {
@@ -935,7 +995,7 @@ export class KpiService {
   getStorePerformanceComparison(): Observable<any[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<any[]>('/api/dashboard/analytics/store-performance-comparison', { headers })
       .pipe(
         catchError(error => {
@@ -962,7 +1022,7 @@ export class KpiService {
   getGlobalStoreKPIs(): Observable<GlobalStoreKpi[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<GlobalStoreKpi[]>('/api/v2/kpis/global-store', { headers })
       .pipe(
         map(data => {
@@ -1011,7 +1071,7 @@ export class KpiService {
   getStoreRevenueChart(filters: ChartFilterOptions): Observable<StoreRevenueChartData[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     // Build query parameters
     const params = new HttpParams()
       .set('timePeriod', filters.timePeriod)
@@ -1046,7 +1106,7 @@ export class KpiService {
   getStoreRevenueByDateRange(startDate: string, endDate: string): Observable<StoreRevenueChartData[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     const params = new HttpParams()
       .set('startDate', startDate)
       .set('endDate', endDate);
@@ -1071,7 +1131,7 @@ export class KpiService {
   getAvailableYears(): Observable<TimePeriodOption[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers })
       .pipe(
         map(data => {
@@ -1089,7 +1149,7 @@ export class KpiService {
   getAvailableMonthsForYear(year: number): Observable<TimePeriodOption[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     const params = new HttpParams().set('year', year.toString());
 
     return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', { headers, params })
@@ -1110,7 +1170,7 @@ export class KpiService {
   getAvailableQuartersForYear(year: number): Observable<TimePeriodOption[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-    
+
     const params = new HttpParams().set('year', year.toString());
 
     return this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/quarters', { headers, params })
@@ -1160,7 +1220,7 @@ export class KpiService {
     // Clear all chart-related cache entries
     const keys = Object.keys(localStorage);
     keys.forEach(key => {
-      if (key.startsWith('pizzaWorld_store_revenue_') || 
+      if (key.startsWith('pizzaWorld_store_revenue_') ||
           key.startsWith('pizzaWorld_available_')) {
         localStorage.removeItem(key);
       }
@@ -1178,19 +1238,91 @@ export class KpiService {
 
   /** Get revenue value from store data (handles different time period fields) */
   getRevenueValue(store: StoreRevenueChartData): number {
-    return store.total_revenue || 
-           store.monthly_revenue || 
-           store.yearly_revenue || 
-           store.quarterly_revenue || 
+    return store.total_revenue ||
+           store.monthly_revenue ||
+           store.yearly_revenue ||
+           store.quarterly_revenue ||
            0;
   }
 
   /** Get order count from store data (handles different time period fields) */
   getOrderCount(store: StoreRevenueChartData): number {
-    return store.order_count || 
-           store.monthly_orders || 
-           store.yearly_orders || 
-           store.quarterly_orders || 
+    return store.order_count ||
+           store.monthly_orders ||
+           store.yearly_orders ||
+           store.quarterly_orders ||
            0;
+  }
+
+  // Helper to build HttpParams from chart filter options
+  private buildTimeParams(filters?: Partial<ChartFilterOptions>): HttpParams {
+    let params = new HttpParams();
+    if (!filters) return params;
+    if (filters.timePeriod) params = params.set('timePeriod', filters.timePeriod);
+    if (filters.year) params = params.set('year', filters.year.toString());
+    if (filters.month) params = params.set('month', filters.month.toString());
+    if (filters.quarter) params = params.set('quarter', filters.quarter.toString());
+    return params;
+  }
+
+  // Store-specific analytics endpoints
+  getStoreAnalyticsOverview(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<StoreAnalyticsOverview> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<StoreAnalyticsOverview>(`/api/v2/stores/${storeId}/analytics/overview`, { headers, params });
+  }
+
+  getStoreRevenueTrends(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<StoreRevenueTrend[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<StoreRevenueTrend[]>(`/api/v2/stores/${storeId}/analytics/revenue-trends`, { headers, params });
+  }
+
+  getStoreHourlyPerformance(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<HourlyPerformancePoint[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<HourlyPerformancePoint[]>(`/api/v2/stores/${storeId}/analytics/hourly-performance`, { headers, params });
+  }
+
+  getStoreCategoryPerformance(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<CategoryPerformancePoint[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<CategoryPerformancePoint[]>(`/api/v2/stores/${storeId}/analytics/category-performance`, { headers, params });
+  }
+
+  getStoreDailyOperations(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<DailyOperationsPoint[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<DailyOperationsPoint[]>(`/api/v2/stores/${storeId}/analytics/daily-operations`, { headers, params });
+  }
+
+  getStoreCustomerInsights(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<CustomerInsightsPoint[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<CustomerInsightsPoint[]>(`/api/v2/stores/${storeId}/analytics/customer-insights`, { headers, params });
+  }
+
+  getStoreProductPerformance(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<ProductPerformancePoint[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<ProductPerformancePoint[]>(`/api/v2/stores/${storeId}/analytics/product-performance`, { headers, params });
+  }
+
+  getStoreRecentOrders(storeId: string, limit = 50): Observable<OrderInfo[]> {
+    const headers = this.getAuthHeaders();
+    const params = new HttpParams().set('limit', limit.toString());
+    return this.http.get<OrderInfo[]>(`/api/v2/stores/${storeId}/analytics/recent-orders`, { headers, params });
+  }
+
+  getStoreEfficiencyMetrics(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<EfficiencyMetrics> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildTimeParams(filters);
+    return this.http.get<EfficiencyMetrics>(`/api/v2/stores/${storeId}/analytics/efficiency-metrics`, { headers, params });
+  }
+
+  // Helper to get auth headers (moved from stores component)
+  private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('authToken');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
   }
 }

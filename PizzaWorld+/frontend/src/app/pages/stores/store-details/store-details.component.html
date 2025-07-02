@@ -1,308 +1,466 @@
 <app-sidebar></app-sidebar>
-<div class="home-section lg:ml-64">
+<div class="home-section px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
   <!-- Back Button -->
-  <div class="back-section">
+  <div class="mb-6">
     <button pButton type="button"
             icon="pi pi-arrow-left"
             label="Back to Stores"
-            class="p-button-outlined"
+            class="p-button-outlined p-button-secondary"
             (click)="goBack()">
     </button>
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-    <div>Loading store details...</div>
+  <div *ngIf="loading" class="flex flex-col items-center justify-center min-h-96">
+    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mb-4"></div>
+    <div class="text-xl font-semibold text-gray-700">Loading comprehensive store analytics...</div>
+    <div class="text-sm text-gray-500 mt-2">This may take a moment to load all the amazing insights</div>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-container">
-    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
-    <div>Store not found or failed to load</div>
-    <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()" style="margin-top: 1rem;"></button>
+  <div *ngIf="error && !loading" class="flex flex-col items-center justify-center min-h-96">
+    <i class="pi pi-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+    <div class="text-xl font-semibold text-gray-700 mb-2">Store not found or failed to load</div>
+    <div class="text-sm text-gray-500 mb-4">We couldn't load the analytics for this store</div>
+    <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()"></button>
   </div>
 
   <!-- Store Content -->
-  <div *ngIf="!loading && !error && store">
+  <div *ngIf="!loading && !error && store" class="space-y-8">
     <!-- Store Header -->
-    <div class="store-header">
-      <div class="store-title">
-        <h1>Store {{ store.storeid }}</h1>
-        <span class="store-location">{{ store.city }}, {{ store.state }}</span>
-      </div>
-      <div class="store-actions">
-        <button pButton type="button"
-                icon="pi pi-map-marker"
-                label="Open in Maps"
-                class="p-button-outlined"
-                (click)="openInMaps(store.latitude, store.longitude)">
-        </button>
+    <div class="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-8 text-white shadow-2xl">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-4 lg:mb-0">
+          <h1 class="text-4xl font-bold mb-2">{{ store.city }} Store</h1>
+          <div class="text-xl opacity-90 mb-2">Store ID: {{ store.storeid }}</div>
+          <div class="flex items-center text-lg opacity-80">
+            <i class="pi pi-map-marker mr-2"></i>
+            {{ store.city }}, {{ store.state }}
+          </div>
+          <div class="text-sm opacity-70 mt-1">
+            Coordinates: {{ formatCoordinates(store.latitude, store.longitude) }}
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button pButton type="button"
+                  icon="pi pi-map-marker"
+                  label="View on Maps"
+                  class="p-button-outlined p-button-lg border-white text-white hover:bg-white hover:text-orange-500"
+                  (click)="openInMaps(store.latitude, store.longitude)">
+          </button>
+          <button pButton type="button"
+                  icon="pi pi-download"
+                  label="Export Report"
+                  class="p-button-outlined p-button-lg border-white text-white hover:bg-white hover:text-orange-500">
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="charts-section" *ngIf="storePerformance && chartsReady">
-      <h2>Store Performance Overview</h2>
-      <div class="charts-grid">
-        <!-- Revenue Display -->
-        <p-card class="chart-card fancy-number-card">
-          <ng-template pTemplate="content">
-            <div class="fancy-number-display">
-              <div class="fancy-number-icon">
-                <i class="pi pi-dollar"></i>
-              </div>
-              <div class="fancy-number-content">
-                <div class="fancy-number-value">
-                  {{ formatCurrency(storePerformance.totalRevenue) }}
-                </div>
-                <div class="fancy-number-label">Total Revenue</div>
-              </div>
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div *ngFor="let kpi of kpiCards"
+           class="rounded-xl shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-200"
+           [ngClass]="kpi.color">
+        <div class="p-6" [ngClass]="kpi.textColor">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-3xl font-bold mb-1">{{ kpi.value }}</div>
+              <div class="text-lg font-semibold opacity-90">{{ kpi.title }}</div>
+              <div class="text-sm opacity-75 mt-1">{{ kpi.subtitle }}</div>
             </div>
-          </ng-template>
-        </p-card>
-
-        <!-- Orders Display -->
-        <p-card class="chart-card fancy-number-card">
-          <ng-template pTemplate="content">
-            <div class="fancy-number-display">
-              <div class="fancy-number-icon">
-                <i class="pi pi-shopping-cart"></i>
-              </div>
-              <div class="fancy-number-content">
-                <div class="fancy-number-value">
-                  {{ formatNumber(storePerformance.totalOrders) }}
-                </div>
-                <div class="fancy-number-label">Total Orders</div>
-              </div>
+            <div class="text-4xl opacity-80">
+              <i [class]="kpi.icon"></i>
             </div>
-          </ng-template>
-        </p-card>
-
-        <!-- Performance Metrics Chart -->
-        <p-card class="chart-card full-width" *ngIf="performanceChartOptions">
-          <ng-template pTemplate="content">
-            <apx-chart
-              [series]="performanceChartOptions.series!"
-              [chart]="performanceChartOptions.chart!"
-              [labels]="performanceChartOptions.labels!"
-              [dataLabels]="performanceChartOptions.dataLabels!"
-              [plotOptions]="performanceChartOptions.plotOptions!"
-              [colors]="performanceChartOptions.colors!"
-              [title]="performanceChartOptions.title!"
-              [legend]="performanceChartOptions.legend!">
-            </apx-chart>
-          </ng-template>
-        </p-card>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Store Comparison Charts Section -->
-    <div class="charts-section" *ngIf="storePerformance && chartsReady">
-      <h2>Store Comparison Charts</h2>
-      <div class="comparison-legend">
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #10B981;"></span>
-          <span>Top Performers (Green)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #F59E0B;"></span>
-          <span>Average Performers (Yellow)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #EF4444;"></span>
-          <span>Poor Performers (Red)</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #3B82F6;"></span>
-          <span>Current Store (Blue)</span>
-        </div>
-      </div>
-      <div class="charts-grid">
-        <!-- Revenue Comparison Chart -->
-        <p-card class="chart-card" *ngIf="revenueComparisonChartOptions">
-          <ng-template pTemplate="content">
-            <apx-chart
-              [series]="revenueComparisonChartOptions.series!"
-              [chart]="revenueComparisonChartOptions.chart!"
-              [xaxis]="revenueComparisonChartOptions.xaxis!"
-              [yaxis]="revenueComparisonChartOptions.yaxis!"
-              [dataLabels]="revenueComparisonChartOptions.dataLabels!"
-              [tooltip]="revenueComparisonChartOptions.tooltip!"
-              [title]="revenueComparisonChartOptions.title!"
-              [colors]="revenueComparisonChartOptions.colors!"
-              [plotOptions]="revenueComparisonChartOptions.plotOptions!">
-            </apx-chart>
-          </ng-template>
-        </p-card>
-
-        <!-- Orders Comparison Chart -->
-        <p-card class="chart-card" *ngIf="ordersComparisonChartOptions">
-          <ng-template pTemplate="content">
-            <apx-chart
-              [series]="ordersComparisonChartOptions.series!"
-              [chart]="ordersComparisonChartOptions.chart!"
-              [xaxis]="ordersComparisonChartOptions.xaxis!"
-              [yaxis]="ordersComparisonChartOptions.yaxis!"
-              [dataLabels]="ordersComparisonChartOptions.dataLabels!"
-              [tooltip]="ordersComparisonChartOptions.tooltip!"
-              [title]="ordersComparisonChartOptions.title!"
-              [colors]="ordersComparisonChartOptions.colors!"
-              [plotOptions]="ordersComparisonChartOptions.plotOptions!">
-            </apx-chart>
-          </ng-template>
-        </p-card>
-
-        <!-- Performance Comparison Chart -->
-        <p-card class="chart-card full-width" *ngIf="performanceComparisonChartOptions">
-          <ng-template pTemplate="content">
-            <apx-chart
-              [series]="performanceComparisonChartOptions.series!"
-              [chart]="performanceComparisonChartOptions.chart!"
-              [xaxis]="performanceComparisonChartOptions.xaxis!"
-              [yaxis]="performanceComparisonChartOptions.yaxis!"
-              [dataLabels]="performanceComparisonChartOptions.dataLabels!"
-              [stroke]="performanceComparisonChartOptions.stroke!"
-              [fill]="performanceComparisonChartOptions.fill!"
-              [tooltip]="performanceComparisonChartOptions.tooltip!"
-              [title]="performanceComparisonChartOptions.title!"
-              [colors]="performanceComparisonChartOptions.colors!">
-            </apx-chart>
-          </ng-template>
-        </p-card>
-      </div>
-    </div>
-
-    <!-- Charts Loading Placeholder -->
-    <div class="charts-section" *ngIf="storePerformance && !chartsReady">
-      <h2>Store Performance Charts</h2>
-      <div class="charts-grid">
-        <p-card class="chart-card" *ngFor="let i of [1,2,3]">
-          <ng-template pTemplate="content">
-            <div class="chart-loading">
-              <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: #ff6b35;"></i>
-              <div>Loading chart...</div>
-            </div>
-          </ng-template>
-        </p-card>
-      </div>
-    </div>
-
-    <!-- Store Information Grid -->
-    <div class="store-info-grid">
-      <!-- Store Details Card -->
-      <p-card>
+    <!-- Main Analytics Grid -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <!-- Revenue Trends Chart -->
+      <p-card class="shadow-lg">
         <ng-template pTemplate="header">
-          <h3>Store Information</h3>
+          <div class="bg-gradient-to-r from-orange-50 to-red-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-chart-line mr-2 text-orange-500"></i>
+              Revenue & Orders Trends
+            </h3>
+          </div>
         </ng-template>
         <ng-template pTemplate="content">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Store ID:</span>
-              <span class="info-value">{{ store.storeid }}</span>
+          <div *ngIf="chartsLoading.revenueTrends" class="flex items-center justify-center h-80">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+            <span class="ml-3 text-gray-600">Loading revenue trends...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.revenueTrends && revenueTrendChart"
+            [series]="revenueTrendChart.series!"
+            [chart]="revenueTrendChart.chart!"
+            [xaxis]="revenueTrendChart.xaxis!"
+            [yaxis]="revenueTrendChart.yaxis!"
+            [stroke]="revenueTrendChart.stroke!"
+            [fill]="revenueTrendChart.fill!"
+            [colors]="revenueTrendChart.colors!"
+            [title]="revenueTrendChart.title!"
+            [tooltip]="revenueTrendChart.tooltip!"
+            [grid]="revenueTrendChart.grid!"
+            [legend]="revenueTrendChart.legend!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Hourly Performance Heatmap -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-th-large mr-2 text-blue-500"></i>
+              Hourly Performance Heatmap
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.hourlyPerformance" class="flex items-center justify-center h-80">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <span class="ml-3 text-gray-600">Loading heatmap...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.hourlyPerformance && hourlyHeatmapChart"
+            [series]="hourlyHeatmapChart.series!"
+            [chart]="hourlyHeatmapChart.chart!"
+            [plotOptions]="hourlyHeatmapChart.plotOptions!"
+            [dataLabels]="hourlyHeatmapChart.dataLabels!"
+            [colors]="hourlyHeatmapChart.colors!"
+            [title]="hourlyHeatmapChart.title!"
+            [xaxis]="hourlyHeatmapChart.xaxis!"
+            [yaxis]="hourlyHeatmapChart.yaxis!"
+            [tooltip]="hourlyHeatmapChart.tooltip!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Category Performance Donut -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-green-50 to-emerald-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-chart-pie mr-2 text-green-500"></i>
+              Category Performance
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.categoryPerformance" class="flex items-center justify-center h-80">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+            <span class="ml-3 text-gray-600">Loading categories...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.categoryPerformance && categoryDonutChart"
+            [series]="categoryDonutChart.series!"
+            [chart]="categoryDonutChart.chart!"
+            [labels]="categoryDonutChart.labels!"
+            [colors]="categoryDonutChart.colors!"
+            [plotOptions]="categoryDonutChart.plotOptions!"
+            [title]="categoryDonutChart.title!"
+            [legend]="categoryDonutChart.legend!"
+            [tooltip]="categoryDonutChart.tooltip!"
+            [dataLabels]="categoryDonutChart.dataLabels!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Daily Performance Trends -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-calendar mr-2 text-purple-500"></i>
+              Daily Performance Trends
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.dailyOperations" class="flex items-center justify-center h-80">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+            <span class="ml-3 text-gray-600">Loading daily trends...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.dailyOperations && dailyTrendsChart"
+            [series]="dailyTrendsChart.series!"
+            [chart]="dailyTrendsChart.chart!"
+            [xaxis]="dailyTrendsChart.xaxis!"
+            [yaxis]="dailyTrendsChart.yaxis!"
+            [stroke]="dailyTrendsChart.stroke!"
+            [colors]="dailyTrendsChart.colors!"
+            [title]="dailyTrendsChart.title!"
+            [tooltip]="dailyTrendsChart.tooltip!"
+            [legend]="dailyTrendsChart.legend!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+    </div>
+
+    <!-- Secondary Analytics Grid -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <!-- Customer Growth Chart -->
+      <p-card class="shadow-lg xl:col-span-2">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-teal-50 to-cyan-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-users mr-2 text-teal-500"></i>
+              Customer Acquisition Trends
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.customerInsights" class="flex items-center justify-center h-80">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
+            <span class="ml-3 text-gray-600">Loading customer insights...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.customerInsights && customerGrowthChart"
+            [series]="customerGrowthChart.series!"
+            [chart]="customerGrowthChart.chart!"
+            [xaxis]="customerGrowthChart.xaxis!"
+            [yaxis]="customerGrowthChart.yaxis!"
+            [colors]="customerGrowthChart.colors!"
+            [fill]="customerGrowthChart.fill!"
+            [title]="customerGrowthChart.title!"
+            [tooltip]="customerGrowthChart.tooltip!"
+            [legend]="customerGrowthChart.legend!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Efficiency Gauge -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-yellow-50 to-orange-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-gauge mr-2 text-yellow-500"></i>
+              Efficiency Score
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.efficiencyMetrics" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+            <span class="ml-3 text-gray-600">Loading efficiency...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.efficiencyMetrics && efficiencyGaugeChart"
+            [series]="efficiencyGaugeChart.series!"
+            [chart]="efficiencyGaugeChart.chart!"
+            [plotOptions]="efficiencyGaugeChart.plotOptions!"
+            [colors]="efficiencyGaugeChart.colors!"
+            [title]="efficiencyGaugeChart.title!"
+            [labels]="efficiencyGaugeChart.labels!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+    </div>
+
+    <!-- Product Performance & Weekly Pattern -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <!-- Product Performance Bar Chart -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-indigo-50 to-purple-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-box mr-2 text-indigo-500"></i>
+              Top Products Performance
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.productPerformance" class="flex items-center justify-center h-96">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+            <span class="ml-3 text-gray-600">Loading products...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.productPerformance && productBarChart"
+            [series]="productBarChart.series!"
+            [chart]="productBarChart.chart!"
+            [xaxis]="productBarChart.xaxis!"
+            [yaxis]="productBarChart.yaxis!"
+            [plotOptions]="productBarChart.plotOptions!"
+            [colors]="productBarChart.colors!"
+            [title]="productBarChart.title!"
+            [tooltip]="productBarChart.tooltip!"
+            [legend]="productBarChart.legend!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+
+      <!-- Weekly Pattern Radar Chart -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-pink-50 to-rose-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-clock mr-2 text-pink-500"></i>
+              Weekly Performance Pattern
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div *ngIf="chartsLoading.dailyOperations" class="flex items-center justify-center h-96">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+            <span class="ml-3 text-gray-600">Loading weekly patterns...</span>
+          </div>
+          <apx-chart *ngIf="!chartsLoading.dailyOperations && weeklyPatternChart"
+            [series]="weeklyPatternChart.series!"
+            [chart]="weeklyPatternChart.chart!"
+            [xaxis]="weeklyPatternChart.xaxis!"
+            [colors]="weeklyPatternChart.colors!"
+            [title]="weeklyPatternChart.title!"
+            [tooltip]="weeklyPatternChart.tooltip!"
+            [legend]="weeklyPatternChart.legend!">
+          </apx-chart>
+        </ng-template>
+      </p-card>
+    </div>
+
+    <!-- Recent Orders Table -->
+    <p-card class="shadow-lg">
+      <ng-template pTemplate="header">
+        <div class="bg-gradient-to-r from-gray-50 to-slate-50 p-4">
+          <h3 class="text-xl font-bold text-gray-800 flex items-center">
+            <i class="pi pi-list mr-2 text-gray-500"></i>
+            Recent Orders
+            <span class="ml-2 text-sm bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+              Last 50 Orders
+            </span>
+          </h3>
+        </div>
+      </ng-template>
+      <ng-template pTemplate="content">
+        <div *ngIf="chartsLoading.recentOrders" class="flex items-center justify-center h-64">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-500"></div>
+          <span class="ml-3 text-gray-600">Loading recent orders...</span>
+        </div>
+
+        <div *ngIf="!chartsLoading.recentOrders">
+          <p-table [value]="recentOrders"
+                   [paginator]="true"
+                   [rows]="10"
+                   [showCurrentPageReport]="true"
+                   currentPageReportTemplate="Showing {first} to {last} of {totalRecords} orders"
+                   [rowsPerPageOptions]="[10, 25, 50]"
+                   styleClass="p-datatable-sm">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Location</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-order>
+              <tr class="hover:bg-gray-50">
+                <td class="font-mono text-sm">{{ order.orderid }}</td>
+                <td class="font-medium">{{ order.customerid }}</td>
+                <td>{{ formatDate(order.orderdate) }}</td>
+                <td>
+                  <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                    {{ order.nitems }} items
+                  </span>
+                </td>
+                <td class="font-semibold text-green-600">{{ formatCurrency(order.total) }}</td>
+                <td class="text-sm text-gray-600">{{ order.store_city || '-' }}, {{ order.store_state || '-' }}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="6" class="text-center py-8 text-gray-500">
+                  <i class="pi pi-inbox text-4xl mb-2 block"></i>
+                  No recent orders found
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </ng-template>
+    </p-card>
+
+    <!-- Store Information Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Store Details -->
+      <p-card class="shadow-lg">
+        <ng-template pTemplate="header">
+          <div class="bg-gradient-to-r from-emerald-50 to-green-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-info-circle mr-2 text-emerald-500"></i>
+              Store Information
+            </h3>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="content">
+          <div class="space-y-4">
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Store ID:</span>
+              <span class="font-mono bg-gray-100 px-2 py-1 rounded">{{ store.storeid }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">City:</span>
-              <span class="info-value">{{ store.city }}</span>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Location:</span>
+              <span class="font-semibold">{{ store.city }}, {{ store.state }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">State:</span>
-              <span class="info-value">{{ store.state }} ({{ store.state_abbr }})</span>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Coordinates:</span>
+              <span class="font-mono text-sm">{{ formatCoordinates(store.latitude, store.longitude) }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">Zip Code:</span>
-              <span class="info-value">{{ store.zipcode }}</span>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">ZIP Code:</span>
+              <span>{{ store.zipcode }}</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">Coordinates:</span>
-              <span class="info-value coordinates-link"
-                    (click)="openInMaps(store.latitude, store.longitude)"
-                    pTooltip="Click to open in Google Maps">
-                {{ formatCoordinates(store.latitude, store.longitude) }}
+            <div class="flex justify-between items-center py-2">
+              <span class="font-medium text-gray-600">Status:</span>
+              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                <i class="pi pi-check-circle mr-1"></i>
+                Active
               </span>
             </div>
           </div>
         </ng-template>
       </p-card>
 
-      <!-- Store Statistics Card -->
-      <p-card *ngIf="storeStats">
+      <!-- Performance Summary -->
+      <p-card class="shadow-lg">
         <ng-template pTemplate="header">
-          <h3>Store Performance</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <div class="stats-grid">
-            <div class="stat-item">
-              <span class="stat-number">{{ formatNumber(storeStats.totalOrders) }}</span>
-              <span class="stat-label">Total Orders</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">{{ formatCurrency(storeStats.totalRevenue) }}</span>
-              <span class="stat-label">Total Revenue</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">{{ formatCurrency(storeStats.avgOrderValue) }}</span>
-              <span class="stat-label">Avg Order Value</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number">{{ formatNumber(storeStats.uniqueCustomers) }}</span>
-              <span class="stat-label">Unique Customers</span>
-            </div>
-          </div>
-          <div class="last-updated" *ngIf="storeStats.lastUpdated">
-            <small>Last updated: {{ storeStats.lastUpdated | date:'medium' }}</small>
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center">
+              <i class="pi pi-chart-bar mr-2 text-blue-500"></i>
+              Performance Summary
+            </h3>
           </div>
         </ng-template>
-      </p-card>
-
-      <!-- Top Products Card -->
-      <p-card *ngIf="storeStats?.topProducts">
-        <ng-template pTemplate="header">
-          <h3>Top Products ({{ storeStats?.topProducts?.length || 0 }})</h3>
-        </ng-template>
         <ng-template pTemplate="content">
-          <div class="products-list">
-            <div class="product-item" *ngFor="let product of storeStats.topProducts; let i = index">
-              <span class="product-rank">#{{ i + 1 }}</span>
-              <span class="product-name" [class.no-data]="product.name === 'No data available'">
-                {{ product.name }}<span *ngIf="product.size"> ({{ product.size }})</span>
-                <span *ngIf="product.total_sold !== undefined && product.total_sold !== null"> - Sold: {{ product.total_sold }}</span>
-              </span>
+          <div class="space-y-4" *ngIf="efficiencyMetrics">
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Efficiency Score:</span>
+              <div class="flex items-center">
+                <span class="font-bold text-2xl mr-2">{{ calculateEfficiencyScore(efficiencyMetrics) }}</span>
+                <p-progressBar [value]="calculateEfficiencyScoreNumeric(efficiencyMetrics)"
+                               [style]="{'width': '60px', 'height': '8px'}"
+                               [class]="'performance-bar ' + getPerformanceClass(calculateEfficiencyScoreNumeric(efficiencyMetrics))">
+                </p-progressBar>
+              </div>
             </div>
-            <div *ngIf="!storeStats.topProducts || storeStats.topProducts.length === 0" class="no-data">
-              No top products data available
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Avg Orders/Day:</span>
+              <span class="font-semibold">{{ formatNumber(efficiencyMetrics.avg_orders_per_day || 0) }}</span>
             </div>
-          </div>
-        </ng-template>
-      </p-card>
-
-      <!-- Worst Products Card -->
-      <p-card *ngIf="storeStats?.worstProducts">
-        <ng-template pTemplate="header">
-          <h3>Worst Products ({{ storeStats?.worstProducts?.length || 0 }})</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <div class="products-list">
-            <div class="product-item" *ngFor="let product of storeStats.worstProducts; let i = index">
-              <span class="product-rank worst">#{{ i + 1 }}</span>
-              <span class="product-name" [class.no-data]="product.name === 'No data available'">
-                {{ product.name }}<span *ngIf="product.size"> ({{ product.size }})</span>
-                <span *ngIf="product.total_sold !== undefined && product.total_sold !== null"> - Sold: {{ product.total_sold }}</span>
-              </span>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Active Days:</span>
+              <span class="font-semibold">{{ formatNumber(efficiencyMetrics.active_days || 0) }}</span>
             </div>
-            <div *ngIf="!storeStats.worstProducts || storeStats.worstProducts.length === 0" class="no-data">
-              No worst products data available
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="font-medium text-gray-600">Items Sold:</span>
+              <span class="font-semibold">{{ formatNumber(efficiencyMetrics.total_items_sold || 0) }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+              <span class="font-medium text-gray-600">Revenue/Customer:</span>
+              <span class="font-semibold text-green-600">{{ formatCurrency(efficiencyMetrics.avg_order_value || 0) }}</span>
             </div>
           </div>
         </ng-template>
       </p-card>
     </div>
-  </div>
-
-  <!-- Store Not Found -->
-  <div *ngIf="!loading && !error && !store" class="error-container">
-    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
-    <div>Store {{ storeId }} not found</div>
-    <button pButton type="button" label="Back to Stores" class="p-button-outlined" (click)="goBack()" style="margin-top: 1rem;"></button>
   </div>
 </div>

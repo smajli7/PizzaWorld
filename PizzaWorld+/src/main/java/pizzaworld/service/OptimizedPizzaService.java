@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
 
 import pizzaworld.model.User;
 import pizzaworld.repository.OptimizedPizzaRepo;
@@ -902,5 +903,140 @@ public class OptimizedPizzaService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    // Helper method to extract user from authentication
+    private User getUserFromAuthentication(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            return (User) authentication.getPrincipal();
+        }
+        throw new RuntimeException("Invalid authentication");
+    }
+
+    // ===== STORE-SPECIFIC ANALYTICS SERVICE METHODS =====
+
+    public Map<String, Object> getStoreAnalyticsOverview(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get basic store KPIs
+        String kpiSql = "SELECT * FROM kpis_global_store WHERE store_id = ?";
+        List<Map<String, Object>> kpiData = jdbcTemplate.queryForList(kpiSql, storeId);
+        
+        // Get efficiency metrics
+        String efficiencySql = "SELECT * FROM store_efficiency_metrics_v2 WHERE store_id = ?";
+        List<Map<String, Object>> efficiencyData = jdbcTemplate.queryForList(efficiencySql, storeId);
+        
+        // Get recent performance (last 30 days)
+        String recentSql = "SELECT COUNT(*) as recent_orders, SUM(daily_revenue) as recent_revenue " +
+                          "FROM store_daily_operations_v2 WHERE store_id = ? AND operation_date >= CURRENT_DATE - INTERVAL '30 days'";
+        List<Map<String, Object>> recentData = jdbcTemplate.queryForList(recentSql, storeId);
+        
+        Map<String, Object> overview = new HashMap<>();
+        overview.put("kpis", kpiData.isEmpty() ? null : kpiData.get(0));
+        overview.put("efficiency", efficiencyData.isEmpty() ? null : efficiencyData.get(0));
+        overview.put("recent_performance", recentData.isEmpty() ? null : recentData.get(0));
+        
+        return overview;
+    }
+
+    public List<Map<String, Object>> getStoreRevenueTrends(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get daily revenue trends for the last 90 days
+        String sql = "SELECT operation_date, daily_revenue, daily_orders, avg_order_value, unique_customers " +
+                    "FROM store_daily_operations_v2 " +
+                    "WHERE store_id = ? AND operation_date >= CURRENT_DATE - INTERVAL '90 days' " +
+                    "ORDER BY operation_date";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreHourlyPerformance(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get hourly performance data
+        String sql = "SELECT hour, revenue, orders FROM revenue_by_hour_store WHERE store_id = ? ORDER BY hour";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreCategoryPerformance(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get category performance for the store
+        String sql = "SELECT category, total_revenue, units_sold, total_orders, unique_customers, avg_order_value " +
+                    "FROM category_performance_store WHERE store_id = ? ORDER BY total_revenue DESC";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreDailyOperations(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get detailed daily operations for last 60 days
+        String sql = "SELECT operation_date, daily_orders, daily_revenue, avg_order_value, " +
+                    "unique_customers, total_items_sold, categories_sold, " +
+                    "first_order_time, last_order_time " +
+                    "FROM store_daily_operations_v2 " +
+                    "WHERE store_id = ? AND operation_date >= CURRENT_DATE - INTERVAL '60 days' " +
+                    "ORDER BY operation_date DESC";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreCustomerInsights(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get customer acquisition trends
+        String sql = "SELECT week_start, new_customers, returning_customers, total_orders, total_revenue " +
+                    "FROM store_customer_acquisition_v2 " +
+                    "WHERE store_id = ? " +
+                    "ORDER BY week_start DESC LIMIT 12";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreProductPerformance(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get top products from store analytics comprehensive view
+        String sql = "SELECT product_name, category, size, " +
+                    "SUM(product_revenue) as total_revenue, " +
+                    "SUM(quantity_sold) as total_quantity, " +
+                    "COUNT(DISTINCT orderid) as orders_count, " +
+                    "COUNT(DISTINCT customerid) as customers_count, " +
+                    "AVG(price) as avg_price " +
+                    "FROM store_analytics_comprehensive " +
+                    "WHERE storeid = ? AND date_key >= CURRENT_DATE - INTERVAL '30 days' " +
+                    "GROUP BY product_name, category, size " +
+                    "ORDER BY total_revenue DESC LIMIT 20";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public List<Map<String, Object>> getStoreRecentOrders(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get recent orders for the store
+        String sql = "SELECT orderid, customerid, orderdate, nitems, total, city, zipcode " +
+                    "FROM recent_orders_store " +
+                    "WHERE storeid = ? " +
+                    "ORDER BY orderdate DESC LIMIT 50";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    public Map<String, Object> getStoreEfficiencyMetrics(String storeId, Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        
+        // Get comprehensive efficiency metrics
+        String sql = "SELECT * FROM store_efficiency_metrics_v2 WHERE store_id = ?";
+        List<Map<String, Object>> metrics = jdbcTemplate.queryForList(sql, storeId);
+        
+        if (metrics.isEmpty()) {
+            return Map.of("error", "No efficiency metrics found for store: " + storeId);
+        }
+        
+        return metrics.get(0);
     }
 }

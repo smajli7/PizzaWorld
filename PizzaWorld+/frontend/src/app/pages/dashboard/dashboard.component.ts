@@ -62,7 +62,7 @@ export class DashboardComponent implements OnInit {
   filteredStoreData: StoreRevenueData[] = [];
   availableYears: TimePeriodOption[] = [];
   availableMonths: TimePeriodOption[] = [];
-  
+
   // Filter state
   selectedTimePeriod: 'all-time' | 'year' | 'month' | 'custom' = 'all-time';
   selectedYear?: number;
@@ -71,33 +71,37 @@ export class DashboardComponent implements OnInit {
   customStartMonth?: number;
   customEndYear?: number;
   customEndMonth?: number;
-  
+
   // UI state
   loading = false;
   error = false;
-  
+
   // Chart controls
   chartSortAscending = false; // false = descending (default), true = ascending
   ordersChartSortAscending = false;
   avgOrderChartSortAscending = false;
   customersChartSortAscending = false;
-  
+
   // Table sorting
   tableSortColumn: 'revenue' | 'orders' | 'customers' | 'avgOrder' | 'store' = 'revenue';
   tableSortAscending = false;
-  
+
+  // Product table sorting
+  productTableSortColumn: 'total_revenue' | 'total_quantity' | 'product_name' | 'category' | 'size' = 'total_revenue';
+  productTableSortAscending = false;
+
   // Filters
   searchTerm = '';
   selectedState = '';
   minRevenue = 0;
   maxRevenue = 0;
-  
+
   // Chart options
   revenueChartOptions: any = null;
   ordersChartOptions: any = null;
   avgOrderValueChartOptions: any = null;
   customersChartOptions: any = null;
-  
+
   // Comprehensive Analytics Data
   hourlyPerformanceData: any[] = [];
   productPerformanceData: any[] = [];
@@ -105,10 +109,8 @@ export class DashboardComponent implements OnInit {
   customerAcquisitionData: any[] = [];
   dailyTrendsData: any[] = [];
   monthlyTrendsData: any[] = [];
-  storeComparisonData: any[] = [];
-  stateComparisonData: any[] = [];
   peakHoursData: any[] = [];
-  
+
   // Analytics Chart Options
   hourlyChartOptions: any = null;
   productChartOptions: any = null;
@@ -116,13 +118,10 @@ export class DashboardComponent implements OnInit {
   customerAcquisitionChartOptions: any = null;
   dailyTrendsChartOptions: any = null;
   monthlyTrendsChartOptions: any = null;
-  storeComparisonChartOptions: any = null;
-  stateComparisonChartOptions: any = null;
   peakHoursChartOptions: any = null;
-  
+
   // Analytics Controls
   showAnalytics = false;
-  analyticsCategory = '';
 
   constructor(private http: HttpClient) {}
 
@@ -159,9 +158,9 @@ export class DashboardComponent implements OnInit {
   loadAvailableMonths(): void {
     if (this.selectedYear) {
       const params = new HttpParams().set('year', this.selectedYear.toString());
-      this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', { 
-        headers: this.getAuthHeaders(), 
-        params 
+      this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', {
+        headers: this.getAuthHeaders(),
+        params
       }).subscribe({
         next: (months) => {
           this.availableMonths = months;
@@ -183,19 +182,19 @@ export class DashboardComponent implements OnInit {
   loadDashboardData(): void {
     this.loading = true;
     this.error = false;
-    
+
     let params = new HttpParams().set('timePeriod', this.selectedTimePeriod);
-    
+
     if (this.selectedYear) {
       params = params.set('year', this.selectedYear.toString());
     }
-    
+
     if (this.selectedMonth) {
       params = params.set('month', this.selectedMonth.toString());
     }
-    
+
     let apiUrl = '/api/v2/chart/store-revenue';
-    
+
     // Use different endpoint for custom date range
     if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
       apiUrl = '/api/v2/chart/store-revenue/date-range';
@@ -207,11 +206,11 @@ export class DashboardComponent implements OnInit {
       // Remove timePeriod param for date range endpoint
       params = params.delete('timePeriod');
     }
-    
 
-    this.http.get<StoreRevenueData[]>(apiUrl, { 
-      headers: this.getAuthHeaders(), 
-      params 
+
+    this.http.get<StoreRevenueData[]>(apiUrl, {
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.storeRevenueData = data;
@@ -233,7 +232,7 @@ export class DashboardComponent implements OnInit {
     this.customStartMonth = undefined;
     this.customEndYear = undefined;
     this.customEndMonth = undefined;
-    
+
     if (this.selectedTimePeriod === 'all-time') {
       this.selectedYear = undefined;
     } else if (this.selectedTimePeriod === 'year' && this.availableYears.length > 0) {
@@ -251,7 +250,7 @@ export class DashboardComponent implements OnInit {
       this.customEndYear = 2022;
       this.customEndMonth = 3;
     }
-    
+
     this.loadDashboardData();
   }
 
@@ -266,13 +265,13 @@ export class DashboardComponent implements OnInit {
   onMonthChange(): void {
     this.loadDashboardData();
   }
-  
+
   onCustomRangeChange(): void {
     if (this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
       // Validate that start is before end
       const startDate = new Date(this.customStartYear, this.customStartMonth - 1);
       const endDate = new Date(this.customEndYear, this.customEndMonth - 1);
-      
+
       if (startDate >= endDate) {
         // Swap if start is after end
         const tempYear = this.customStartYear;
@@ -285,7 +284,7 @@ export class DashboardComponent implements OnInit {
       this.loadDashboardData();
     }
   }
-  
+
   setCustomRange(startYear: number, startMonth: number, endYear: number, endMonth: number): void {
     this.customStartYear = startYear;
     this.customStartMonth = startMonth;
@@ -296,23 +295,23 @@ export class DashboardComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredStoreData = [...this.storeRevenueData].filter(store => {
-      const matchesSearch = !this.searchTerm || 
+      const matchesSearch = !this.searchTerm ||
         store.city.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         store.state_name?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         store.state_abbr.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
+
       const matchesState = !this.selectedState || store.state_abbr === this.selectedState;
-      
+
       const revenue = this.getRevenue(store);
       const matchesRevenue = (!this.minRevenue || revenue >= this.minRevenue) &&
         (!this.maxRevenue || revenue <= this.maxRevenue);
-      
+
       return matchesSearch && matchesState && matchesRevenue;
     });
-    
+
     this.sortStoreData();
   }
-  
+
   sortStoreData(): void {
     // This method is kept for the table sorting, but charts now use individual sort methods
     const sortMultiplier = this.chartSortAscending ? 1 : -1;
@@ -320,56 +319,56 @@ export class DashboardComponent implements OnInit {
       return (this.getRevenue(a) - this.getRevenue(b)) * sortMultiplier;
     });
   }
-  
+
   getSortedStoreDataForRevenue(): StoreRevenueData[] {
     const sortMultiplier = this.chartSortAscending ? 1 : -1;
     return [...this.filteredStoreData].sort((a, b) => {
       return (this.getRevenue(a) - this.getRevenue(b)) * sortMultiplier;
     });
   }
-  
+
   getSortedStoreDataForOrders(): StoreRevenueData[] {
     const sortMultiplier = this.ordersChartSortAscending ? 1 : -1;
     return [...this.filteredStoreData].sort((a, b) => {
       return (this.getOrders(a) - this.getOrders(b)) * sortMultiplier;
     });
   }
-  
+
   getSortedStoreDataForAvgOrder(): StoreRevenueData[] {
     const sortMultiplier = this.avgOrderChartSortAscending ? 1 : -1;
     return [...this.filteredStoreData].sort((a, b) => {
       return (this.getAvgOrderValue(a) - this.getAvgOrderValue(b)) * sortMultiplier;
     });
   }
-  
+
   getSortedStoreDataForCustomers(): StoreRevenueData[] {
     const sortMultiplier = this.customersChartSortAscending ? 1 : -1;
     return [...this.filteredStoreData].sort((a, b) => {
       return (this.getCustomers(a) - this.getCustomers(b)) * sortMultiplier;
     });
   }
-  
+
   toggleChartSort(): void {
     this.chartSortAscending = !this.chartSortAscending;
     this.sortStoreData();
     this.buildCharts();
   }
-  
+
   toggleOrdersChartSort(): void {
     this.ordersChartSortAscending = !this.ordersChartSortAscending;
     this.buildCharts();
   }
-  
+
   toggleAvgOrderChartSort(): void {
     this.avgOrderChartSortAscending = !this.avgOrderChartSortAscending;
     this.buildCharts();
   }
-  
+
   toggleCustomersChartSort(): void {
     this.customersChartSortAscending = !this.customersChartSortAscending;
     this.buildCharts();
   }
-  
+
   sortTable(column: 'revenue' | 'orders' | 'customers' | 'avgOrder' | 'store'): void {
     if (this.tableSortColumn === column) {
       this.tableSortAscending = !this.tableSortAscending;
@@ -378,32 +377,87 @@ export class DashboardComponent implements OnInit {
       this.tableSortAscending = false;
     }
   }
-  
+
   getTableSortedData(): StoreRevenueData[] {
     const sortMultiplier = this.tableSortAscending ? 1 : -1;
     return [...this.filteredStoreData].sort((a, b) => {
       let aVal: number | string, bVal: number | string;
-      
+
       switch (this.tableSortColumn) {
-        case 'revenue': 
+        case 'revenue':
           aVal = this.getRevenue(a); bVal = this.getRevenue(b); break;
-        case 'orders': 
+        case 'orders':
           aVal = this.getOrders(a); bVal = this.getOrders(b); break;
-        case 'customers': 
+        case 'customers':
           aVal = this.getCustomers(a); bVal = this.getCustomers(b); break;
-        case 'avgOrder': 
+        case 'avgOrder':
           aVal = this.getAvgOrderValue(a); bVal = this.getAvgOrderValue(b); break;
-        case 'store': 
+        case 'store':
           aVal = a.city; bVal = b.city; break;
-        default: 
+        default:
           aVal = this.getRevenue(a); bVal = this.getRevenue(b);
       }
-      
+
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         return aVal.localeCompare(bVal) * sortMultiplier;
       }
       return ((aVal as number) - (bVal as number)) * sortMultiplier;
     });
+  }
+
+  // Product table sorting methods
+  sortProductTable(column: 'total_revenue' | 'total_quantity' | 'product_name' | 'category' | 'size'): void {
+    if (this.productTableSortColumn === column) {
+      this.productTableSortAscending = !this.productTableSortAscending;
+    } else {
+      this.productTableSortColumn = column;
+      this.productTableSortAscending = false; // Default to descending for new column
+    }
+  }
+
+  getProductTableSortedData(): any[] {
+    if (!this.productPerformanceData || this.productPerformanceData.length === 0) {
+      return [];
+    }
+
+    const data = [...this.productPerformanceData];
+
+    data.sort((a, b) => {
+      let valueA: any, valueB: any;
+
+      switch (this.productTableSortColumn) {
+        case 'total_revenue':
+          valueA = Number(a.total_revenue) || 0;
+          valueB = Number(b.total_revenue) || 0;
+          break;
+        case 'total_quantity':
+          valueA = Number(a.total_quantity) || 0;
+          valueB = Number(b.total_quantity) || 0;
+          break;
+        case 'product_name':
+          valueA = (a.name || a.product_name || '').toLowerCase();
+          valueB = (b.name || b.product_name || '').toLowerCase();
+          break;
+        case 'category':
+          valueA = (a.category || '').toLowerCase();
+          valueB = (b.category || '').toLowerCase();
+          break;
+        case 'size':
+          valueA = (a.size || '').toLowerCase();
+          valueB = (b.size || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof valueA === 'string' && typeof valueB === 'string') {
+        return this.productTableSortAscending ? valueA.localeCompare(valueB) : valueB.localeCompare(valueA);
+      } else {
+        return this.productTableSortAscending ? valueA - valueB : valueB - valueA;
+      }
+    });
+
+    return data;
   }
 
   buildCharts(): void {
@@ -420,7 +474,7 @@ export class DashboardComponent implements OnInit {
     const ordersStores = this.getSortedStoreDataForOrders();
     const avgOrderStores = this.getSortedStoreDataForAvgOrder();
     const customersStores = this.getSortedStoreDataForCustomers();
-    
+
     this.buildRevenueChart(revenueStores, revenueStores.map(store => `${store.city}, ${store.state_abbr}`));
     this.buildOrdersChart(ordersStores, ordersStores.map(store => `${store.city}, ${store.state_abbr}`));
     this.buildAvgOrderChart(avgOrderStores, avgOrderStores.map(store => `${store.city}, ${store.state_abbr}`));
@@ -429,7 +483,7 @@ export class DashboardComponent implements OnInit {
 
   private buildRevenueChart(stores: StoreRevenueData[], labels: string[]): void {
     const revenueData = stores.map(store => Math.round(this.getRevenue(store)));
-    
+
     this.revenueChartOptions = {
       series: [{
         name: 'Revenue',
@@ -438,7 +492,7 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'line',
         height: 400,
-        toolbar: { 
+        toolbar: {
           show: true,
           export: {
             csv: {
@@ -490,7 +544,7 @@ export class DashboardComponent implements OnInit {
 
   private buildOrdersChart(stores: StoreRevenueData[], labels: string[]): void {
     const ordersData = stores.map(store => this.getOrders(store));
-    
+
     this.ordersChartOptions = {
       series: [{
         name: 'Orders',
@@ -499,7 +553,7 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'area',
         height: 350,
-        toolbar: { 
+        toolbar: {
           show: true,
           export: {
             csv: {
@@ -553,7 +607,7 @@ export class DashboardComponent implements OnInit {
 
   private buildAvgOrderChart(stores: StoreRevenueData[], labels: string[]): void {
     const avgData = stores.map(store => Math.round(this.getAvgOrderValue(store) * 100) / 100);
-    
+
     this.avgOrderValueChartOptions = {
       series: [{
         name: 'Avg Order Value',
@@ -562,7 +616,7 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'area',
         height: 350,
-        toolbar: { 
+        toolbar: {
           show: true,
           export: {
             csv: {
@@ -619,7 +673,7 @@ export class DashboardComponent implements OnInit {
 
   private buildCustomersChart(stores: StoreRevenueData[], labels: string[]): void {
     const customersData = stores.map(store => this.getCustomers(store));
-    
+
     this.customersChartOptions = {
       series: [{
         name: 'Unique Customers',
@@ -628,7 +682,7 @@ export class DashboardComponent implements OnInit {
       chart: {
         type: 'area',
         height: 350,
-        toolbar: { 
+        toolbar: {
           show: true,
           export: {
             csv: {
@@ -767,12 +821,12 @@ export class DashboardComponent implements OnInit {
     const states = [...new Set(this.storeRevenueData.map(store => store.state_abbr))];
     return states.sort();
   }
-  
+
   onFilterChange(): void {
     this.applyFilters();
     this.buildCharts();
   }
-  
+
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedState = '';
@@ -787,18 +841,18 @@ export class DashboardComponent implements OnInit {
       this.loadAnalyticsData();
     }
   }
-  
+
   // =================================================================
   // COMPREHENSIVE ANALYTICS METHODS
   // =================================================================
-  
+
   toggleAnalytics(): void {
     this.showAnalytics = !this.showAnalytics;
     if (this.showAnalytics) {
       this.loadAnalyticsData();
     }
   }
-  
+
   loadAnalyticsData(): void {
     this.loadHourlyPerformanceData();
     this.loadProductPerformanceData();
@@ -806,10 +860,8 @@ export class DashboardComponent implements OnInit {
     this.loadCustomerAcquisitionData();
     this.loadDailyTrendsData();
     this.loadMonthlyTrendsData();
-    this.loadStoreComparisonData();
-    this.loadStateComparisonData();
   }
-  
+
   loadHourlyPerformanceData(): void {
     // Use dashboard time filtering for consistency
     let params = new HttpParams();
@@ -819,7 +871,7 @@ export class DashboardComponent implements OnInit {
     if (this.selectedMonth && this.selectedTimePeriod === 'month') {
       params = params.set('month', this.selectedMonth.toString());
     }
-    
+
     this.http.get<any[]>('/api/v2/analytics/hourly-performance', {
       headers: this.getAuthHeaders(),
       params
@@ -831,17 +883,10 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load hourly performance:', error)
     });
   }
-  
+
   loadProductPerformanceData(): void {
-    // Load all products with optional category filter
-    let params = new HttpParams();
-    if (this.analyticsCategory) {
-      params = params.set('category', this.analyticsCategory);
-    }
-    
     this.http.get<any[]>('/api/v2/analytics/product-performance', {
-      headers: this.getAuthHeaders(),
-      params
+      headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
         this.productPerformanceData = data;
@@ -850,7 +895,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load product performance:', error)
     });
   }
-  
+
   loadCategoryPerformanceData(): void {
     this.http.get<any[]>('/api/v2/analytics/category-performance', {
       headers: this.getAuthHeaders()
@@ -862,7 +907,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load category performance:', error)
     });
   }
-  
+
   loadCustomerAcquisitionData(): void {
     this.http.get<any[]>('/api/v2/analytics/customer-acquisition', {
       headers: this.getAuthHeaders()
@@ -874,7 +919,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load customer acquisition:', error)
     });
   }
-  
+
   loadDailyTrendsData(): void {
     this.http.get<any[]>('/api/v2/analytics/daily-trends', {
       headers: this.getAuthHeaders()
@@ -886,7 +931,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load daily trends:', error)
     });
   }
-  
+
   loadMonthlyTrendsData(): void {
     this.http.get<any[]>('/api/v2/analytics/monthly-trends', {
       headers: this.getAuthHeaders()
@@ -898,31 +943,11 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load monthly trends:', error)
     });
   }
-  
-  loadStoreComparisonData(): void {
-    this.http.get<any[]>('/api/v2/analytics/store-comparison', {
-      headers: this.getAuthHeaders()
-    }).subscribe({
-      next: (data) => {
-        this.storeComparisonData = data;
-        this.buildStoreComparisonChart();
-      },
-      error: (error) => console.error('Failed to load store comparison:', error)
-    });
-  }
-  
-  loadStateComparisonData(): void {
-    this.http.get<any[]>('/api/v2/analytics/state-comparison', {
-      headers: this.getAuthHeaders()
-    }).subscribe({
-      next: (data) => {
-        this.stateComparisonData = data;
-        this.buildStateComparisonChart();
-      },
-      error: (error) => console.error('Failed to load state comparison:', error)
-    });
-  }
-  
+
+
+
+
+
   loadPeakHoursData(): void {
     // Use dashboard time filtering for consistency (same as hourly performance)
     let params = new HttpParams();
@@ -932,7 +957,7 @@ export class DashboardComponent implements OnInit {
     if (this.selectedMonth && this.selectedTimePeriod === 'month') {
       params = params.set('month', this.selectedMonth.toString());
     }
-    
+
     this.http.get<any[]>('/api/v2/analytics/peak-hours', {
       headers: this.getAuthHeaders(),
       params
@@ -944,34 +969,28 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Failed to load peak hours:', error)
     });
   }
-  
+
   // Removed seasonal data loading - doesn't provide real business value
-  
-  onAnalyticsFilterChange(): void {
-    if (this.showAnalytics) {
-      this.loadAnalyticsData();
-    }
-  }
-  
+
   // Analytics Chart Building Methods
   buildHourlyChart(): void {
     if (!this.hourlyPerformanceData || this.hourlyPerformanceData.length === 0) {
       this.hourlyChartOptions = null;
       return;
     }
-    
+
     // Fixed to use proper materialized view data structure (hour 0-23)
     const hours = Array.from({length: 24}, (_, i) => i);
     const hourlyRevenue = hours.map(hour => {
       const hourData = this.hourlyPerformanceData.find(d => Number(d.hour) === hour);
       return hourData ? Number(hourData.revenue) || 0 : 0;
     });
-    
+
     const hourlyOrders = hours.map(hour => {
       const hourData = this.hourlyPerformanceData.find(d => Number(d.hour) === hour);
       return hourData ? Number(hourData.orders) || 0 : 0;
     });
-    
+
     this.hourlyChartOptions = {
       series: [
         {
@@ -1020,19 +1039,19 @@ export class DashboardComponent implements OnInit {
       }
     };
   }
-  
+
   buildProductChart(): void {
     if (!this.productPerformanceData || this.productPerformanceData.length === 0) {
       this.productChartOptions = null;
       return;
     }
-    
+
     // Show top 15 for chart (all products shown in table below)
     const topProducts = this.productPerformanceData.slice(0, 15);
     // Include size in product display name using correct property names
     const productNames = topProducts.map((p: any) => `${p.name || p.product_name} (${p.size})` || 'Unknown');
     const productRevenue = topProducts.map((p: any) => Number(p.total_revenue) || 0);
-    
+
     this.productChartOptions = {
       series: [{ name: 'Product Revenue', data: productRevenue }],
       chart: {
@@ -1053,17 +1072,17 @@ export class DashboardComponent implements OnInit {
       yaxis: { title: { text: 'Products (with Size)' } }
     };
   }
-  
+
   buildPeakHoursChart(): void {
     if (!this.peakHoursData || this.peakHoursData.length === 0) {
       this.peakHoursChartOptions = null;
       return;
     }
-    
+
     // Updated to match new data structure from materialized views
     const hours = this.peakHoursData.map(d => d.hour_of_day);
     const orders = this.peakHoursData.map(d => Number(d.total_orders) || 0);
-    
+
     this.peakHoursChartOptions = {
       series: [{ name: 'Orders', data: orders }],
       chart: {
@@ -1082,18 +1101,18 @@ export class DashboardComponent implements OnInit {
       yaxis: { title: { text: 'Total Orders' } }
     };
   }
-  
+
   buildCategoryChart(): void {
     if (!this.categoryPerformanceData || this.categoryPerformanceData.length === 0) {
       this.categoryChartOptions = null;
       return;
     }
-    
+
     const categories = this.categoryPerformanceData.map(d => d.category || 'Unknown');
     const revenue = this.categoryPerformanceData.map(d => Number(d.total_revenue) || 0);
-    
+
     this.categoryChartOptions = {
-      series: [{ name: 'Category Revenue', data: revenue }],
+      series: revenue,
       chart: {
         type: 'donut',
         height: 350,
@@ -1123,20 +1142,25 @@ export class DashboardComponent implements OnInit {
       legend: {
         position: 'bottom',
         horizontalAlign: 'center'
+      },
+      tooltip: {
+        y: {
+          formatter: (val: number) => `€${this.formatNumber(val)}`
+        }
       }
     };
   }
-  
+
   buildCustomerAcquisitionChart(): void {
     if (!this.customerAcquisitionData || this.customerAcquisitionData.length === 0) {
       this.customerAcquisitionChartOptions = null;
       return;
     }
-    
+
     const months = this.customerAcquisitionData.map(d => d.month_name || `${d.year}-${d.month}`);
     const newCustomers = this.customerAcquisitionData.map(d => Number(d.new_customers) || 0);
     const revenue = this.customerAcquisitionData.map(d => Number(d.revenue_from_new_customers) || 0);
-    
+
     this.customerAcquisitionChartOptions = {
       series: [
         { name: 'New Customers', data: newCustomers, type: 'column' },
@@ -1177,17 +1201,17 @@ export class DashboardComponent implements OnInit {
       ]
     };
   }
-  
+
   buildDailyTrendsChart(): void {
     if (!this.dailyTrendsData || this.dailyTrendsData.length === 0) {
       this.dailyTrendsChartOptions = null;
       return;
     }
-    
+
     const dates = this.dailyTrendsData.map(d => d.day || d.order_date);
     const revenue = this.dailyTrendsData.map(d => Number(d.revenue) || 0);
     const orders = this.dailyTrendsData.map(d => Number(d.orders) || 0);
-    
+
     this.dailyTrendsChartOptions = {
       series: [
         { name: 'Daily Revenue', data: revenue },
@@ -1221,16 +1245,16 @@ export class DashboardComponent implements OnInit {
       grid: { borderColor: '#e5e7eb' }
     };
   }
-  
+
   buildMonthlyTrendsChart(): void {
     if (!this.monthlyTrendsData || this.monthlyTrendsData.length === 0) {
       this.monthlyTrendsChartOptions = null;
       return;
     }
-    
+
     const months = this.monthlyTrendsData.map(d => d.month || `${d.year}-${d.month_num}`);
     const revenue = this.monthlyTrendsData.map(d => Number(d.revenue) || 0);
-    
+
     this.monthlyTrendsChartOptions = {
       series: [{ name: 'Monthly Revenue', data: revenue }],
       chart: {
@@ -1263,137 +1287,10 @@ export class DashboardComponent implements OnInit {
       grid: { borderColor: '#e5e7eb' }
     };
   }
-  
-  buildStoreComparisonChart(): void {
-    if (!this.storeComparisonData || this.storeComparisonData.length === 0) {
-      this.storeComparisonChartOptions = null;
-      return;
-    }
-    
-    const stores = this.storeComparisonData.map(d => `${d.city || d.storeid} (${d.state_abbr || d.state})`);
-    const revenue = this.storeComparisonData.map(d => Number(d.total_revenue) || 0);
-    const orders = this.storeComparisonData.map(d => Number(d.total_orders) || 0);
-    
-    this.storeComparisonChartOptions = {
-      series: [
-        { name: 'Revenue', data: revenue },
-        { name: 'Orders', data: orders, yAxisIndex: 1 }
-      ],
-      chart: {
-        type: 'bar',
-        height: 400,
-        toolbar: { show: true },
-        zoom: { enabled: true, type: 'y' }
-      },
-      colors: ['#dc2626', '#059669'],
-      plotOptions: {
-        bar: {
-          horizontal: false,
-          columnWidth: '55%',
-          endingShape: 'rounded'
-        }
-      },
-      dataLabels: { enabled: false },
-      xaxis: {
-        categories: stores,
-        title: { text: 'Stores' },
-        labels: {
-          rotate: -45,
-          style: { fontSize: '12px' }
-        }
-      },
-      yaxis: [
-        {
-          title: { text: 'Revenue (€)' },
-          labels: {
-            formatter: (val: number) => `€${this.formatNumber(val)}`
-          }
-        },
-        {
-          opposite: true,
-          title: { text: 'Orders' }
-        }
-      ],
-      grid: { borderColor: '#e5e7eb' }
-    };
-  }
-  
-  buildStateComparisonChart(): void {
-    if (!this.stateComparisonData || this.stateComparisonData.length === 0) {
-      this.stateComparisonChartOptions = null;
-      return;
-    }
-    
-    // Group data by state and month
-    const stateMonthlyData = new Map<string, Array<{month: string, revenue: number}>>();
-    this.stateComparisonData.forEach((item: any) => {
-      if (!stateMonthlyData.has(item.state)) {
-        stateMonthlyData.set(item.state, []);
-      }
-      stateMonthlyData.get(item.state)!.push({
-        month: item.month || `${item.year}-${item.month_num}`,
-        revenue: Number(item.revenue) || 0
-      });
-    });
-    
-    // Get top 4 states by total revenue
-    const stateRevenues = Array.from(stateMonthlyData.entries()).map(([state, data]) => ({
-      state,
-      totalRevenue: data.reduce((sum: number, item: {month: string, revenue: number}) => sum + item.revenue, 0),
-      data
-    })).sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 4);
-    
-    // Get all unique months and sort them
-    const allMonths = [...new Set(this.stateComparisonData.map((d: any) => d.month || `${d.year}-${d.month_num}`))];
-    allMonths.sort();
-    
-    // Create series for each state
-    const series = stateRevenues.map(({ state, data }) => ({
-      name: state,
-      data: allMonths.map(month => {
-        const monthData = data.find((d: {month: string, revenue: number}) => d.month === month);
-        return monthData ? monthData.revenue : 0;
-      })
-    }));
-    
-    this.stateComparisonChartOptions = {
-      series,
-      chart: {
-        type: 'line',
-        height: 350,
-        toolbar: { show: true },
-        zoom: { enabled: true, type: 'x' }
-      },
-      colors: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b'],
-      stroke: { curve: 'smooth', width: 3 },
-      markers: { size: 5 },
-      dataLabels: { enabled: false },
-      xaxis: {
-        categories: allMonths,
-        title: { text: 'Month' },
-        labels: {
-          rotate: -45,
-          style: { fontSize: '12px' }
-        }
-      },
-      yaxis: {
-        title: { text: 'Revenue (€)' },
-        labels: {
-          formatter: (val: number) => `€${this.formatNumber(val)}`
-        }
-      },
-      grid: { borderColor: '#e5e7eb' },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'center'
-      },
-      tooltip: {
-        y: {
-          formatter: (val: number) => `€${this.formatNumber(val)}`
-        }
-      }
-    };
-  }
-  
+
+
+
+
+
   // Removed seasonal chart - doesn't provide real business value
 }

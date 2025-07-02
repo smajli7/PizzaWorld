@@ -1033,4 +1033,102 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
         ORDER BY r.month
         """, nativeQuery = true)
     List<Map<String, Object>> getStateRevenueTrendsState(@Param("state") String state);
+
+    // =================================================================
+    // ENHANCED STORE ANALYTICS - For the new stores page
+    // =================================================================
+
+    // Store Performance Analytics with enhanced metrics
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, 
+               unique_customers, avg_order_value, last_order_date
+        FROM store_performance_hq
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceAnalyticsHQ();
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, 
+               unique_customers, avg_order_value, last_order_date
+        FROM store_performance_state
+        WHERE state_abbr = :state
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, total_revenue, total_orders, 
+               unique_customers, avg_order_value, last_order_date
+        FROM store_performance_hq
+        WHERE storeid = :storeId
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStorePerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // State Performance Analytics for state comparison charts
+    @Query(value = """
+        SELECT state_abbr, state_name,
+               SUM(total_revenue) as total_revenue,
+               SUM(total_orders) as total_orders,
+               AVG(avg_order_value) as avg_order_value,
+               SUM(unique_customers) as total_customers
+        FROM store_performance_hq
+        GROUP BY state_abbr, state_name
+        ORDER BY total_revenue DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStatePerformanceAnalyticsHQ();
+
+    @Query(value = """
+        SELECT state_abbr, state_name,
+               SUM(total_revenue) as total_revenue,
+               SUM(total_orders) as total_orders,
+               AVG(avg_order_value) as avg_order_value,
+               SUM(unique_customers) as total_customers
+        FROM store_performance_state
+        WHERE state_abbr = :state
+        GROUP BY state_abbr, state_name
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStatePerformanceAnalyticsState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT s.state_abbr, s.state_name,
+               SUM(sp.total_revenue) as total_revenue,
+               SUM(sp.total_orders) as total_orders,
+               AVG(sp.avg_order_value) as avg_order_value,
+               SUM(sp.unique_customers) as total_customers
+        FROM stores s
+        JOIN store_performance_hq sp ON s.storeid = sp.storeid
+        WHERE s.storeid = :storeId
+        GROUP BY s.state_abbr, s.state_name
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStatePerformanceAnalyticsStore(@Param("storeId") String storeId);
+
+    // Monthly Revenue Trends by Store for time series charts
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, year, month, 
+               month_label, month_name_label, total_revenue, order_count, 
+               avg_order_value, unique_customers
+        FROM store_revenue_by_time_periods
+        ORDER BY storeid, year, month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsByStoreHQ();
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, year, month, 
+               month_label, month_name_label, total_revenue, order_count, 
+               avg_order_value, unique_customers
+        FROM store_revenue_by_time_periods
+        WHERE state_abbr = :state
+        ORDER BY storeid, year, month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsByStoreState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT storeid, city, state_name, state_abbr, year, month, 
+               month_label, month_name_label, total_revenue, order_count, 
+               avg_order_value, unique_customers
+        FROM store_revenue_by_time_periods
+        WHERE storeid = :storeId
+        ORDER BY year, month
+        """, nativeQuery = true)
+    List<Map<String, Object>> getMonthlyRevenueTrendsByStoreStore(@Param("storeId") String storeId);
 }

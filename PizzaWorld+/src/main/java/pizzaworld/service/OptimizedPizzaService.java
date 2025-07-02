@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import pizzaworld.model.User;
 import pizzaworld.repository.OptimizedPizzaRepo;
@@ -20,6 +21,9 @@ public class OptimizedPizzaService {
 
     @Autowired
     private OptimizedPizzaRepo repo;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     // =================================================================
     // DASHBOARD KPIs - Role-based using Materialized Views
@@ -676,6 +680,216 @@ public class OptimizedPizzaService {
             }
             default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
         };
+    }
+
+    // =================================================================
+    // ENHANCED STORE ANALYTICS - For the new stores page
+    // =================================================================
+
+    @Cacheable(value = "storePerformanceAnalytics", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getStorePerformanceAnalytics(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStorePerformanceAnalyticsHQ();
+            case "STATE_MANAGER" -> repo.getStorePerformanceAnalyticsState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStorePerformanceAnalyticsStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "statePerformanceAnalytics", key = "#user.role + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getStatePerformanceAnalytics(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStatePerformanceAnalyticsHQ();
+            case "STATE_MANAGER" -> repo.getStatePerformanceAnalyticsState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStatePerformanceAnalyticsStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "monthlyRevenueTrendsByStore", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getMonthlyRevenueTrendsByStore(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getMonthlyRevenueTrendsByStoreHQ();
+            case "STATE_MANAGER" -> repo.getMonthlyRevenueTrendsByStoreState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getMonthlyRevenueTrendsByStoreStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // ============================================================================
+    // NEW STORE ANALYTICS METHODS - Enhanced Store Intelligence
+    // ============================================================================
+
+    public List<Map<String, Object>> getStoreHourlyPerformance(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state,
+                    s.state_abbr,
+                    EXTRACT(HOUR FROM o.orderdate) as hour_of_day,
+                    COUNT(o.orderid) as total_orders,
+                    SUM(o.total) as total_revenue,
+                    AVG(o.total) as avg_order_value
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                GROUP BY s.storeid, s.city, s.state, s.state_abbr, EXTRACT(HOUR FROM o.orderdate)
+                ORDER BY s.storeid, EXTRACT(HOUR FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state,
+                    s.state_abbr,
+                    EXTRACT(HOUR FROM o.orderdate) as hour_of_day,
+                    COUNT(o.orderid) as total_orders,
+                    SUM(o.total) as total_revenue,
+                    AVG(o.total) as avg_order_value
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                WHERE s.state_abbr = ?
+                GROUP BY s.storeid, s.city, s.state, s.state_abbr, EXTRACT(HOUR FROM o.orderdate)
+                ORDER BY s.storeid, EXTRACT(HOUR FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state,
+                    s.state_abbr,
+                    EXTRACT(HOUR FROM o.orderdate) as hour_of_day,
+                    COUNT(o.orderid) as total_orders,
+                    SUM(o.total) as total_revenue,
+                    AVG(o.total) as avg_order_value
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                WHERE s.storeid = ?
+                GROUP BY s.storeid, s.city, s.state, s.state_abbr, EXTRACT(HOUR FROM o.orderdate)
+                ORDER BY EXTRACT(HOUR FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
+    }
+
+    public List<Map<String, Object>> getStoreCustomerAcquisition(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state_abbr,
+                    EXTRACT(YEAR FROM o.orderdate) as year,
+                    EXTRACT(MONTH FROM o.orderdate) as month,
+                    TO_CHAR(o.orderdate, 'Month YYYY') as month_name,
+                    COUNT(DISTINCT o.customerid) as new_customers,
+                    SUM(o.total) as revenue_from_new_customers
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                GROUP BY s.storeid, s.city, s.state_abbr, EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month YYYY')
+                ORDER BY s.storeid, EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state_abbr,
+                    EXTRACT(YEAR FROM o.orderdate) as year,
+                    EXTRACT(MONTH FROM o.orderdate) as month,
+                    TO_CHAR(o.orderdate, 'Month YYYY') as month_name,
+                    COUNT(DISTINCT o.customerid) as new_customers,
+                    SUM(o.total) as revenue_from_new_customers
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                WHERE s.state_abbr = ?
+                GROUP BY s.storeid, s.city, s.state_abbr, EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month YYYY')
+                ORDER BY s.storeid, EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = """
+                SELECT 
+                    s.storeid,
+                    s.city,
+                    s.state_abbr,
+                    EXTRACT(YEAR FROM o.orderdate) as year,
+                    EXTRACT(MONTH FROM o.orderdate) as month,
+                    TO_CHAR(o.orderdate, 'Month YYYY') as month_name,
+                    COUNT(DISTINCT o.customerid) as new_customers,
+                    SUM(o.total) as revenue_from_new_customers
+                FROM stores s
+                JOIN orders o ON s.storeid = o.storeid
+                WHERE s.storeid = ?
+                GROUP BY s.storeid, s.city, s.state_abbr, EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month YYYY')
+                ORDER BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate)
+                """;
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
+    }
+
+    public List<Map<String, Object>> getStoreProductMix(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = "SELECT * FROM store_product_mix_v2 ORDER BY store_id, total_revenue DESC";
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = "SELECT * FROM store_product_mix_v2 WHERE state = ? ORDER BY store_id, total_revenue DESC";
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = "SELECT * FROM store_product_mix_v2 WHERE store_id = ? ORDER BY total_revenue DESC";
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
+    }
+
+    public List<Map<String, Object>> getStoreWeeklyTrends(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = "SELECT * FROM store_weekly_trends_v2 ORDER BY store_id, week_start";
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = "SELECT * FROM store_weekly_trends_v2 WHERE state = ? ORDER BY store_id, week_start";
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = "SELECT * FROM store_weekly_trends_v2 WHERE store_id = ? ORDER BY week_start";
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
+    }
+
+    public List<Map<String, Object>> getStoreDailyOperations(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = "SELECT * FROM store_daily_operations_v2 ORDER BY store_id, operation_date";
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = "SELECT * FROM store_daily_operations_v2 WHERE state = ? ORDER BY store_id, operation_date";
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = "SELECT * FROM store_daily_operations_v2 WHERE store_id = ? ORDER BY operation_date";
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
+    }
+
+    public List<Map<String, Object>> getStoreEfficiencyMetrics(String role, String stateAbbr, String storeId) {
+        String sql;
+        if ("HQ_ADMIN".equals(role)) {
+            sql = "SELECT * FROM store_efficiency_metrics_v2 ORDER BY total_revenue DESC";
+            return jdbcTemplate.queryForList(sql);
+        } else if ("STATE_MANAGER".equals(role)) {
+            sql = "SELECT * FROM store_efficiency_metrics_v2 WHERE state = ? ORDER BY total_revenue DESC";
+            return jdbcTemplate.queryForList(sql, stateAbbr);
+        } else { // STORE_MANAGER
+            sql = "SELECT * FROM store_efficiency_metrics_v2 WHERE store_id = ? ORDER BY total_revenue DESC";
+            return jdbcTemplate.queryForList(sql, storeId);
+        }
     }
 
     // =================================================================

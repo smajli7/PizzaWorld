@@ -1,216 +1,461 @@
 <app-sidebar></app-sidebar>
-<div class="home-section lg:ml-64">
-  <!-- Modern Upper Section -->
-  <div class="stores-upper-section">
-    <div class="stores-stats-row">
-      <div class="fancy-total-stores-box">
-        <span class="fancy-total-stores-icon"><i class="pi pi-building"></i></span>
-        <span class="fancy-total-stores-info">
-          <span class="fancy-total-stores-number">{{ getTotalStores() }}</span>
-          <span class="fancy-total-stores-label">Total Stores</span>
-        </span>
+
+<!-- Main Stores Container with Orange Gradients -->
+<div class="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Store Analytics Dashboard</h1>
+        <p class="text-gray-600 text-lg">Comprehensive insights across all store locations</p>
       </div>
-      <div class="filtered-results-box">
-        <span class="filtered-results-number">{{ getStoreCount() }}</span>
-        <span class="filtered-results-label">Filtered Results</span>
-      </div>
-    </div>
-    <div class="stores-filter-card">
-      <div class="stores-filter-header">
-        <span class="filter-title">Search & Filter Stores</span>
-        <div class="filter-actions">
-          <button pButton type="button"
-                  label="Export All"
-                  icon="pi pi-download"
-                  class="p-button-outlined p-button-sm"
-                  (click)="exportStores()"
-                  [loading]="exportLoading"
-                  [disabled]="allStores.length === 0">
-          </button>
-          <button pButton type="button"
-                  label="Export Filtered"
-                  icon="pi pi-filter"
-                  class="p-button-outlined p-button-sm"
-                  (click)="exportFilteredStores()"
-                  [disabled]="filteredStores.length === 0">
-          </button>
-          <button pButton type="button"
-                  label="Clear Filters"
-                  class="p-button-outlined p-button-sm"
-                  (click)="clearFilters()"
-                  [disabled]="!searchTerm && selectedStates.length === 0">
-          </button>
-        </div>
-      </div>
-      <div class="stores-filter-fields">
-        <div class="filter-field">
-          <label for="search" class="filter-label">Search Stores</label>
-          <span class="p-input-icon-left p-w-full">
-            <i class="pi pi-search"></i>
-            <input pInputText id="search"
-                   [(ngModel)]="searchTerm"
-                   (input)="onSearchChange()"
-                   placeholder="Search by store ID, city, zip code, or state..."
-                   class="p-w-full" />
-          </span>
-        </div>
-        <div class="filter-field">
-          <label for="state" class="filter-label">Filter by State</label>
-          <p-multiselect id="state"
-                        [(ngModel)]="selectedStates"
-                        [options]="states"
-                        optionLabel="label"
-                        optionValue="value"
-                        placeholder="Select states..."
-                        (onChange)="onStateChange()"
-                        [filter]="false"
-                        class="p-w-full">
-            <ng-template let-state pTemplate="item">
-              <div class="state-dropdown-item">
-                <span class="state-badge-dropdown">[{{ state.label }}]</span>
-              </div>
-            </ng-template>
-          </p-multiselect>
-        </div>
+      <div class="flex items-center space-x-4">
+        <button (click)="refreshData()"
+                class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+        <button (click)="exportStores()"
+                [disabled]="exportLoading"
+                class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span>{{ exportLoading ? 'Exporting...' : 'Export' }}</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Stores Table -->
-  <p-card>
-    <ng-template pTemplate="header">
-      <div class="table-header">
-        <h3>Store Locations ({{ getStoreCount() }} stores)</h3>
-        <div class="table-actions" *ngIf="getSelectedCount() > 0">
-          <span class="selected-count">{{ getSelectedCount() }} selected</span>
-          <button pButton type="button"
-                  label="Clear Selection"
-                  icon="pi pi-times"
-                  class="p-button-text p-button-sm"
-                  (click)="clearSelection()">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center h-64">
+    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500"></div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+    <div class="flex items-center">
+      <svg class="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <div>
+        <h3 class="text-lg font-medium text-red-900">Error Loading Data</h3>
+        <p class="text-red-700">Please try refreshing the page or contact support if the issue persists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!loading && !error">
+
+    <!-- KPI Cards Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Stores -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-orange-100 text-orange-600 mr-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 7h10M7 11h10M7 15h10"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Stores</p>
+            <p class="text-2xl font-bold text-gray-900">{{ getTotalStores() }}</p>
+            <p class="text-sm text-gray-500">{{ getUniqueStatesCount() }} states</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Revenue -->
+      <div class="bg-white rounded-xl shadow-lg border border-green-100 p-6">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Revenue</p>
+            <p class="text-2xl font-bold text-gray-900">${{ getTotalRevenue().toLocaleString() }}</p>
+            <p class="text-sm text-gray-500">All time</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Orders -->
+      <div class="bg-white rounded-xl shadow-lg border border-blue-100 p-6">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Orders</p>
+            <p class="text-2xl font-bold text-gray-900">{{ getTotalOrders().toLocaleString() }}</p>
+            <p class="text-sm text-gray-500">All stores</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Order Value -->
+      <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
+        <div class="flex items-center">
+          <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-600">Avg Order Value</p>
+            <p class="text-2xl font-bold text-gray-900">${{ getAverageOrderValue().toFixed(2) }}</p>
+            <p class="text-sm text-gray-500">Per order</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Filters & Search</h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search Stores</label>
+          <input type="text"
+                 [(ngModel)]="searchTerm"
+                 (input)="onSearchChange()"
+                 placeholder="Store ID, city, state..."
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+        </div>
+
+        <!-- State Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
+          <select [(ngModel)]="selectedStateFilter"
+                  (change)="onStateFilterChange()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">All States</option>
+            <option *ngFor="let state of states" [value]="state.value">{{ state.label }}</option>
+          </select>
+        </div>
+
+        <!-- Performance Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Performance</label>
+          <select [(ngModel)]="performanceFilter"
+                  (change)="onPerformanceFilterChange()"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">All Stores</option>
+            <option value="top">Top Performers</option>
+            <option value="bottom">Needs Attention</option>
+            <option value="new">Recent Activity</option>
+          </select>
+        </div>
+
+        <!-- Clear Filters -->
+        <div class="flex items-end">
+          <button (click)="clearAllFilters()"
+                  [disabled]="!hasActiveFilters()"
+                  class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-400 text-gray-700 rounded-lg font-medium transition-colors">
+            Clear Filters
           </button>
         </div>
       </div>
-    </ng-template>
-    <ng-template pTemplate="content">
-      <ng-container *ngIf="!loading && !error; else loadingOrError">
-        <div class="modern-table-container">
-          <p-table
-            [value]="filteredStores"
-            [selectionMode]="'multiple'"
-            [(selection)]="selectedStores"
-            (onRowSelect)="onRowSelect($event)"
-            (onRowUnselect)="onRowUnselect($event)"
-            (onSort)="onSort($event)"
-            [sortMode]="'single'"
-            [sortField]="sortField"
-            [sortOrder]="sortOrder"
-            [scrollable]="true"
-            scrollHeight="600px"
-            [lazy]="false"
-            [virtualScroll]="false"
-            styleClass="modern-table">
+    </div>
 
-            <ng-template pTemplate="header">
-              <tr>
-                <th style="width: 4rem">
-                  <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
-                </th>
-                <th pSortableColumn="storeid" style="width: 120px">
-                  Store ID
-                  <p-sortIcon field="storeid"></p-sortIcon>
-                </th>
-                <th pSortableColumn="city" style="width: 200px">
-                  City
-                  <p-sortIcon field="city"></p-sortIcon>
-                </th>
-                <th pSortableColumn="state" style="width: 150px">
-                  State
-                  <p-sortIcon field="state"></p-sortIcon>
-                </th>
-                <th pSortableColumn="zipcode" style="width: 120px">
-                  Zip Code
-                  <p-sortIcon field="zipcode"></p-sortIcon>
-                </th>
-                <th style="width: 150px">
-                  Coordinates
-                </th>
-              </tr>
-            </ng-template>
+    <!-- Analytics Toggle -->
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-900">Advanced Analytics</h2>
+      <button (click)="toggleAnalytics()"
+              class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="showAnalytics ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'"></path>
+        </svg>
+        <span>{{ showAnalytics ? 'Hide' : 'Show' }} Analytics</span>
+      </button>
+    </div>
 
-            <ng-template pTemplate="body" let-store>
-              <tr class="store-row">
-                <td>
-                  <p-tableCheckbox [value]="store"></p-tableCheckbox>
-                </td>
-                <td class="store-id">
-                  <span class="store-id-text clickable"
-                        (click)="navigateToStoreDetails(store)"
-                        pTooltip="Click to view store details"
-                        tooltipPosition="top">
-                    {{ store.storeid }}
-                  </span>
-                </td>
-                <td class="store-city">{{ store.city }}</td>
-                <td class="store-state">
-                  <span class="state-badge">[{{ store.state_abbr }}]</span>
-                  <span class="state-name">{{ store.state }}</span>
-                </td>
-                <td class="store-zip">{{ store.zipcode }}</td>
-                <td class="store-coordinates">
-                  <span class="coordinates-link"
-                        pTooltip="Click to open in Google Maps"
-                        tooltipPosition="top"
-                        (click)="openInMaps(store.latitude, store.longitude)">
-                    {{ formatCoordinates(store.latitude, store.longitude) }}
-                  </span>
-                </td>
-              </tr>
-            </ng-template>
+    <!-- Enhanced Analytics Section -->
+    <div *ngIf="showAnalytics" class="space-y-8 mb-8">
 
-            <ng-template pTemplate="emptymessage">
-              <tr>
-                <td colspan="6" class="no-results">
-                  <i class="pi pi-search"></i>
-                  <p>No stores found matching your criteria</p>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+      <!-- Row 1: Hourly Performance & Customer Acquisition -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- Store Hourly Performance Heatmap -->
+        <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Hourly Performance Heatmap</h3>
+            <p class="text-gray-600">Peak operating hours across all stores</p>
+          </div>
+          <div class="h-80 relative">
+            <!-- Loading Spinner -->
+            <div *ngIf="!hourlyPerformanceChartOptions" class="absolute inset-0 flex items-center justify-center">
+              <div class="flex items-center space-x-2 text-orange-600">
+                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm font-medium">Loading heatmap...</span>
+              </div>
+            </div>
+            <!-- Chart -->
+            <div *ngIf="hourlyPerformanceChartOptions" class="h-full">
+              <apx-chart
+                [series]="hourlyPerformanceChartOptions.series"
+                [chart]="hourlyPerformanceChartOptions.chart"
+                [xaxis]="hourlyPerformanceChartOptions.xaxis"
+                [yaxis]="hourlyPerformanceChartOptions.yaxis"
+                [colors]="hourlyPerformanceChartOptions.colors"
+                [dataLabels]="hourlyPerformanceChartOptions.dataLabels"
+                [plotOptions]="hourlyPerformanceChartOptions.plotOptions"
+                [tooltip]="hourlyPerformanceChartOptions.tooltip">
+              </apx-chart>
+            </div>
+          </div>
         </div>
-      </ng-container>
 
-      <ng-template #loadingOrError>
-        <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:200px;">
-          <ng-container *ngIf="loading; else errorState">
-            <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-            <div>Loading stores data...</div>
-          </ng-container>
-          <ng-template #errorState>
-            <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
-            <div>Failed to load stores data</div>
-            <button pButton type="button" label="Retry" class="p-button-outlined" (click)="loadStoresData()" style="margin-top: 1rem;"></button>
-          </ng-template>
+        <!-- Customer Acquisition Trends -->
+        <div class="bg-white rounded-xl shadow-lg border border-green-100 p-6">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Customer Acquisition Trends</h3>
+            <p class="text-gray-600">New customer growth by month</p>
+          </div>
+          <div class="h-80 relative">
+            <!-- Loading Spinner -->
+            <div *ngIf="!customerAcquisitionChartOptions" class="absolute inset-0 flex items-center justify-center">
+              <div class="flex items-center space-x-2 text-green-600">
+                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-sm font-medium">Loading trends...</span>
+              </div>
+            </div>
+            <!-- Chart -->
+            <div *ngIf="customerAcquisitionChartOptions" class="h-full">
+              <apx-chart
+                [series]="customerAcquisitionChartOptions.series"
+                [chart]="customerAcquisitionChartOptions.chart"
+                [xaxis]="customerAcquisitionChartOptions.xaxis"
+                [yaxis]="customerAcquisitionChartOptions.yaxis"
+                [colors]="customerAcquisitionChartOptions.colors"
+                [stroke]="customerAcquisitionChartOptions.stroke"
+                [dataLabels]="customerAcquisitionChartOptions.dataLabels"
+                [tooltip]="customerAcquisitionChartOptions.tooltip">
+              </apx-chart>
+            </div>
+          </div>
         </div>
-      </ng-template>
-    </ng-template>
-  </p-card>
+      </div>
 
-  <!-- Stores Growth Chart -->
-  <p-card class="p-mt-4" *ngIf="storesOpts">
-    <ng-template pTemplate="header">
-      <h3>Store Growth Over Time</h3>
-    </ng-template>
-    <ng-template pTemplate="content">
-      <apx-chart
-        [series]="storesOpts.series"
-        [chart]="storesOpts.chart"
-        [xaxis]="storesOpts.xaxis"
-        [yaxis]="storesOpts.yaxis"
-        [stroke]="storesOpts.stroke"
-        [dataLabels]="storesOpts.dataLabels"
-        [tooltip]="storesOpts.tooltip">
-      </apx-chart>
-    </ng-template>
-  </p-card>
+
+
+      <!-- Row 3: Existing Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Store Revenue Distribution -->
+        <div class="bg-white rounded-xl shadow-lg border border-indigo-100 p-6">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Revenue Distribution</h3>
+            <p class="text-gray-600">Store performance histogram</p>
+          </div>
+          <div *ngIf="storeRevenueChartOptions" class="h-80">
+            <apx-chart
+              [series]="storeRevenueChartOptions.series"
+              [chart]="storeRevenueChartOptions.chart"
+              [xaxis]="storeRevenueChartOptions.xaxis"
+              [yaxis]="storeRevenueChartOptions.yaxis"
+              [colors]="storeRevenueChartOptions.colors"
+              [plotOptions]="storeRevenueChartOptions.plotOptions"
+              [dataLabels]="storeRevenueChartOptions.dataLabels"
+              [tooltip]="storeRevenueChartOptions.tooltip">
+            </apx-chart>
+          </div>
+        </div>
+
+        <!-- State Performance Comparison -->
+        <div class="bg-white rounded-xl shadow-lg border border-teal-100 p-6">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">State Performance</h3>
+            <p class="text-gray-600">Revenue and orders by state</p>
+          </div>
+          <div *ngIf="statePerformanceChartOptions" class="h-80">
+            <apx-chart
+              [series]="statePerformanceChartOptions.series"
+              [chart]="statePerformanceChartOptions.chart"
+              [xaxis]="statePerformanceChartOptions.xaxis"
+              [yaxis]="statePerformanceChartOptions.yaxis"
+              [colors]="statePerformanceChartOptions.colors"
+              [plotOptions]="statePerformanceChartOptions.plotOptions"
+              [dataLabels]="statePerformanceChartOptions.dataLabels"
+              [tooltip]="statePerformanceChartOptions.tooltip">
+            </apx-chart>
+          </div>
+        </div>
+
+        <!-- Monthly Revenue Trends -->
+        <div class="bg-white rounded-xl shadow-lg border border-pink-100 p-6">
+          <div class="mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Monthly Revenue Trends</h3>
+            <p class="text-gray-600">Revenue trends across all stores</p>
+          </div>
+          <div *ngIf="monthlyTrendsChartOptions" class="h-80">
+            <apx-chart
+              [series]="monthlyTrendsChartOptions.series"
+              [chart]="monthlyTrendsChartOptions.chart"
+              [xaxis]="monthlyTrendsChartOptions.xaxis"
+              [yaxis]="monthlyTrendsChartOptions.yaxis"
+              [colors]="monthlyTrendsChartOptions.colors"
+              [stroke]="monthlyTrendsChartOptions.stroke"
+              [dataLabels]="monthlyTrendsChartOptions.dataLabels"
+              [legend]="monthlyTrendsChartOptions.legend"
+              [tooltip]="monthlyTrendsChartOptions.tooltip">
+            </apx-chart>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Performance Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Store Performance Overview</h3>
+          <p class="text-gray-600">Detailed metrics for {{ getFilteredStoreCount() }} stores</p>
+        </div>
+
+        <!-- Table Controls -->
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium text-gray-700">Sort by:</label>
+            <select [(ngModel)]="tableSortColumn"
+                    (change)="onTableSortChange()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+              <option value="total_revenue">Revenue</option>
+              <option value="total_orders">Orders</option>
+              <option value="avg_order_value">Avg Order Value</option>
+              <option value="unique_customers">Customers</option>
+              <option value="storeid">Store ID</option>
+              <option value="city">City</option>
+              <option value="state_name">State</option>
+            </select>
+            <button (click)="toggleTableSortOrder()"
+                    class="p-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      [attr.d]="tableSortAscending ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customers</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Order</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performance</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Order</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let store of getTableSortedData(); trackBy: trackByStoreId"
+                class="hover:bg-gray-50 transition-colors">
+
+              <!-- Store Info -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
+                    <span class="text-orange-600 font-bold text-sm">{{ store.storeid?.substring(0, 2) || 'ST' }}</span>
+                  </div>
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">{{ store.storeid }}</div>
+                    <div class="text-sm text-gray-500">Store ID</div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Location -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ store.city }}</div>
+                <div class="text-sm text-gray-500">{{ store.state_name }} ({{ store.state_abbr }})</div>
+              </td>
+
+              <!-- Revenue -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">${{ store.total_revenue.toLocaleString() }}</div>
+                <div class="text-sm text-gray-500">Total revenue</div>
+              </td>
+
+              <!-- Orders -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ store.total_orders.toLocaleString() }}</div>
+                <div class="text-sm text-gray-500">Total orders</div>
+              </td>
+
+              <!-- Customers -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ store.unique_customers.toLocaleString() }}</div>
+                <div class="text-sm text-gray-500">Unique customers</div>
+              </td>
+
+              <!-- Average Order Value -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">${{ store.avg_order_value.toFixed(2) }}</div>
+                <div class="text-sm text-gray-500">Per order</div>
+              </td>
+
+              <!-- Performance Badge -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span [class]="getPerformanceBadgeClass(store)"
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  {{ getPerformanceLabel(store) }}
+                </span>
+              </td>
+
+              <!-- Last Order -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ formatDate(store.last_order_date) }}</div>
+                <div class="text-sm text-gray-500">{{ getTimeSinceLastOrder(store.last_order_date) }}</div>
+              </td>
+
+              <!-- Actions -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                <button (click)="navigateToStoreDetails(store)"
+                        class="text-orange-600 hover:text-orange-900 font-medium">
+                  View Details
+                </button>
+                <button *ngIf="store.latitude && store.longitude"
+                        (click)="openInMaps(store.latitude, store.longitude)"
+                        class="text-blue-600 hover:text-blue-900 font-medium">
+                  Map
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer -->
+      <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200 rounded-b-xl">
+        <div class="text-sm text-gray-700">
+          Showing {{ getFilteredStoreCount() }} of {{ getTotalStores() }} stores
+        </div>
+        <div class="text-sm text-gray-500">
+          Total Revenue: ${{ getTotalRevenue().toLocaleString() }}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

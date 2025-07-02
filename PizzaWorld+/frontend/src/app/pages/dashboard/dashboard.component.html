@@ -2,7 +2,7 @@
 
 <!-- Main Dashboard Container with Orange Gradients -->
 <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
-  
+
   <!-- Header Section -->
   <div class="mb-8">
     <div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
@@ -12,8 +12,8 @@
             <h1 class="text-3xl font-bold mb-2">Store Revenue Dashboard</h1>
             <p class="text-orange-100 text-lg">{{ getTimePeriodLabel() }}</p>
           </div>
-          <button 
-            (click)="refreshData()" 
+          <button
+            (click)="refreshData()"
             [disabled]="loading"
             class="mt-4 sm:mt-0 inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
             <svg *ngIf="!loading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,15 +27,15 @@
           </button>
         </div>
       </div>
-      
+
       <!-- Filter Controls -->
       <div class="px-6 py-6 bg-gradient-to-r from-orange-25 to-orange-50">
         <div class="flex flex-wrap gap-4 items-center justify-start">
           <!-- Time Period Filter -->
           <div class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Time Period</label>
-            <select 
-              [(ngModel)]="selectedTimePeriod" 
+            <select
+              [(ngModel)]="selectedTimePeriod"
               (change)="onTimePeriodChange()"
               [disabled]="loading"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
@@ -49,8 +49,8 @@
           <!-- Year Filter -->
           <div *ngIf="selectedTimePeriod !== 'all-time'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Year</label>
-            <select 
-              [(ngModel)]="selectedYear" 
+            <select
+              [(ngModel)]="selectedYear"
               (change)="onYearChange()"
               [disabled]="loading"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
@@ -61,8 +61,8 @@
           <!-- Month Filter (when month period is selected) -->
           <div *ngIf="selectedTimePeriod === 'month'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Month</label>
-            <select 
-              [(ngModel)]="selectedMonth" 
+            <select
+              [(ngModel)]="selectedMonth"
               (change)="onMonthChange()"
               [disabled]="loading"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
@@ -73,7 +73,7 @@
           <!-- Custom Date Range (when custom period is selected) -->
           <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Start Year</label>
-            <select 
+            <select
               [(ngModel)]="customStartYear"
               (change)="onCustomRangeChange()"
               [disabled]="loading"
@@ -84,7 +84,7 @@
 
           <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Start Month</label>
-            <select 
+            <select
               [(ngModel)]="customStartMonth"
               (change)="onCustomRangeChange()"
               [disabled]="loading"
@@ -106,7 +106,7 @@
 
           <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">End Year</label>
-            <select 
+            <select
               [(ngModel)]="customEndYear"
               (change)="onCustomRangeChange()"
               [disabled]="loading"
@@ -117,7 +117,7 @@
 
           <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">End Month</label>
-            <select 
+            <select
               [(ngModel)]="customEndMonth"
               (change)="onCustomRangeChange()"
               [disabled]="loading"
@@ -141,19 +141,19 @@
           <div *ngIf="selectedTimePeriod === 'custom'" class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Quick Presets</label>
             <div class="flex gap-2 flex-wrap">
-              <button (click)="setCustomRange(2022, 1, 2022, 3)" 
+              <button (click)="setCustomRange(2022, 1, 2022, 3)"
                       class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
                 Q1 2022
               </button>
-              <button (click)="setCustomRange(2022, 5, 2022, 8)" 
+              <button (click)="setCustomRange(2022, 5, 2022, 8)"
                       class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
                 Summer 2022
               </button>
-              <button (click)="setCustomRange(2023, 1, 2023, 6)" 
+              <button (click)="setCustomRange(2023, 1, 2023, 6)"
                       class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
                 H1 2023
               </button>
-              <button (click)="setCustomRange(2021, 11, 2022, 1)" 
+              <button (click)="setCustomRange(2021, 11, 2022, 1)"
                       class="px-3 py-1 text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors">
                 Holiday Season
               </button>
@@ -181,8 +181,8 @@
     </svg>
     <h3 class="text-xl font-semibold text-red-800 mb-2">Failed to Load Dashboard</h3>
     <p class="text-red-600 mb-4">We encountered an issue loading your dashboard data. Please try again.</p>
-    <button 
-      (click)="refreshData()" 
+    <button
+      (click)="refreshData()"
       class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors">
       Try Again
     </button>
@@ -190,7 +190,7 @@
 
   <!-- Main Dashboard Content -->
   <div *ngIf="!loading && !error">
-    
+
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <!-- Total Revenue -->
@@ -261,18 +261,18 @@
         <!-- Search -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Search Stores</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             [(ngModel)]="searchTerm"
             (input)="onFilterChange()"
             placeholder="Search by city or state..."
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
         </div>
-        
+
         <!-- State Filter -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
-          <select 
+          <select
             [(ngModel)]="selectedState"
             (change)="onFilterChange()"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
@@ -280,21 +280,21 @@
             <option *ngFor="let state of getUniqueStates()" [value]="state">{{ state }}</option>
           </select>
         </div>
-        
+
         <!-- Min Revenue -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Min Revenue (€)</label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             [(ngModel)]="minRevenue"
             (input)="onFilterChange()"
             placeholder="0"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
         </div>
-        
+
         <!-- Clear Filters -->
         <div class="flex items-end">
-          <button 
+          <button
             (click)="clearFilters()"
             class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
             Clear Filters
@@ -305,7 +305,7 @@
 
     <!-- Charts Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      
+
       <!-- Revenue Chart -->
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
         <div class="mb-6 flex justify-between items-center">
@@ -313,7 +313,7 @@
             <h3 class="text-xl font-bold text-gray-900 mb-2">Store Revenue</h3>
             <p class="text-gray-600">Top performing stores by revenue</p>
           </div>
-          <button 
+          <button
             (click)="toggleChartSort()"
             class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,7 +348,7 @@
             <h3 class="text-xl font-bold text-gray-900 mb-2">Store Orders</h3>
             <p class="text-gray-600">Order volume by store</p>
           </div>
-          <button 
+          <button
             (click)="toggleOrdersChartSort()"
             class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,7 +382,7 @@
             <h3 class="text-xl font-bold text-gray-900 mb-2">Average Order Value</h3>
             <p class="text-gray-600">Average order value by store</p>
           </div>
-          <button 
+          <button
             (click)="toggleAvgOrderChartSort()"
             class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -417,7 +417,7 @@
             <h3 class="text-xl font-bold text-gray-900 mb-2">Unique Customers</h3>
             <p class="text-gray-600">Customer count by store</p>
           </div>
-          <button 
+          <button
             (click)="toggleCustomersChartSort()"
             class="flex items-center px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,8 +454,8 @@
             <p class="text-orange-100">Detailed breakdown of all {{ filteredStoreData.length }} stores</p>
           </div>
           <div class="flex gap-2">
-            <select 
-              [(ngModel)]="tableSortColumn" 
+            <select
+              [(ngModel)]="tableSortColumn"
               (change)="sortTable(tableSortColumn)"
               class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm"
               style="color: white;">
@@ -465,7 +465,7 @@
               <option value="avgOrder" style="color: black; background-color: white;">Sort by Avg Order</option>
               <option value="store" style="color: black; background-color: white;">Sort by Store Name</option>
             </select>
-            <button 
+            <button
               (click)="sortTable(tableSortColumn)"
               class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,7 +489,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let store of getTableSortedData(); let i = index" 
+            <tr *ngFor="let store of getTableSortedData(); let i = index"
                 class="hover:bg-orange-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">{{ i + 1 }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -522,10 +522,13 @@
       <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-xl font-bold text-gray-900">Advanced Analytics</h3>
-            <p class="text-gray-600">Deep insights into your business performance</p>
+            <div class="flex items-center gap-3">
+              <h3 class="text-xl font-bold text-gray-900">Advanced Analytics</h3>
+              <span class="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">All Time Data</span>
+            </div>
+            <p class="text-gray-600">Deep insights into your business performance (not affected by time filters above)</p>
           </div>
-          <button 
+          <button
             (click)="toggleAnalytics()"
             class="flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all duration-200 shadow-lg">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -538,35 +541,10 @@
 
       <!-- Analytics Content -->
       <div *ngIf="showAnalytics" class="mt-6 space-y-8">
-        
-        <!-- Analytics Filters -->
-        <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
-          <h4 class="text-lg font-semibold text-gray-900 mb-4">Analytics Filters</h4>
-          <div class="grid grid-cols-1 gap-4">
-            <!-- Category Filter -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Product Category</label>
-              <select 
-                [(ngModel)]="analyticsCategory"
-                (change)="onAnalyticsFilterChange()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                <option value="">All Categories</option>
-                <option value="pizza">Pizza</option>
-                <option value="drinks">Drinks</option>
-                <option value="sides">Sides</option>
-                <option value="desserts">Desserts</option>
-              </select>
-            </div>
-            
-          </div>
-          <p class="text-sm text-gray-500 mt-4">
-            📊 Analytics use the same time period as your main dashboard. Product analytics include size information and order counts.
-          </p>
-        </div>
 
         <!-- Analytics Charts Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           <!-- Hourly Performance Chart -->
           <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
             <div class="mb-6">
@@ -703,59 +681,39 @@
             </div>
           </div>
 
-          <!-- State Comparison Chart -->
-          <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
-            <div class="mb-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">State Revenue Comparison</h3>
-              <p class="text-gray-600">Monthly revenue trends by state (top 4 states)</p>
-            </div>
-            <div *ngIf="stateComparisonChartOptions" class="h-80">
-              <apx-chart
-                [series]="stateComparisonChartOptions.series"
-                [chart]="stateComparisonChartOptions.chart"
-                [colors]="stateComparisonChartOptions.colors"
-                [stroke]="stateComparisonChartOptions.stroke"
-                [dataLabels]="stateComparisonChartOptions.dataLabels"
-                [xaxis]="stateComparisonChartOptions.xaxis"
-                [yaxis]="stateComparisonChartOptions.yaxis"
-                [grid]="stateComparisonChartOptions.grid"
-                [legend]="stateComparisonChartOptions.legend">
-              </apx-chart>
-            </div>
-            <div *ngIf="!stateComparisonChartOptions" class="h-80 flex items-center justify-center text-gray-500">
-              <p>No state comparison data available</p>
-            </div>
-          </div>
 
-          <!-- Store Comparison Chart -->
-          <div class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
-            <div class="mb-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">Store Performance Comparison</h3>
-              <p class="text-gray-600">Top performing stores comparison</p>
-            </div>
-            <div *ngIf="storeComparisonChartOptions" class="h-80">
-              <apx-chart
-                [series]="storeComparisonChartOptions.series"
-                [chart]="storeComparisonChartOptions.chart"
-                [colors]="storeComparisonChartOptions.colors"
-                [plotOptions]="storeComparisonChartOptions.plotOptions"
-                [dataLabels]="storeComparisonChartOptions.dataLabels"
-                [xaxis]="storeComparisonChartOptions.xaxis"
-                [yaxis]="storeComparisonChartOptions.yaxis"
-                [grid]="storeComparisonChartOptions.grid">
-              </apx-chart>
-            </div>
-            <div *ngIf="!storeComparisonChartOptions" class="h-80 flex items-center justify-center text-gray-500">
-              <p>No store comparison data available</p>
-            </div>
-          </div>
         </div>
 
         <!-- Analytics Summary Table -->
         <div class="bg-white rounded-xl shadow-lg border border-purple-100 overflow-hidden">
           <div class="px-6 py-4 bg-gradient-to-r from-purple-500 to-purple-600">
-            <h3 class="text-xl font-bold text-white">All Products Performance</h3>
-            <p class="text-purple-100">Complete list of all products with performance metrics</p>
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-xl font-bold text-white">All Products Performance</h3>
+                <p class="text-purple-100">Complete list of all products with performance metrics</p>
+              </div>
+              <div class="flex gap-2">
+                <select
+                  [(ngModel)]="productTableSortColumn"
+                  (change)="sortProductTable(productTableSortColumn)"
+                  class="px-3 py-1 bg-white/20 text-white placeholder-white/70 border border-white/30 rounded-lg text-sm"
+                  style="color: white;">
+                  <option value="total_revenue" style="color: black; background-color: white;">Sort by Revenue</option>
+                  <option value="total_quantity" style="color: black; background-color: white;">Sort by Quantity</option>
+                  <option value="product_name" style="color: black; background-color: white;">Sort by Product Name</option>
+                  <option value="category" style="color: black; background-color: white;">Sort by Category</option>
+                  <option value="size" style="color: black; background-color: white;">Sort by Size</option>
+                </select>
+                <button
+                  (click)="sortProductTable(productTableSortColumn)"
+                  class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path *ngIf="!productTableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    <path *ngIf="productTableSortAscending" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -769,8 +727,8 @@
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity Sold</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr *ngFor="let product of productPerformanceData; let i = index" 
+                            <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let product of getProductTableSortedData(); let i = index"
                     class="hover:bg-purple-50 transition-colors">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-purple-600">{{ i + 1 }}</td>
                   <td class="px-6 py-4 whitespace-nowrap">

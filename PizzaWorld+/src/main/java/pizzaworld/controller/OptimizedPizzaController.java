@@ -16,10 +16,20 @@ import pizzaworld.model.CustomUserDetails;
 import pizzaworld.model.User;
 import pizzaworld.util.CsvExportUtil;
 import pizzaworld.dto.DashboardKpiDto;
+import pizzaworld.model.CustomUserDetails;
+import pizzaworld.model.User;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v2")
 public class OptimizedPizzaController {
+
+    private static final Logger logger = LoggerFactory.getLogger(OptimizedPizzaController.class);
 
     @Autowired
     private OptimizedPizzaService pizzaService;
@@ -440,5 +450,156 @@ public class OptimizedPizzaController {
                 "status", "OK",
                 "service", "Optimized Pizza API v2",
                 "timestamp", java.time.LocalDateTime.now().toString()));
+    }
+
+    // =================================================================
+    // ENHANCED STORE ANALYTICS - For the new stores page
+    // =================================================================
+
+    @GetMapping("/stores/performance")
+    public ResponseEntity<List<Map<String, Object>>> getStorePerformanceAnalytics(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStorePerformanceAnalytics(user));
+    }
+
+    @GetMapping("/analytics/state-performance")
+    public ResponseEntity<List<Map<String, Object>>> getStatePerformanceAnalytics(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStatePerformanceAnalytics(user));
+    }
+
+    @GetMapping("/analytics/monthly-revenue-trends")
+    public ResponseEntity<List<Map<String, Object>>> getMonthlyRevenueTrendsByStore(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getMonthlyRevenueTrendsByStore(user));
+    }
+
+    @GetMapping("/stores/performance/export")
+    public void exportStorePerformanceAnalytics(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getStorePerformanceAnalytics(user);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-performance-analytics.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "store-performance-analytics.csv");
+    }
+
+    // ============================================================================
+    // NEW STORE ANALYTICS ENDPOINTS - Enhanced Store Intelligence
+    // ============================================================================
+
+    @GetMapping("/stores/hourly-performance")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreHourlyPerformance(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreHourlyPerformance(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store hourly performance", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/stores/customer-acquisition")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCustomerAcquisition(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreCustomerAcquisition(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store customer acquisition", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/stores/product-mix")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreProductMix(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreProductMix(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store product mix", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/stores/weekly-trends")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreWeeklyTrends(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreWeeklyTrends(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store weekly trends", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/stores/daily-operations")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreDailyOperations(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreDailyOperations(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store daily operations", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/stores/efficiency-metrics")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreEfficiencyMetrics(Authentication authentication) {
+        try {
+            String role = authentication.getAuthorities().iterator().next().getAuthority();
+            User user = ((CustomUserDetails) authentication.getPrincipal()).getUser();
+            String stateAbbr = user.getStateAbbr();
+            String storeId = user.getStoreId();
+
+            List<Map<String, Object>> result = pizzaService.getStoreEfficiencyMetrics(role, stateAbbr, storeId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error fetching store efficiency metrics", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

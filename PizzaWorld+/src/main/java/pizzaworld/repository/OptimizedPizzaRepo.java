@@ -908,101 +908,6 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
         @Param("month") Integer month);
 
     // =================================================================
-    // FIXED HOURLY PERFORMANCE - Combined Revenue and Orders
-    // =================================================================
-    
-    @Query(value = """
-        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
-        FROM revenue_by_hour_hq r
-        LEFT JOIN orders_by_hour_hq o ON r.hour = o.hour
-        ORDER BY r.hour ASC
-        """, nativeQuery = true)
-    List<Map<String, Object>> getHourlyPerformanceAnalyticsHQ();
-
-    @Query(value = """
-        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
-        FROM revenue_by_hour_state r
-        LEFT JOIN orders_by_hour_state o ON r.state = o.state AND r.hour = o.hour
-        WHERE r.state = :state
-        ORDER BY r.hour ASC
-        """, nativeQuery = true)
-    List<Map<String, Object>> getHourlyPerformanceAnalyticsState(@Param("state") String state);
-
-    @Query(value = """
-        SELECT r.hour, r.revenue, COALESCE(o.orders, 0) as orders
-        FROM revenue_by_hour_store r
-        LEFT JOIN orders_by_hour_store o ON r.store_id = o.store_id AND r.hour = o.hour
-        WHERE r.store_id = :storeId
-        ORDER BY r.hour ASC
-        """, nativeQuery = true)
-    List<Map<String, Object>> getHourlyPerformanceAnalyticsStore(@Param("storeId") String storeId);
-
-    // =================================================================
-    // IMPROVED PRODUCT PERFORMANCE - Using Materialized Views
-    // =================================================================
-    
-    @Query(value = "SELECT * FROM top_products_hq WHERE (:category IS NULL OR category = :category) ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getProductPerformanceAnalyticsHQ(@Param("category") String category, @Param("limit") Integer limit);
-
-    @Query(value = "SELECT * FROM top_products_state WHERE (:category IS NULL OR category = :category) AND state = :state ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getProductPerformanceAnalyticsState(@Param("state") String state, @Param("category") String category, @Param("limit") Integer limit);
-
-    @Query(value = "SELECT * FROM top_products_store WHERE (:category IS NULL OR category = :category) AND store_id = :storeId ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getProductPerformanceAnalyticsStore(@Param("storeId") String storeId, @Param("category") String category, @Param("limit") Integer limit);
-
-    // =================================================================
-    // FIXED CATEGORY PERFORMANCE - Using Materialized Views
-    // =================================================================
-    
-    @Query(value = "SELECT * FROM category_performance_hq ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getCategoryPerformanceAnalyticsHQ();
-
-    @Query(value = "SELECT * FROM category_performance_state WHERE state = :state ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getCategoryPerformanceAnalyticsState(@Param("state") String state);
-
-    @Query(value = "SELECT * FROM category_performance_store WHERE store_id = :storeId ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getCategoryPerformanceAnalyticsStore(@Param("storeId") String storeId);
-
-    // =================================================================
-    // CUSTOMER ACQUISITION - Using Materialized Views
-    // =================================================================
-    
-    @Query(value = "SELECT * FROM customer_acquisition_hq ORDER BY year DESC, month DESC", nativeQuery = true)
-    List<Map<String, Object>> getCustomerAcquisitionAnalyticsHQ();
-
-    @Query(value = "SELECT * FROM customer_acquisition_state WHERE state = :state ORDER BY year DESC, month DESC", nativeQuery = true)
-    List<Map<String, Object>> getCustomerAcquisitionAnalyticsState(@Param("state") String state);
-
-    // =================================================================
-    // DAILY AND MONTHLY TRENDS - Using Materialized Views
-    // =================================================================
-    
-    @Query(value = "SELECT * FROM revenue_by_day_hq ORDER BY day DESC LIMIT 30", nativeQuery = true)
-    List<Map<String, Object>> getDailyRevenueTrendsHQ();
-
-    @Query(value = "SELECT * FROM revenue_by_month_hq ORDER BY month DESC LIMIT 12", nativeQuery = true)
-    List<Map<String, Object>> getMonthlyRevenueTrendsHQ();
-
-    @Query(value = "SELECT * FROM revenue_by_month_state WHERE state = :state ORDER BY month DESC LIMIT 12", nativeQuery = true)
-    List<Map<String, Object>> getMonthlyRevenueTrendsState(@Param("state") String state);
-
-    @Query(value = "SELECT * FROM revenue_by_month_store WHERE store_id = :storeId ORDER BY month DESC LIMIT 12", nativeQuery = true)
-    List<Map<String, Object>> getMonthlyRevenueTrendsStore(@Param("storeId") String storeId);
-
-    // =================================================================
-    // STORE COMPARISON - Using Materialized Views
-    // =================================================================
-    
-    @Query(value = "SELECT * FROM store_performance_hq ORDER BY total_revenue DESC LIMIT 20", nativeQuery = true)
-    List<Map<String, Object>> getStorePerformanceComparisonHQ();
-
-    @Query(value = "SELECT * FROM store_performance_state WHERE state_abbr = :state ORDER BY total_revenue DESC", nativeQuery = true)
-    List<Map<String, Object>> getStorePerformanceComparisonState(@Param("state") String state);
-
-    @Query(value = "SELECT * FROM store_performance_hq WHERE storeid = :storeId", nativeQuery = true)
-    List<Map<String, Object>> getStorePerformanceComparisonStore(@Param("storeId") String storeId);
-
-    // =================================================================
     // STATE REVENUE TRENDS - New for State Comparison Chart
     // =================================================================
     
@@ -1131,4 +1036,52 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
         ORDER BY year, month
         """, nativeQuery = true)
     List<Map<String, Object>> getMonthlyRevenueTrendsByStoreStore(@Param("storeId") String storeId);
+
+    // Top Products by Time Period (very simplified placeholder)
+    @Query(value = "SELECT * FROM top_products_hq ORDER BY total_revenue DESC LIMIT :limit", nativeQuery = true)
+    List<Map<String, Object>> getTopProductsByTimePeriod(
+        @Param("storeId") String storeId,
+        @Param("state") String state,
+        @Param("timePeriod") String timePeriod,
+        @Param("year") Integer year,
+        @Param("month") Integer month,
+        @Param("limit") Integer limit);
+
+    // =================================================================
+    // PAGINATED ORDER FILTERING - For PizzaService compatibility
+    // =================================================================
+
+    @Query(value = """
+        SELECT o.*, s.city as store_city, s.state_abbr as store_state
+        FROM orders o
+        JOIN stores s ON o.storeid = s.storeid
+        WHERE (:storeId IS NULL OR o.storeid = :storeId)
+          AND (:customerId IS NULL OR o.customerid = :customerId)
+          AND (:state IS NULL OR s.state_abbr = :state)
+          AND (:fromDate IS NULL OR o.orderdate >= CAST(:fromDate AS DATE))
+          AND (:toDate IS NULL OR o.orderdate <= CAST(:toDate AS DATE))
+          AND (:orderId IS NULL OR o.orderid = :orderId)
+          AND (:nitems IS NULL OR o.nitems = :nitems)
+        ORDER BY 
+          CASE WHEN :sortBy = 'orderdate' THEN o.orderdate END ASC,
+          CASE WHEN :sortBy = 'orderdate' AND :sortOrder = 'desc' THEN o.orderdate END DESC,
+          CASE WHEN :sortBy = 'total' THEN o.total END ASC,
+          CASE WHEN :sortBy = 'total' AND :sortOrder = 'desc' THEN o.total END DESC,
+          CASE WHEN :sortBy = 'customerid' THEN o.customerid END ASC,
+          CASE WHEN :sortBy = 'customerid' AND :sortOrder = 'desc' THEN o.customerid END DESC,
+          o.orderdate DESC
+        LIMIT :limit OFFSET :offset
+        """, nativeQuery = true)
+    List<Map<String, Object>> dynamicOrderFilterPaginated(
+        @Param("storeId") String storeId,
+        @Param("customerId") String customerId,
+        @Param("state") String state,
+        @Param("fromDate") String fromDate,
+        @Param("toDate") String toDate,
+        @Param("orderId") Integer orderId,
+        @Param("nitems") Integer nitems,
+        @Param("sortBy") String sortBy,
+        @Param("sortOrder") String sortOrder,
+        @Param("limit") int limit,
+        @Param("offset") int offset);
 }

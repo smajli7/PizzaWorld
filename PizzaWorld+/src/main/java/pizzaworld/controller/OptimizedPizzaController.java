@@ -402,7 +402,7 @@ public class OptimizedPizzaController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
         User user = userDetails.getUser();
-        List<Map<String, Object>> data = pizzaService.getHourlyPerformanceAnalytics(user, year, month);
+        List<Map<String, Object>> data = pizzaService.getHourlyPerformanceAnalytics(user);
         
         if (data.isEmpty()) {
             CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "hourly-performance.csv");
@@ -426,7 +426,7 @@ public class OptimizedPizzaController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
         User user = userDetails.getUser();
-        List<Map<String, Object>> data = pizzaService.getProductPerformanceAnalytics(user, category, year, month, limit);
+        List<Map<String, Object>> data = pizzaService.getProductPerformanceAnalytics(user, category, limit);
         
         if (data.isEmpty()) {
             CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "product-performance.csv");

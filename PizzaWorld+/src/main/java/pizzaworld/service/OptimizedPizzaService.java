@@ -12,6 +12,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import pizzaworld.model.User;
 import pizzaworld.repository.OptimizedPizzaRepo;
@@ -26,6 +28,8 @@ public class OptimizedPizzaService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    private static final Logger logger = LoggerFactory.getLogger(OptimizedPizzaService.class);
 
     // =================================================================
     // DASHBOARD KPIs - Role-based using Materialized Views
@@ -632,7 +636,7 @@ public class OptimizedPizzaService {
     @Cacheable(value = "storeComparison", key = "#user.role + '_' + #user.stateAbbr")
     public List<Map<String, Object>> getStorePerformanceComparison(User user) {
         return switch (user.getRole()) {
-            case "HQ_ADMIN" -> repo.getStorePerformanceComparisonHQ();
+            case "HQ_ADMIN" -> repo.getStorePerformanceComparisonHQ(20);
             case "STATE_MANAGER" -> repo.getStorePerformanceComparisonState(user.getStateAbbr());
             case "STORE_MANAGER" -> repo.getStorePerformanceComparisonStore(user.getStoreId());
             default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
@@ -676,7 +680,7 @@ public class OptimizedPizzaService {
             case "STORE_MANAGER" -> {
                 // Store managers see their store comparison within their state
                 List<Map<String, Object>> stateStores = repo.getStorePerformanceComparison(user.getStateAbbr(), year, month);
-                yield storeStores.stream()
+                yield stateStores.stream()
                     .filter(store -> user.getStoreId().equals(store.get("storeid")))
                     .toList();
             }
@@ -940,12 +944,29 @@ public class OptimizedPizzaService {
         // Role-based access check
         validateStoreAccess(user, storeId);
         
+        // DEBUG: Check what data ranges are available
+        String dateRangeSql = "SELECT MIN(orderdate) as min_date, MAX(orderdate) as max_date, " +
+                             "COUNT(*) as total_orders, SUM(total) as total_revenue " +
+                             "FROM orders WHERE storeid = ?";
+        List<Map<String, Object>> dateRangeData = jdbcTemplate.queryForList(dateRangeSql, storeId);
+        if (!dateRangeData.isEmpty()) {
+            Map<String, Object> dateInfo = dateRangeData.get(0);
+            System.out.println("STORE DEBUG - Raw orders date range: " + dateInfo.get("min_date") + " to " + dateInfo.get("max_date"));
+            System.out.println("STORE DEBUG - Raw orders total revenue: " + dateInfo.get("total_revenue"));
+            System.out.println("STORE DEBUG - Raw orders total count: " + dateInfo.get("total_orders"));
+        }
+        
         // Use store_analytics_overview for comprehensive metrics
         String overviewSql = "SELECT * FROM store_analytics_overview WHERE storeid = ?";
         List<Map<String, Object>> overviewData = jdbcTemplate.queryForList(overviewSql, storeId);
         
         if (!overviewData.isEmpty()) {
-            return overviewData.get(0);
+            Map<String, Object> overview = overviewData.get(0);
+            System.out.println("STORE DEBUG - Overview materialized view revenue: " + overview.get("total_revenue"));
+            System.out.println("STORE DEBUG - Overview materialized view orders: " + overview.get("total_orders"));
+            System.out.println("STORE DEBUG - Overview first_order_date: " + overview.get("first_order_date"));
+            System.out.println("STORE DEBUG - Overview last_order_date: " + overview.get("last_order_date"));
+            return overview;
         }
         
         // Fallback to kpis_global_store if overview doesn't exist
@@ -953,7 +974,10 @@ public class OptimizedPizzaService {
         List<Map<String, Object>> kpiData = jdbcTemplate.queryForList(kpiSql, storeId);
         
         if (!kpiData.isEmpty()) {
-            return kpiData.get(0);
+            Map<String, Object> kpi = kpiData.get(0);
+            System.out.println("STORE DEBUG - KPI materialized view revenue: " + kpi.get("revenue"));
+            System.out.println("STORE DEBUG - KPI materialized view orders: " + kpi.get("orders"));
+            return kpi;
         }
         
         // Final fallback to direct calculation
@@ -966,7 +990,14 @@ public class OptimizedPizzaService {
             "FROM orders WHERE storeid = ?";
         List<Map<String, Object>> fallbackData = jdbcTemplate.queryForList(fallbackSql, storeId);
         
-        return fallbackData.isEmpty() ? new HashMap<>() : fallbackData.get(0);
+        if (!fallbackData.isEmpty()) {
+            Map<String, Object> fallback = fallbackData.get(0);
+            System.out.println("STORE DEBUG - Fallback direct calculation revenue: " + fallback.get("revenue"));
+            System.out.println("STORE DEBUG - Fallback direct calculation orders: " + fallback.get("orders"));
+            return fallback;
+        }
+        
+        return new HashMap<>();
     }
 
     public List<Map<String, Object>> getStoreRevenueTrends(String storeId, User user) {
@@ -1153,8 +1184,17 @@ public class OptimizedPizzaService {
     // ============== OVERLOADED METHODS WITH FILTER SUPPORT ==============
     
     public Map<String, Object> getStoreAnalyticsOverview(String storeId, User user, Map<String, Object> filters) {
-        // Enhanced implementation with proper time filtering using materialized views
-        return getEnhancedStoreAnalyticsOverview(storeId, user, filters);
+        validateStoreAccess(user, storeId);
+        
+        // If no filters provided (all-time), use consistent calculation with raw orders table
+        // to match the custom range calculation method
+        if (filters == null || filters.isEmpty() || "all-time".equals(filters.get("timePeriod"))) {
+            System.out.println("STORE DEBUG - Using raw orders calculation for all-time consistency");
+            return getFilteredStoreMetrics(storeId, null);
+        }
+        
+        // For filtered data, use the enhanced filtered approach
+        return getFilteredStoreMetrics(storeId, filters);
     }
     
     public List<Map<String, Object>> getStoreRevenueTrends(String storeId, User user, Map<String, Object> filters) {
@@ -1283,13 +1323,40 @@ public class OptimizedPizzaService {
     // =================================================================
 
     private Map<String, Object> getFilteredStoreMetrics(String storeId, Map<String, Object> filters) {
-        String sql = buildFilteredQuery("sales_monthly_store_cat", storeId, filters, 
-            "SELECT storeid, state_abbr, SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
-            "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, SUM(unique_customers) as unique_customers, " +
-            "SUM(unique_customers) as total_customers, SUM(unique_customers) as customers");
+        // When aggregating across multiple time periods, use raw orders table for accurate customer counts
+        // to avoid double counting customers who appear in multiple months
+        String sql = "SELECT o.storeid, s.state_abbr, " +
+                    "SUM(o.total) as total_revenue, " +
+                    "COUNT(DISTINCT o.orderid) as total_orders, " +
+                    "SUM(o.total)/NULLIF(COUNT(DISTINCT o.orderid),0) as avg_order_value, " +
+                    "COUNT(DISTINCT o.customerid) as unique_customers, " +
+                    "COUNT(DISTINCT o.customerid) as total_customers, " +
+                    "COUNT(DISTINCT o.customerid) as customers " +
+                    "FROM orders o " +
+                    "JOIN stores s ON o.storeid = s.storeid " +
+                    "WHERE o.storeid = ?";
+        
+        // Apply time filtering if needed based on filters
+        if (filters != null) {
+            String timePeriod = (String) filters.get("timePeriod");
+            Integer year = (Integer) filters.get("year");
+            Integer month = (Integer) filters.get("month");
+            Integer quarter = (Integer) filters.get("quarter");
+            
+            if ("year".equals(timePeriod) && year != null) {
+                sql += " AND EXTRACT(YEAR FROM o.orderdate) = " + year;
+            } else if ("month".equals(timePeriod) && year != null && month != null) {
+                sql += " AND EXTRACT(YEAR FROM o.orderdate) = " + year + " AND EXTRACT(MONTH FROM o.orderdate) = " + month;
+            } else if ("quarter".equals(timePeriod) && year != null && quarter != null) {
+                int startMonth = (quarter - 1) * 3 + 1;
+                int endMonth = quarter * 3;
+                sql += " AND EXTRACT(YEAR FROM o.orderdate) = " + year + " AND EXTRACT(MONTH FROM o.orderdate) BETWEEN " + startMonth + " AND " + endMonth;
+            }
+        }
+        
+        sql += " GROUP BY o.storeid, s.state_abbr";
         
         // Execute query with proper time filtering
-        
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, storeId);
         return result.isEmpty() ? new HashMap<>() : result.get(0);
     }
@@ -1499,29 +1566,36 @@ public class OptimizedPizzaService {
         
         if (startYear.equals(endYear)) {
             // Same year - simple month range
-            sql = "SELECT year, month, year_month, " +
-                 "SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
-                 "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
-                 "SUM(unique_customers) as total_customers, SUM(units_sold) as total_units " +
-                 "FROM sales_monthly_store_cat " +
-                 "WHERE storeid = ? AND year = ? AND month >= ? AND month <= ? " +
-                 "GROUP BY year, month, year_month ORDER BY year, month";
+            sql = "SELECT EXTRACT(YEAR FROM o.orderdate) as year, EXTRACT(MONTH FROM o.orderdate) as month, " +
+                 "TO_CHAR(o.orderdate, 'YYYY-MM') as year_month, " +
+                 "SUM(o.total) as total_revenue, COUNT(DISTINCT o.orderid) as total_orders, " +
+                 "SUM(o.total)/NULLIF(COUNT(DISTINCT o.orderid),0) as avg_order_value, " +
+                 "COUNT(DISTINCT o.customerid) as total_customers, SUM(o.nitems) as total_units " +
+                 "FROM orders o " +
+                 "WHERE o.storeid = ? AND EXTRACT(YEAR FROM o.orderdate) = ? " +
+                 "AND EXTRACT(MONTH FROM o.orderdate) >= ? AND EXTRACT(MONTH FROM o.orderdate) <= ? " +
+                 "GROUP BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'YYYY-MM') " +
+                 "ORDER BY year, month";
             params.add(storeId);
             params.add(startYear);
             params.add(startMonth);
             params.add(endMonth);
-            System.out.println("CUSTOM RANGE DEBUG - Same year query: " + sql);
+            System.out.println("CUSTOM RANGE DEBUG - Same year query (FIXED - no JOIN): " + sql);
             System.out.println("CUSTOM RANGE DEBUG - Parameters: storeId=" + storeId + ", year=" + startYear + ", startMonth=" + startMonth + ", endMonth=" + endMonth);
         } else {
             // Different years - more complex range
-            sql = "SELECT year, month, year_month, " +
-                 "SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
-                 "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
-                 "SUM(unique_customers) as total_customers, SUM(units_sold) as total_units " +
-                 "FROM sales_monthly_store_cat " +
-                 "WHERE storeid = ? AND " +
-                 "((year = ? AND month >= ?) OR (year > ? AND year < ?) OR (year = ? AND month <= ?)) " +
-                 "GROUP BY year, month, year_month ORDER BY year, month";
+            sql = "SELECT EXTRACT(YEAR FROM o.orderdate) as year, EXTRACT(MONTH FROM o.orderdate) as month, " +
+                 "TO_CHAR(o.orderdate, 'YYYY-MM') as year_month, " +
+                 "SUM(o.total) as total_revenue, COUNT(DISTINCT o.orderid) as total_orders, " +
+                 "SUM(o.total)/NULLIF(COUNT(DISTINCT o.orderid),0) as avg_order_value, " +
+                 "COUNT(DISTINCT o.customerid) as total_customers, SUM(o.nitems) as total_units " +
+                 "FROM orders o " +
+                 "WHERE o.storeid = ? AND " +
+                 "((EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) >= ?) OR " +
+                 "(EXTRACT(YEAR FROM o.orderdate) > ? AND EXTRACT(YEAR FROM o.orderdate) < ?) OR " +
+                 "(EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) <= ?)) " +
+                 "GROUP BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'YYYY-MM') " +
+                 "ORDER BY year, month";
             params.add(storeId);
             params.add(startYear);
             params.add(startMonth);
@@ -1529,7 +1603,7 @@ public class OptimizedPizzaService {
             params.add(endYear);
             params.add(endYear);
             params.add(endMonth);
-            System.out.println("CUSTOM RANGE DEBUG - Multi-year query: " + sql);
+            System.out.println("CUSTOM RANGE DEBUG - Multi-year query (FIXED - no JOIN): " + sql);
             System.out.println("CUSTOM RANGE DEBUG - Parameters: storeId=" + storeId + ", startYear=" + startYear + ", startMonth=" + startMonth + ", endYear=" + endYear + ", endMonth=" + endMonth);
         }
         

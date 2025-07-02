@@ -88,9 +88,7 @@ export class StoreDetailsComponent implements OnInit {
   // New comprehensive analytics properties
   storeOverview: any = null;
   revenueTrends: any[] = [];
-  hourlyPerformance: any[] = [];
   categoryPerformance: any[] = [];
-  dailyOperations: any[] = [];
   customerInsights: any[] = [];
   productPerformance: any[] = [];
   recentOrders: any[] = [];
@@ -102,20 +100,19 @@ export class StoreDetailsComponent implements OnInit {
   // Chart loading states
   chartsLoading = {
     revenueTrends: true,
-    hourlyPerformance: true,
     categoryPerformance: true,
-    dailyOperations: true,
     customerInsights: true,
     productPerformance: true,
     efficiencyMetrics: true,
     recentOrders: true
   };
 
+  // Export loading state
+  exportLoading = false;
+
   // Chart instances
   revenueTrendChart: any = null;
-  hourlyHeatmapChart: any = null;
   categoryDonutChart: any = null;
-  dailyTrendsChart: any = null;
   customerGrowthChart: any = null;
   productBarChart: any = null;
   efficiencyGaugeChart: any = null;
@@ -265,21 +262,9 @@ export class StoreDetailsComponent implements OnInit {
           return of([]);
         })
       ),
-      hourly: this.kpi.getStoreHourlyPerformance(this.store.storeid, filters).pipe(
-        catchError(err => {
-          console.error('Hourly performance error:', err);
-          return of([]);
-        })
-      ),
       category: this.kpi.getStoreCategoryPerformance(this.store.storeid, filters).pipe(
         catchError(err => {
           console.error('Category performance error:', err);
-          return of([]);
-        })
-      ),
-      daily: this.kpi.getStoreDailyOperations(this.store.storeid, filters).pipe(
-        catchError(err => {
-          console.error('Daily operations error:', err);
           return of([]);
         })
       ),
@@ -354,23 +339,24 @@ export class StoreDetailsComponent implements OnInit {
           console.log('Skipping KPI cards update - custom mode is active');
         }
 
+        // Store data for charts and export
+        this.revenueTrends = res.revenueTrends;
+        this.categoryPerformance = res.category;
+        this.customerInsights = res.customer;
+        this.productPerformance = res.products;
+        this.efficiencyMetrics = res.efficiency;
+        this.recentOrders = res.recentOrders;
+
         // Build all charts with error handling
         try {
           this.buildRevenueTrendChart(res.revenueTrends);
-          this.buildHourlyHeatmapChart(res.hourly);
           this.buildCategoryDonutChart(res.category);
-          this.buildDailyTrendsChart(res.daily);
           this.buildCustomerGrowthChart(res.customer);
           this.buildProductBarChart(res.products);
           this.buildEfficiencyGaugeChart(res.efficiency);
-          this.buildWeeklyPatternChart(res.daily);
         } catch (chartError) {
           console.error('Chart building error:', chartError);
         }
-
-        // Store data
-        this.efficiencyMetrics = res.efficiency;
-        this.recentOrders = res.recentOrders;
 
         // Turn off all loading states
         Object.keys(this.chartsLoading).forEach(k => (this.chartsLoading as any)[k] = false);
@@ -401,7 +387,32 @@ export class StoreDetailsComponent implements OnInit {
         { name: 'Revenue', type: 'area', data: revenues },
         { name: 'Orders', type: 'line', data: orders }
       ],
-      chart: { type: 'line', height: 350, toolbar: { show: false } },
+      chart: {
+        type: 'line',
+        height: 350,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: `store-${this.storeId}-revenue-trends-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Date',
+              headerValue: 'Revenue ($)'
+            },
+            svg: {
+              filename: `store-${this.storeId}-revenue-trends-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `store-${this.storeId}-revenue-trends-${this.getTimePeriodLabel()}`
+            }
+          }
+        },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        }
+      },
       xaxis: { categories: dates },
       yaxis: [ { title: { text: 'Revenue ($)' } }, { opposite: true, title: { text: 'Orders' } } ],
       colors: ['#ff6b35', '#3b82f6'],
@@ -414,43 +425,7 @@ export class StoreDetailsComponent implements OnInit {
     };
   }
 
-  private buildHourlyHeatmapChart(data: any[]): void {
-    if (!data || data.length === 0) return;
 
-    const heatmapData = data.map(d => ({
-      x: `${d.hour}:00`,
-      y: d.revenue
-    }));
-
-    this.hourlyHeatmapChart = {
-      series: [{ name: 'Revenue', data: heatmapData }],
-      chart: { type: 'heatmap', height: 350, toolbar: { show: false } },
-      plotOptions: {
-        heatmap: {
-          shadeIntensity: 0.5,
-          colorScale: {
-            ranges: [
-              { from: 0, to: 1000, color: '#FFB800' },
-              { from: 1001, to: 5000, color: '#FF6B35' },
-              { from: 5001, to: 10000, color: '#E53E3E' }
-            ]
-          }
-        }
-      },
-      dataLabels: { enabled: false },
-      colors: ['#FF6B35'],
-      title: { text: '', style: { fontSize: '16px' } },
-      xaxis: { title: { text: 'Hour of Day' } },
-      yaxis: { title: { text: 'Revenue' } },
-      tooltip: {
-        custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
-          const value = series[seriesIndex][dataPointIndex];
-          const hour = w.globals.labels[dataPointIndex];
-          return `<div class="p-2"><strong>${hour}</strong><br/>Revenue: $${value?.toLocaleString()}</div>`;
-        }
-      }
-    };
-  }
 
   private buildCategoryDonutChart(data: any[]): void {
     if (!data || data.length === 0) return;
@@ -460,7 +435,27 @@ export class StoreDetailsComponent implements OnInit {
 
     this.categoryDonutChart = {
       series: revenues,
-      chart: { type: 'donut', height: 350 },
+      chart: {
+        type: 'donut',
+        height: 350,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: `store-${this.storeId}-category-performance-${this.getTimePeriodLabel()}`,
+              columnDelimiter: ',',
+              headerCategory: 'Category',
+              headerValue: 'Revenue ($)'
+            },
+            svg: {
+              filename: `store-${this.storeId}-category-performance-${this.getTimePeriodLabel()}`
+            },
+            png: {
+              filename: `store-${this.storeId}-category-performance-${this.getTimePeriodLabel()}`
+            }
+          }
+        }
+      },
       labels: categories,
       colors: ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'],
       plotOptions: {
@@ -487,31 +482,7 @@ export class StoreDetailsComponent implements OnInit {
     };
   }
 
-  private buildDailyTrendsChart(data: any[]): void {
-    if (!data || data.length === 0) return;
 
-    const dates = data.map(d => d.date);
-    const revenues = data.map(d => d.revenue);
-    const orders = data.map(d => d.orders);
-
-    this.dailyTrendsChart = {
-      series: [
-        { name: 'Revenue', data: revenues },
-        { name: 'Orders', data: orders }
-      ],
-      chart: { type: 'line', height: 350, toolbar: { show: false } },
-      xaxis: { categories: dates, title: { text: 'Date' } },
-      yaxis: [
-        { title: { text: 'Revenue ($)' } },
-        { opposite: true, title: { text: 'Orders' } }
-      ],
-      stroke: { width: [3, 2], curve: 'smooth' },
-      colors: ['#8B5CF6', '#F59E0B'],
-      title: { text: '', style: { fontSize: '16px' } },
-      tooltip: { shared: true },
-      legend: { position: 'top' }
-    };
-  }
 
   private buildCustomerGrowthChart(data: any[]): void {
     if (!data || data.length === 0) return;
@@ -847,6 +818,9 @@ export class StoreDetailsComponent implements OnInit {
         if (data && data.summary) {
           console.log('Data structure is valid, updating KPI cards...');
           this.updateKpiCardsWithCustomRange(data);
+
+          // Update chart data with custom range data
+          this.updateChartsWithCustomRangeData(data);
         } else {
           console.error('Invalid data structure received:', data);
         }
@@ -945,6 +919,53 @@ export class StoreDetailsComponent implements OnInit {
     }
   }
 
+  private updateChartsWithCustomRangeData(data: any): void {
+    console.log('Updating charts with custom range data:', data);
+
+    if (data && data.monthlyBreakdown && Array.isArray(data.monthlyBreakdown)) {
+      // Update revenue trends chart with monthly breakdown data
+      const revenueTrendsData = data.monthlyBreakdown.map((month: any) => ({
+        date: `${month.year}-${String(month.month).padStart(2, '0')}`,
+        revenue: month.total_revenue || 0,
+        orders: month.total_orders || 0
+      }));
+      this.revenueTrends = revenueTrendsData;
+      this.buildRevenueTrendChart(revenueTrendsData);
+
+      // Load additional data for custom range (hourly, daily, category)
+      this.loadCustomRangeAdditionalData();
+    }
+  }
+
+  private loadCustomRangeAdditionalData(): void {
+    if (!this.store || !this.customRangeFromYear || !this.customRangeFromMonth ||
+        !this.customRangeToYear || !this.customRangeToMonth) {
+      return;
+    }
+
+    // Create filters for the custom range period
+    const filters: Partial<ChartFilterOptions> = {
+      timePeriod: 'custom-range',
+      startYear: this.customRangeFromYear,
+      startMonth: this.customRangeFromMonth,
+      endYear: this.customRangeToYear,
+      endMonth: this.customRangeToMonth
+    };
+
+    // Load category performance for custom range
+    this.kpi.getStoreCategoryPerformance(this.store.storeid, filters).subscribe({
+      next: (data) => {
+        this.categoryPerformance = data;
+        this.buildCategoryDonutChart(data);
+        console.log('Custom range category performance loaded:', data);
+      },
+      error: (err) => {
+        console.error('Custom range category performance error:', err);
+        this.categoryPerformance = [];
+      }
+    });
+  }
+
   // ===== Compare Periods Methods =====
   addComparePeriod(): void {
     if (this.comparePeriods.length < 4) {
@@ -962,8 +983,11 @@ export class StoreDetailsComponent implements OnInit {
 
   loadCompareData(): void {
     if (!this.store || this.comparePeriods.length < 2) {
+      console.log('Cannot load compare data: insufficient periods or no store');
       return;
     }
+
+    console.log('Loading compare data for periods:', this.comparePeriods);
 
     this.analyticsLoading = true;
     this.kpi.getStoreComparePeriods(this.store.storeid, this.comparePeriods).subscribe({
@@ -985,49 +1009,53 @@ export class StoreDetailsComponent implements OnInit {
   }
 
   private updateDisplayWithCompareData(data: any): void {
-    if (data && data.length > 0) {
-      // For now, just update KPI cards with the first comparison period
-      // In a full implementation, you'd show a comparison table/chart
-      const firstPeriod = data[0];
-      if (firstPeriod && firstPeriod.comparisons && firstPeriod.comparisons.length > 0) {
-        const firstComparison = firstPeriod.comparisons[0];
-        if (firstComparison.metrics) {
-          this.kpiCards = [
-            {
-              title: 'Revenue Comparison',
-              value: this.formatCurrency(firstComparison.metrics.total_revenue || 0),
-              subtitle: `${firstComparison.label || 'Period 1'}`,
-              icon: 'pi pi-dollar',
-              color: 'bg-gradient-to-r from-blue-500 to-blue-600',
-              textColor: 'text-white'
-            },
-            {
-              title: 'Orders Comparison',
-              value: this.formatNumber(firstComparison.metrics.total_orders || 0),
-              subtitle: `${firstComparison.label || 'Period 1'}`,
-              icon: 'pi pi-shopping-cart',
-              color: 'bg-gradient-to-r from-blue-400 to-blue-500',
-              textColor: 'text-white'
-            },
-            {
-              title: 'Avg Order Value',
-              value: this.formatCurrency(firstComparison.metrics.avg_order_value || 0),
-              subtitle: `${firstComparison.label || 'Period 1'}`,
-              icon: 'pi pi-chart-line',
-              color: 'bg-gradient-to-r from-blue-600 to-blue-700',
-              textColor: 'text-white'
-            },
-            {
-              title: 'Customers Comparison',
-              value: this.formatNumber(firstComparison.metrics.total_customers || 0),
-              subtitle: `${firstComparison.label || 'Period 1'}`,
-              icon: 'pi pi-users',
-              color: 'bg-gradient-to-r from-blue-300 to-blue-400',
-              textColor: 'text-white'
-            }
-          ];
-        }
+    console.log('Updating display with compare data:', data);
+
+    if (data && Array.isArray(data) && data.length > 0) {
+      // The backend returns an array with one object containing comparisons
+      const resultData = data[0];
+      if (resultData && resultData.comparisons && Array.isArray(resultData.comparisons)) {
+        // Create a simple comparison table data structure
+        this.compareData = {
+          periods: resultData.comparisons.map((comparison: any, index: number) => ({
+            label: comparison.label || this.comparePeriods[index]?.label || `Period ${index + 1}`,
+            revenue: comparison.metrics?.total_revenue || 0,
+            orders: comparison.metrics?.total_orders || 0,
+            customers: comparison.metrics?.total_customers || 0,
+            avgOrderValue: comparison.metrics?.avg_order_value || 0
+          }))
+        };
+
+        // Find the best performing period for each metric
+        const bestRevenue = Math.max(...this.compareData.periods.map((p: any) => p.revenue));
+        const bestOrders = Math.max(...this.compareData.periods.map((p: any) => p.orders));
+        const bestCustomers = Math.max(...this.compareData.periods.map((p: any) => p.customers));
+        const bestAvgOrderValue = Math.max(...this.compareData.periods.map((p: any) => p.avgOrderValue));
+
+        // Add performance indicators and percentage differences
+        this.compareData.periods = this.compareData.periods.map((period: any) => ({
+          ...period,
+          isBestRevenue: period.revenue === bestRevenue,
+          isBestOrders: period.orders === bestOrders,
+          isBestCustomers: period.customers === bestCustomers,
+          isBestAvgOrderValue: period.avgOrderValue === bestAvgOrderValue,
+          // Calculate percentage differences from best
+          revenuePercentDiff: bestRevenue > 0 && period.revenue < bestRevenue ?
+            Math.round(((bestRevenue - period.revenue) / bestRevenue) * 100) : 0,
+          ordersPercentDiff: bestOrders > 0 && period.orders < bestOrders ?
+            Math.round(((bestOrders - period.orders) / bestOrders) * 100) : 0,
+          customersPercentDiff: bestCustomers > 0 && period.customers < bestCustomers ?
+            Math.round(((bestCustomers - period.customers) / bestCustomers) * 100) : 0,
+          avgOrderValuePercentDiff: bestAvgOrderValue > 0 && period.avgOrderValue < bestAvgOrderValue ?
+            Math.round(((bestAvgOrderValue - period.avgOrderValue) / bestAvgOrderValue) * 100) : 0
+        }));
+
+        console.log('Processed compare data:', this.compareData);
+      } else {
+        console.error('Invalid comparison data structure:', resultData);
       }
+    } else {
+      console.error('Invalid data format received:', data);
     }
   }
 
@@ -1050,5 +1078,108 @@ export class StoreDetailsComponent implements OnInit {
       default:
         return 'All-time';
     }
+  }
+
+  // Export Methods
+  exportStoreDetails(): void {
+    this.exportLoading = true;
+
+    // Create CSV content with all store details and analytics
+    const headers = [
+      'Store ID', 'City', 'State', 'ZIP Code', 'Coordinates',
+      'Total Revenue', 'Total Orders', 'Avg Order Value', 'Total Customers',
+      'Peak Month', 'Best Revenue', 'Best Product', 'Best Category',
+      'Time Period', 'Export Date'
+    ];
+
+    const currentData = this.customModeActive ? this.customRangeData : {
+      summary: {
+        total_revenue: this.kpiCards[0]?.value?.replace(/[^0-9.]/g, '') || 0,
+        total_orders: this.kpiCards[1]?.value?.replace(/[^0-9]/g, '') || 0,
+        avg_order_value: this.kpiCards[2]?.value?.replace(/[^0-9.]/g, '') || 0,
+        total_customers: this.kpiCards[3]?.value?.replace(/[^0-9]/g, '') || 0
+      }
+    };
+
+    const csvContent = [
+      headers.join(','),
+      [
+        this.store?.storeid || '',
+        this.store?.city || '',
+        this.store?.state || '',
+        this.store?.zipcode || '',
+        this.formatCoordinates(this.store?.latitude, this.store?.longitude),
+        currentData.summary?.total_revenue || 0,
+        currentData.summary?.total_orders || 0,
+        currentData.summary?.avg_order_value || 0,
+        currentData.summary?.total_customers || 0,
+        `${currentData.summary?.peakMonth?.month || ''}/${currentData.summary?.peakMonth?.year || ''}`,
+        currentData.summary?.peakMonth?.total_revenue || 0,
+        `${currentData.summary?.bestProduct?.name || ''} (${currentData.summary?.bestProduct?.sku || ''})`,
+        currentData.summary?.bestCategory?.category || '',
+        this.getTimePeriodLabel(),
+        new Date().toISOString().split('T')[0]
+      ].join(',')
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `store-${this.storeId}-details-${this.getTimePeriodLabel()}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+
+    setTimeout(() => {
+      this.exportLoading = false;
+      this.cdr.detectChanges();
+    }, 1000);
+  }
+
+  exportChartData(chartType: string): void {
+    let data: any[] = [];
+    let filename = '';
+
+    switch (chartType) {
+      case 'revenue-trends':
+        data = this.revenueTrends || [];
+        filename = `store-${this.storeId}-revenue-trends-${this.getTimePeriodLabel()}`;
+        break;
+      case 'category-performance':
+        data = this.categoryPerformance || [];
+        filename = `store-${this.storeId}-category-performance-${this.getTimePeriodLabel()}`;
+        break;
+      default:
+        return;
+    }
+
+    if (data.length === 0) {
+      console.warn(`No data available for ${chartType}`);
+      return;
+    }
+
+    // Create CSV content
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => String(row[header] || '')).join(','))
+    ].join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  isBestPeriod(comparison: any, allComparisons: any[]): boolean {
+    if (!comparison || !allComparisons || allComparisons.length === 0) return false;
+
+    const maxRevenue = Math.max(...allComparisons.map((c: any) => c.metrics?.total_revenue || 0));
+    return (comparison.metrics?.total_revenue || 0) === maxRevenue;
   }
 }

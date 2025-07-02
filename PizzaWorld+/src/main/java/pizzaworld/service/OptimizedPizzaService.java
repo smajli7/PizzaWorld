@@ -1650,39 +1650,66 @@ public class OptimizedPizzaService {
         for (Map<String, Object> period : periods) {
             Map<String, Object> periodData = new HashMap<>();
             
-            // Extract period data
-            Integer year = period.get("year") != null ? ((Number) period.get("year")).intValue() : null;
-            Integer month = period.get("month") != null ? ((Number) period.get("month")).intValue() : null;
-            Integer quarter = period.get("quarter") != null ? ((Number) period.get("quarter")).intValue() : null;
+            // Extract period data - handle both string and number types
+            Integer year = null;
+            Integer month = null;
+            Integer quarter = null;
+            
+            if (period.get("year") != null) {
+                Object yearObj = period.get("year");
+                if (yearObj instanceof String) {
+                    year = Integer.parseInt((String) yearObj);
+                } else if (yearObj instanceof Number) {
+                    year = ((Number) yearObj).intValue();
+                }
+            }
+            
+            if (period.get("month") != null) {
+                Object monthObj = period.get("month");
+                if (monthObj instanceof String) {
+                    month = Integer.parseInt((String) monthObj);
+                } else if (monthObj instanceof Number) {
+                    month = ((Number) monthObj).intValue();
+                }
+            }
+            
+            if (period.get("quarter") != null) {
+                Object quarterObj = period.get("quarter");
+                if (quarterObj instanceof String) {
+                    quarter = Integer.parseInt((String) quarterObj);
+                } else if (quarterObj instanceof Number) {
+                    quarter = ((Number) quarterObj).intValue();
+                }
+            }
             String label = (String) period.getOrDefault("label", "");
             
-            // Build SQL query for this period
+            // Build SQL query for this period using raw orders table
             StringBuilder sql = new StringBuilder();
             List<Object> params = new ArrayList<>();
             
             sql.append("SELECT ");
-            sql.append("SUM(sms.total_revenue) as total_revenue, ");
-            sql.append("SUM(sms.total_orders) as total_orders, ");
-            sql.append("SUM(sms.unique_customers) as total_customers, ");
-            sql.append("ROUND(SUM(sms.total_revenue) / NULLIF(SUM(sms.total_orders), 0), 2) as avg_order_value ");
-            sql.append("FROM sales_monthly_store_cat sms ");
-            sql.append("WHERE sms.store_id = ? ");
+            sql.append("SUM(o.total) as total_revenue, ");
+            sql.append("COUNT(o.orderid) as total_orders, ");
+            sql.append("COUNT(DISTINCT o.customerid) as total_customers, ");
+            sql.append("ROUND(AVG(o.total), 2) as avg_order_value ");
+            sql.append("FROM orders o ");
+            sql.append("WHERE o.storeid = ? ");
             params.add(storeId);
             
             if (year != null) {
-                sql.append("AND sms.year = ? ");
+                sql.append("AND EXTRACT(YEAR FROM o.orderdate) = ? ");
                 params.add(year);
             }
             
             if (month != null) {
-                sql.append("AND sms.month = ? ");
+                sql.append("AND EXTRACT(MONTH FROM o.orderdate) = ? ");
                 params.add(month);
             }
             
             if (quarter != null) {
                 int startMonth = (quarter - 1) * 3 + 1;
                 int endMonth = quarter * 3;
-                sql.append("AND sms.month BETWEEN ? AND ? ");
+                sql.append("AND EXTRACT(MONTH FROM o.orderdate) BETWEEN ? AND ? ");
                 params.add(startMonth);
                 params.add(endMonth);
             }

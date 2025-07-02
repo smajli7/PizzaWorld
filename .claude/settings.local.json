@@ -5,7 +5,8 @@
       "Bash(rm:*)",
       "Bash(npm install)",
       "Bash(curl:*)",
-      "Bash(java:*)"
+      "Bash(java:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

@@ -137,10 +137,13 @@ export interface ChartFilterOptions {
 
 // New interfaces for store-specific analytics
 export interface StoreAnalyticsOverview {
-  revenue: number;
-  orders: number;
+  revenue?: number;  // fallback field name
+  orders?: number;   // fallback field name
+  customers?: number; // fallback field name
+  total_revenue?: number;  // actual backend field name
+  total_orders?: number;   // actual backend field name
+  total_customers?: number; // actual backend field name
   avg_order_value: number;
-  customers: number;
   last_updated: string;
 }
 
@@ -1321,8 +1324,8 @@ export class KpiService {
   }
 
   // Helper to get auth headers (moved from stores component)
-  private getAuthHeaders(): HttpHeaders {
+  private getAuthHeaders(): HttpHeaders | undefined {
     const token = localStorage.getItem('authToken');
-    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
   }
 }

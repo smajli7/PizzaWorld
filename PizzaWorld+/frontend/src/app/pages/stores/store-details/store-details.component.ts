@@ -1,5 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SidebarComponent } from '../../../shared/sidebar/sidebar.component';
 import {
@@ -29,7 +30,7 @@ import {
   ApexResponsive,
   ApexLegend
 } from 'ng-apexcharts';
-import { forkJoin } from 'rxjs';
+import { forkJoin, catchError, of } from 'rxjs';
 
 export type ChartOptions = {
   series: ApexAxisChartSeries;
@@ -65,6 +66,7 @@ export type PieChartOptions = {
   imports: [
     SidebarComponent,
     CommonModule,
+    FormsModule,
     CardModule,
     ButtonModule,
     ProgressBarModule,
@@ -224,63 +226,125 @@ export class StoreDetailsComponent implements OnInit {
     const filters = this.buildFilterOptions();
 
     forkJoin({
-      overview: this.kpi.getStoreAnalyticsOverview(this.store.storeid, filters),
-      revenueTrends: this.kpi.getStoreRevenueTrends(this.store.storeid, filters),
-      hourly: this.kpi.getStoreHourlyPerformance(this.store.storeid, filters),
-      category: this.kpi.getStoreCategoryPerformance(this.store.storeid, filters),
-      efficiency: this.kpi.getStoreEfficiencyMetrics(this.store.storeid, filters),
-      recentOrders: this.kpi.getStoreRecentOrders(this.store.storeid, 50)
+      overview: this.kpi.getStoreAnalyticsOverview(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Overview error:', err);
+          return of({ revenue: 0, orders: 0, avg_order_value: 0, customers: 0, last_updated: new Date().toISOString() });
+        })
+      ),
+      revenueTrends: this.kpi.getStoreRevenueTrends(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Revenue trends error:', err);
+          return of([]);
+        })
+      ),
+      hourly: this.kpi.getStoreHourlyPerformance(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Hourly performance error:', err);
+          return of([]);
+        })
+      ),
+      category: this.kpi.getStoreCategoryPerformance(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Category performance error:', err);
+          return of([]);
+        })
+      ),
+      daily: this.kpi.getStoreDailyOperations(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Daily operations error:', err);
+          return of([]);
+        })
+      ),
+      customer: this.kpi.getStoreCustomerInsights(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Customer insights error:', err);
+          return of([]);
+        })
+      ),
+      products: this.kpi.getStoreProductPerformance(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Product performance error:', err);
+          return of([]);
+        })
+      ),
+      efficiency: this.kpi.getStoreEfficiencyMetrics(this.store.storeid, filters).pipe(
+        catchError(err => {
+          console.error('Efficiency metrics error:', err);
+          return of({ efficiency_score: 75, avg_orders_per_day: 0, active_days: 0, total_items_sold: 0, avg_order_value: 0 });
+        })
+      ),
+      recentOrders: this.kpi.getStoreRecentOrders(this.store.storeid, 50).pipe(
+        catchError(err => {
+          console.error('Recent orders error:', err);
+          return of([]);
+        })
+      )
     }).subscribe({
       next: (res) => {
-        // KPI cards
+        console.log('All store analytics loaded:', res);
+        
+        // KPI cards - using dashboard colors and mapping backend response correctly
+        const overview = res.overview as any; // Type assertion to handle dynamic properties
         this.kpiCards = [
           {
-            title: 'Revenue',
-            value: this.formatCurrency(res.overview.revenue),
+            title: 'Total Revenue',
+            value: this.formatCurrency(overview.total_revenue || overview.revenue || 0),
             subtitle: this.getTimePeriodLabel(),
             icon: 'pi pi-dollar',
-            color: 'bg-gradient-to-r from-green-400 to-emerald-500',
+            color: 'bg-gradient-to-r from-orange-500 to-orange-600',
             textColor: 'text-white'
           },
           {
-            title: 'Orders',
-            value: this.formatNumber(res.overview.orders),
+            title: 'Total Orders',
+            value: this.formatNumber(overview.total_orders || overview.orders || 0),
             subtitle: this.getTimePeriodLabel(),
             icon: 'pi pi-shopping-cart',
-            color: 'bg-gradient-to-r from-blue-400 to-indigo-500',
+            color: 'bg-gradient-to-r from-orange-400 to-orange-500',
             textColor: 'text-white'
           },
           {
-            title: 'Avg Order',
-            value: this.formatCurrency(res.overview.avg_order_value),
+            title: 'Avg Order Value',
+            value: this.formatCurrency(overview.avg_order_value || 0),
             subtitle: this.getTimePeriodLabel(),
             icon: 'pi pi-chart-line',
-            color: 'bg-gradient-to-r from-purple-400 to-pink-500',
+            color: 'bg-gradient-to-r from-orange-600 to-orange-700',
             textColor: 'text-white'
           },
           {
-            title: 'Customers',
-            value: this.formatNumber(res.overview.customers),
+            title: 'Total Customers',
+            value: this.formatNumber(overview.total_customers || overview.customers || 0),
             subtitle: this.getTimePeriodLabel(),
             icon: 'pi pi-users',
-            color: 'bg-gradient-to-r from-orange-400 to-red-500',
+            color: 'bg-gradient-to-r from-orange-300 to-orange-400',
             textColor: 'text-white'
           }
         ];
 
-        // Charts
-        this.buildRevenueTrendChart(res.revenueTrends);
-        this.hourlyHeatmapChart = null;
-        this.categoryDonutChart = null;
-        // TODO build more charts using res.hourly, res.category, etc.
+        // Build all charts with error handling
+        try {
+          this.buildRevenueTrendChart(res.revenueTrends);
+          this.buildHourlyHeatmapChart(res.hourly);
+          this.buildCategoryDonutChart(res.category);
+          this.buildDailyTrendsChart(res.daily);
+          this.buildCustomerGrowthChart(res.customer);
+          this.buildProductBarChart(res.products);
+          this.buildEfficiencyGaugeChart(res.efficiency);
+          this.buildWeeklyPatternChart(res.daily);
+        } catch (chartError) {
+          console.error('Chart building error:', chartError);
+        }
 
-        // Efficiency metrics & orders table
+        // Store data
         this.efficiencyMetrics = res.efficiency;
         this.recentOrders = res.recentOrders;
 
+        // Turn off all loading states
         Object.keys(this.chartsLoading).forEach(k => (this.chartsLoading as any)[k] = false);
         this.analyticsLoading = false;
         this.loading = false;
+        
+        console.log('Loading state set to false');
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -288,11 +352,12 @@ export class StoreDetailsComponent implements OnInit {
         this.error = true;
         this.analyticsLoading = false;
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
-  private buildRevenueTrendChart(data: StoreRevenueTrend[]): void {
+  private buildRevenueTrendChart(data: any[]): void {
     if (!data || data.length === 0) return;
     const dates = data.map(d => d.date);
     const revenues = data.map(d => d.revenue);
@@ -308,11 +373,222 @@ export class StoreDetailsComponent implements OnInit {
       yaxis: [ { title: { text: 'Revenue ($)' } }, { opposite: true, title: { text: 'Orders' } } ],
       colors: ['#ff6b35', '#3b82f6'],
       stroke: { width: [0, 2] },
-      fill: { type: ['gradient', 'solid'] }
+      fill: { type: ['gradient', 'solid'] },
+      title: { text: '', style: { fontSize: '16px' } },
+      tooltip: { shared: true },
+      grid: { borderColor: '#f1f5f9' },
+      legend: { position: 'top' }
     };
   }
 
-  private getTimePeriodLabel(): string {
+  private buildHourlyHeatmapChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    const heatmapData = data.map(d => ({
+      x: `${d.hour}:00`,
+      y: d.revenue
+    }));
+
+    this.hourlyHeatmapChart = {
+      series: [{ name: 'Revenue', data: heatmapData }],
+      chart: { type: 'heatmap', height: 350, toolbar: { show: false } },
+      plotOptions: {
+        heatmap: {
+          shadeIntensity: 0.5,
+          colorScale: {
+            ranges: [
+              { from: 0, to: 1000, color: '#FFB800' },
+              { from: 1001, to: 5000, color: '#FF6B35' },
+              { from: 5001, to: 10000, color: '#E53E3E' }
+            ]
+          }
+        }
+      },
+      dataLabels: { enabled: false },
+      colors: ['#FF6B35'],
+      title: { text: '', style: { fontSize: '16px' } },
+      xaxis: { title: { text: 'Hour of Day' } },
+      yaxis: { title: { text: 'Revenue' } },
+      tooltip: { 
+        custom: ({ series, seriesIndex, dataPointIndex, w }: any) => {
+          const value = series[seriesIndex][dataPointIndex];
+          const hour = w.globals.labels[dataPointIndex];
+          return `<div class="p-2"><strong>${hour}</strong><br/>Revenue: $${value?.toLocaleString()}</div>`;
+        }
+      }
+    };
+  }
+
+  private buildCategoryDonutChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    const categories = data.map(d => d.category);
+    const revenues = data.map(d => d.total_revenue);
+
+    this.categoryDonutChart = {
+      series: revenues,
+      chart: { type: 'donut', height: 350 },
+      labels: categories,
+      colors: ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'],
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total Revenue',
+                formatter: () => '$' + revenues.reduce((a, b) => a + b, 0).toLocaleString()
+              }
+            }
+          }
+        }
+      },
+      title: { text: '', style: { fontSize: '16px' } },
+      legend: { position: 'bottom' },
+      tooltip: {
+        y: { formatter: (val: number) => '$' + val.toLocaleString() }
+      },
+      dataLabels: { enabled: true, formatter: (val: number) => val.toFixed(1) + '%' }
+    };
+  }
+
+  private buildDailyTrendsChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    const dates = data.map(d => d.date);
+    const revenues = data.map(d => d.revenue);
+    const orders = data.map(d => d.orders);
+
+    this.dailyTrendsChart = {
+      series: [
+        { name: 'Revenue', data: revenues },
+        { name: 'Orders', data: orders }
+      ],
+      chart: { type: 'line', height: 350, toolbar: { show: false } },
+      xaxis: { categories: dates, title: { text: 'Date' } },
+      yaxis: [
+        { title: { text: 'Revenue ($)' } },
+        { opposite: true, title: { text: 'Orders' } }
+      ],
+      stroke: { width: [3, 2], curve: 'smooth' },
+      colors: ['#8B5CF6', '#F59E0B'],
+      title: { text: '', style: { fontSize: '16px' } },
+      tooltip: { shared: true },
+      legend: { position: 'top' }
+    };
+  }
+
+  private buildCustomerGrowthChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    const weeks = data.map(d => `Week ${d.week}`);
+    const newCustomers = data.map(d => d.new_customers);
+    const revenueFromNew = data.map(d => d.revenue_from_new_customers);
+
+    this.customerGrowthChart = {
+      series: [
+        { name: 'New Customers', type: 'column', data: newCustomers },
+        { name: 'Revenue from New', type: 'line', data: revenueFromNew }
+      ],
+      chart: { type: 'line', height: 350, toolbar: { show: false } },
+      xaxis: { categories: weeks },
+      yaxis: [
+        { title: { text: 'New Customers' } },
+        { opposite: true, title: { text: 'Revenue ($)' } }
+      ],
+      colors: ['#14B8A6', '#F97316'],
+      fill: { type: ['solid', 'gradient'] },
+      title: { text: '', style: { fontSize: '16px' } },
+      tooltip: { shared: true },
+      legend: { position: 'top' }
+    };
+  }
+
+  private buildProductBarChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    const products = data.slice(0, 10).map(d => d.product_name || 'Unknown');
+    const revenues = data.slice(0, 10).map(d => d.total_revenue);
+    const quantities = data.slice(0, 10).map(d => d.total_quantity);
+
+    this.productBarChart = {
+      series: [
+        { name: 'Revenue', data: revenues },
+        { name: 'Quantity Sold', data: quantities }
+      ],
+      chart: { type: 'bar', height: 400, toolbar: { show: false } },
+      xaxis: { categories: products, labels: { rotate: -45 } },
+      yaxis: [
+        { title: { text: 'Revenue ($)' } },
+        { opposite: true, title: { text: 'Quantity' } }
+      ],
+      plotOptions: {
+        bar: { horizontal: false, columnWidth: '60%' }
+      },
+      colors: ['#6366F1', '#EF4444'],
+      title: { text: '', style: { fontSize: '16px' } },
+      tooltip: { shared: true },
+      legend: { position: 'top' }
+    };
+  }
+
+  private buildEfficiencyGaugeChart(data: any): void {
+    if (!data || !data.efficiency_score) return;
+    
+    this.efficiencyGaugeChart = {
+      series: [data.efficiency_score],
+      chart: { type: 'radialBar', height: 300 },
+      plotOptions: {
+        radialBar: {
+          startAngle: -135,
+          endAngle: 135,
+          hollow: { size: '60%' },
+          dataLabels: {
+            show: true,
+            name: { fontSize: '16px', fontWeight: 600 },
+            value: { fontSize: '24px', fontWeight: 700, formatter: (val: number) => `${val}%` }
+          }
+        }
+      },
+      colors: data.efficiency_score >= 80 ? ['#10B981'] : data.efficiency_score >= 60 ? ['#F59E0B'] : ['#EF4444'],
+      title: { text: '', style: { fontSize: '16px' } },
+      labels: ['Efficiency Score']
+    };
+  }
+
+  private buildWeeklyPatternChart(data: any[]): void {
+    if (!data || data.length === 0) return;
+    
+    // Group by day of week
+    const dayGroups = data.reduce((acc: any, item: any) => {
+      const day = new Date(item.date).toLocaleDateString('en', { weekday: 'short' });
+      if (!acc[day]) acc[day] = [];
+      acc[day].push(item.revenue);
+      return acc;
+    }, {});
+
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const avgRevenues = days.map(day => {
+      const dayData = dayGroups[day] || [];
+      return dayData.length > 0 ? dayData.reduce((a: number, b: number) => a + b, 0) / dayData.length : 0;
+    });
+
+    this.weeklyPatternChart = {
+      series: [{ name: 'Avg Revenue', data: avgRevenues }],
+      chart: { type: 'radar', height: 400, toolbar: { show: false } },
+      xaxis: { categories: days },
+      colors: ['#EC4899'],
+      title: { text: '', style: { fontSize: '16px' } },
+      tooltip: {
+        y: { formatter: (val: number) => '$' + val.toLocaleString() }
+      },
+      legend: { position: 'top' }
+    };
+  }
+
+  getTimePeriodLabel(): string {
     switch (this.selectedTimePeriod) {
       case 'year':
         return this.selectedYear ? `Year ${this.selectedYear}` : '';
@@ -329,12 +605,14 @@ export class StoreDetailsComponent implements OnInit {
     this.router.navigate(['/stores']);
   }
 
-  openInMaps(lat: number, lng: number): void {
+  openInMaps(lat: number | undefined, lng: number | undefined): void {
+    if (lat === undefined || lng === undefined) return;
     const url = `https://www.google.com/maps?q=${lat},${lng}`;
     window.open(url, '_blank');
   }
 
-  formatCoordinates(lat: number, lng: number): string {
+  formatCoordinates(lat: number | undefined, lng: number | undefined): string {
+    if (lat === undefined || lng === undefined) return 'N/A';
     return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
   }
 
@@ -399,5 +677,49 @@ export class StoreDetailsComponent implements OnInit {
     if (growth > 0) return 'pi pi-arrow-up';
     if (growth < 0) return 'pi pi-arrow-down';
     return 'pi pi-minus';
+  }
+
+  // Time period change handlers (from dashboard)
+  onTimePeriodChange(): void {
+    if (this.selectedTimePeriod === 'all-time') {
+      this.selectedYear = undefined;
+      this.selectedMonth = undefined;
+      this.selectedQuarter = undefined;
+    } else if (this.selectedTimePeriod === 'year' && this.availableYears.length > 0) {
+      this.selectedYear = this.availableYears[0].year;
+    } else if (this.selectedTimePeriod === 'month') {
+      if (this.availableYears.length > 0) {
+        this.selectedYear = this.availableYears[0].year;
+        this.loadAvailableMonths();
+      }
+    }
+    this.loadAnalyticsData();
+  }
+
+  onYearChange(): void {
+    if (this.selectedTimePeriod === 'month') {
+      this.loadAvailableMonths();
+    } else {
+      this.loadAnalyticsData();
+    }
+  }
+
+  onMonthChange(): void {
+    this.loadAnalyticsData();
+  }
+
+  private loadAvailableMonths(): void {
+    if (this.selectedYear) {
+      this.kpi.getAvailableMonthsForYear(this.selectedYear).subscribe({
+        next: (months) => {
+          this.availableMonths = months;
+          if (months.length > 0) {
+            this.selectedMonth = months[0].month;
+          }
+          this.loadAnalyticsData();
+        },
+        error: (err) => console.error('Error loading months:', err)
+      });
+    }
   }
 }

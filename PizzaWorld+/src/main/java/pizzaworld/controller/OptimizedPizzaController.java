@@ -2,6 +2,7 @@ package pizzaworld.controller;
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -607,109 +608,155 @@ public class OptimizedPizzaController {
 
     @GetMapping("/stores/{storeId}/analytics/overview")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<Map<String, Object>> getStoreAnalyticsOverview(@PathVariable String storeId, Authentication authentication) {
-        try {
-            Map<String, Object> result = pizzaService.getStoreAnalyticsOverview(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to load store analytics overview: " + e.getMessage()));
-        }
+    public ResponseEntity<Map<String, Object>> getStoreAnalyticsOverview(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreAnalyticsOverview(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/revenue-trends")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueTrends(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreRevenueTrends(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store revenue trends: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreRevenueTrends(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreRevenueTrends(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/hourly-performance")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreHourlyPerformance(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreHourlyPerformance(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store hourly performance: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreHourlyPerformance(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreHourlyPerformance(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/category-performance")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreCategoryPerformance(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreCategoryPerformance(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store category performance: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreCategoryPerformance(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreCategoryPerformance(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/daily-operations")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreDailyOperations(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreDailyOperations(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store daily operations: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreDailyOperations(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreDailyOperations(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/customer-insights")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreCustomerInsights(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreCustomerInsights(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store customer insights: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreCustomerInsights(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreCustomerInsights(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/product-performance")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreProductPerformance(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreProductPerformance(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store product performance: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreProductPerformance(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreProductPerformance(storeId, user, filters));
     }
 
     @GetMapping("/stores/{storeId}/analytics/recent-orders")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<List<Map<String, Object>>> getStoreRecentOrders(@PathVariable String storeId, Authentication authentication) {
-        try {
-            List<Map<String, Object>> result = pizzaService.getStoreRecentOrders(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(List.of(Map.of("error", "Failed to load store recent orders: " + e.getMessage())));
-        }
+    public ResponseEntity<List<Map<String, Object>>> getStoreRecentOrders(
+            @PathVariable String storeId,
+            @RequestParam(defaultValue = "50") int limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreRecentOrders(storeId, user, limit));
     }
 
     @GetMapping("/stores/{storeId}/analytics/efficiency-metrics")
     @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
-    public ResponseEntity<Map<String, Object>> getStoreEfficiencyMetrics(@PathVariable String storeId, Authentication authentication) {
-        try {
-            Map<String, Object> result = pizzaService.getStoreEfficiencyMetrics(storeId, authentication);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to load store efficiency metrics: " + e.getMessage()));
-        }
+    public ResponseEntity<Map<String, Object>> getStoreEfficiencyMetrics(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        return ResponseEntity.ok(pizzaService.getStoreEfficiencyMetrics(storeId, user, filters));
     }
 }

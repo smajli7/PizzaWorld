@@ -128,11 +128,26 @@ export interface TimePeriodOption {
 
 /** Chart Filter Options interface */
 export interface ChartFilterOptions {
-  timePeriod: 'all-time' | 'year' | 'month' | 'quarter';
+  timePeriod: 'all-time' | 'year' | 'month' | 'quarter' | 'custom' | 'custom-range' | 'compare';
   year?: number;
   month?: number;
   quarter?: number;
+  startDate?: string;
+  endDate?: string;
+  startYear?: number;
+  startMonth?: number;
+  endYear?: number;
+  endMonth?: number;
   selectedStores?: string[];
+}
+
+export interface EnhancedFilterOptions extends ChartFilterOptions {
+  compareWithState?: boolean;
+  compareWithNational?: boolean;
+  includeRankings?: boolean;
+  includeTrends?: boolean;
+  includeStateComparison?: boolean;
+  includeNationalComparison?: boolean;
 }
 
 // New interfaces for store-specific analytics
@@ -196,6 +211,70 @@ export interface EfficiencyMetrics {
   total_items_sold: number;
   avg_order_value: number;
   revenue_per_customer?: number;
+}
+
+// Enhanced Analytics Interfaces
+export interface ComparisonData {
+  avg_revenue: number;
+  avg_order_value: number;
+  total_stores: number;
+  comparisonType: 'state' | 'national';
+  comparisonValue: string;
+}
+
+export interface StoreRankings {
+  revenueRank: number;
+  totalStores: number;
+}
+
+export interface ContextualStoreOverview {
+  storeMetrics: StoreAnalyticsOverview;
+  stateComparison?: ComparisonData;
+  nationalComparison?: ComparisonData;
+  rankings?: StoreRankings;
+  trends?: StoreRevenueTrend[];
+}
+
+export interface EnhancedStorePerformance {
+  performance: any;
+  stateComparison?: ComparisonData;
+  nationalComparison?: ComparisonData;
+  rankings?: StoreRankings;
+}
+
+// Custom Range and Compare Interfaces
+export interface CustomRangeAnalytics {
+  summary: {
+    totalRevenue: number;
+    totalOrders: number;
+    totalCustomers: number;
+    totalUnits: number;
+    avgOrderValue: number;
+    avgRevenuePerMonth: number;
+    monthsCount: number;
+  };
+  monthlyBreakdown: any[];
+  period: {
+    startYear: number;
+    startMonth: number;
+    endYear: number;
+    endMonth: number;
+    label: string;
+  };
+  previousPeriodComparison?: any;
+}
+
+export interface PeriodComparison {
+  comparisons: Array<{
+    metrics?: any;
+    categories?: any[];
+    trends?: any[];
+    period: any;
+    label: string;
+  }>;
+  compareType: string;
+  totalPeriods: number;
+  summaryComparison?: any;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -1268,6 +1347,30 @@ export class KpiService {
     return params;
   }
 
+  // Helper to build HttpParams from enhanced filter options
+  private buildEnhancedParams(filters?: Partial<EnhancedFilterOptions>): HttpParams {
+    let params = new HttpParams();
+    if (!filters) return params;
+    
+    // Include all time filtering parameters
+    if (filters.timePeriod) params = params.set('timePeriod', filters.timePeriod);
+    if (filters.year) params = params.set('year', filters.year.toString());
+    if (filters.month) params = params.set('month', filters.month.toString());
+    if (filters.quarter) params = params.set('quarter', filters.quarter.toString());
+    if (filters.startDate) params = params.set('startDate', filters.startDate);
+    if (filters.endDate) params = params.set('endDate', filters.endDate);
+    
+    // Include enhanced comparison parameters
+    if (filters.compareWithState !== undefined) params = params.set('compareWithState', filters.compareWithState.toString());
+    if (filters.compareWithNational !== undefined) params = params.set('compareWithNational', filters.compareWithNational.toString());
+    if (filters.includeRankings !== undefined) params = params.set('includeRankings', filters.includeRankings.toString());
+    if (filters.includeTrends !== undefined) params = params.set('includeTrends', filters.includeTrends.toString());
+    if (filters.includeStateComparison !== undefined) params = params.set('includeStateComparison', filters.includeStateComparison.toString());
+    if (filters.includeNationalComparison !== undefined) params = params.set('includeNationalComparison', filters.includeNationalComparison.toString());
+    
+    return params;
+  }
+
   // Store-specific analytics endpoints
   getStoreAnalyticsOverview(storeId: string, filters?: Partial<ChartFilterOptions>): Observable<StoreAnalyticsOverview> {
     const headers = this.getAuthHeaders();
@@ -1321,6 +1424,50 @@ export class KpiService {
     const headers = this.getAuthHeaders();
     const params = this.buildTimeParams(filters);
     return this.http.get<EfficiencyMetrics>(`/api/v2/stores/${storeId}/analytics/efficiency-metrics`, { headers, params });
+  }
+
+  // =================================================================
+  // ENHANCED STORE ANALYTICS - Unified Filtering with Contextual Comparison
+  // =================================================================
+
+  getStoreContextualOverview(storeId: string, filters?: Partial<EnhancedFilterOptions>): Observable<ContextualStoreOverview> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildEnhancedParams(filters);
+    return this.http.get<ContextualStoreOverview>(`/api/v2/stores/${storeId}/analytics/contextual-overview`, { headers, params });
+  }
+
+  getEnhancedStoreRevenueTrends(storeId: string, filters?: Partial<EnhancedFilterOptions>): Observable<StoreRevenueTrend[]> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildEnhancedParams(filters);
+    return this.http.get<StoreRevenueTrend[]>(`/api/v2/stores/${storeId}/analytics/enhanced-revenue-trends`, { headers, params });
+  }
+
+  getEnhancedStorePerformance(storeId: string, filters?: Partial<EnhancedFilterOptions>): Observable<EnhancedStorePerformance> {
+    const headers = this.getAuthHeaders();
+    const params = this.buildEnhancedParams(filters);
+    return this.http.get<EnhancedStorePerformance>(`/api/v2/stores/${storeId}/analytics/enhanced-performance`, { headers, params });
+  }
+
+  // =================================================================
+  // CUSTOM RANGE AND COMPARE FUNCTIONALITY
+  // =================================================================
+
+  /** Get store analytics for custom date range */
+  getStoreCustomRangeAnalytics(storeId: string, fromYear: number, fromMonth: number, toYear: number, toMonth: number): Observable<CustomRangeAnalytics> {
+    const headers = this.getAuthHeaders();
+    const params = new HttpParams()
+      .set('startYear', fromYear.toString())
+      .set('startMonth', fromMonth.toString())
+      .set('endYear', toYear.toString())
+      .set('endMonth', toMonth.toString());
+    return this.http.get<CustomRangeAnalytics>(`/api/v2/stores/${storeId}/analytics/custom-range`, { headers, params });
+  }
+
+  /** Get store comparison across multiple time periods */
+  getStoreComparePeriods(storeId: string, periods: { year: number, month?: number, quarter?: number, label?: string }[]): Observable<PeriodComparison[]> {
+    const headers = this.getAuthHeaders();
+    const body = { periods };
+    return this.http.post<PeriodComparison[]>(`/api/v2/stores/${storeId}/analytics/compare`, body, { headers });
   }
 
   // Helper to get auth headers (moved from stores component)

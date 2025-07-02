@@ -759,4 +759,135 @@ public class OptimizedPizzaController {
         filters.put("quarter", quarter);
         return ResponseEntity.ok(pizzaService.getStoreEfficiencyMetrics(storeId, user, filters));
     }
+
+    // =================================================================
+    // ENHANCED STORE ANALYTICS - Unified Filtering with Contextual Comparison
+    // =================================================================
+
+    @GetMapping("/stores/{storeId}/analytics/contextual-overview")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getStoreContextualOverview(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "false") boolean compareWithState,
+            @RequestParam(defaultValue = "false") boolean compareWithNational,
+            @RequestParam(defaultValue = "false") boolean includeRankings,
+            @RequestParam(defaultValue = "false") boolean includeTrends,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildEnhancedFilters(timePeriod, year, month, quarter, startDate, endDate, 
+                                                           compareWithState, compareWithNational, includeRankings, includeTrends);
+        return ResponseEntity.ok(pizzaService.getStoreContextualOverview(storeId, user, filters));
+    }
+
+    @GetMapping("/stores/{storeId}/analytics/enhanced-revenue-trends")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getEnhancedStoreRevenueTrends(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "false") boolean compareWithState,
+            @RequestParam(defaultValue = "false") boolean compareWithNational,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildEnhancedFilters(timePeriod, year, month, quarter, startDate, endDate, 
+                                                           compareWithState, compareWithNational, false, false);
+        return ResponseEntity.ok(pizzaService.getEnhancedStoreRevenueTrends(storeId, user, filters));
+    }
+
+    @GetMapping("/stores/{storeId}/analytics/enhanced-performance")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getEnhancedStorePerformance(
+            @PathVariable String storeId,
+            @RequestParam(required = false) String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer quarter,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "true") boolean includeStateComparison,
+            @RequestParam(defaultValue = "true") boolean includeNationalComparison,
+            @RequestParam(defaultValue = "true") boolean includeRankings,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildEnhancedFilters(timePeriod, year, month, quarter, startDate, endDate, 
+                                                           includeStateComparison, includeNationalComparison, includeRankings, true);
+        return ResponseEntity.ok(pizzaService.getEnhancedStorePerformance(storeId, user, filters));
+    }
+
+    // =================================================================
+    // CUSTOM RANGE AND COMPARE FUNCTIONALITY
+    // =================================================================
+
+    @GetMapping("/stores/{storeId}/analytics/custom-range")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getStoreCustomRangeAnalytics(
+            @PathVariable String storeId,
+            @RequestParam Integer startYear,
+            @RequestParam Integer startMonth,
+            @RequestParam Integer endYear,
+            @RequestParam Integer endMonth,
+            @RequestParam(defaultValue = "false") boolean includeComparison,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", "custom-range");
+        filters.put("startYear", startYear);
+        filters.put("startMonth", startMonth);
+        filters.put("endYear", endYear);
+        filters.put("endMonth", endMonth);
+        filters.put("includeComparison", includeComparison);
+        return ResponseEntity.ok(pizzaService.getStoreCustomRangeAnalytics(storeId, user, filters));
+    }
+
+    @PostMapping("/stores/{storeId}/analytics/compare")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreComparePeriods(
+            @PathVariable String storeId,
+            @RequestBody Map<String, Object> requestBody,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> periods = (List<Map<String, Object>>) requestBody.get("periods");
+        
+        // Validate we have 2-4 periods
+        if (periods == null || periods.size() < 2 || periods.size() > 4) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        try {
+            List<Map<String, Object>> result = pizzaService.getStoreComparePeriods(storeId, periods);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error comparing store periods for storeId: " + storeId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private Map<String, Object> buildEnhancedFilters(String timePeriod, Integer year, Integer month, Integer quarter,
+                                                     String startDate, String endDate, boolean compareWithState, 
+                                                     boolean compareWithNational, boolean includeRankings, boolean includeTrends) {
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("timePeriod", timePeriod != null ? timePeriod : "all-time");
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("quarter", quarter);
+        filters.put("startDate", startDate);
+        filters.put("endDate", endDate);
+        filters.put("compareWithState", compareWithState);
+        filters.put("compareWithNational", compareWithNational);
+        filters.put("includeRankings", includeRankings);
+        filters.put("includeTrends", includeTrends);
+        return filters;
+    }
 }

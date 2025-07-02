@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -1010,10 +1011,16 @@ public class OptimizedPizzaService {
         // Role-based access check
         validateStoreAccess(user, storeId);
         
-        // Try category_performance_store first (this view should exist)
-        String sql = "SELECT category, total_revenue, units_sold, total_orders, " +
-                    "unique_customers, avg_order_value " +
-                    "FROM category_performance_store WHERE store_id = ? " +
+        // Use sales_monthly_store_cat for time-aware category performance
+        String sql = "SELECT category, " +
+                    "SUM(revenue) as total_revenue, " +
+                    "SUM(units_sold) as units_sold, " +
+                    "SUM(orders) as total_orders, " +
+                    "SUM(unique_customers) as unique_customers, " +
+                    "SUM(revenue)/NULLIF(SUM(units_sold),0) as avg_item_price " +
+                    "FROM sales_monthly_store_cat " +
+                    "WHERE storeid = ? " +
+                    "GROUP BY category " +
                     "ORDER BY total_revenue DESC";
         
         List<Map<String, Object>> categoryData = jdbcTemplate.queryForList(sql, storeId);
@@ -1146,42 +1153,728 @@ public class OptimizedPizzaService {
     // ============== OVERLOADED METHODS WITH FILTER SUPPORT ==============
     
     public Map<String, Object> getStoreAnalyticsOverview(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreAnalyticsOverview(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreAnalyticsOverview(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreRevenueTrends(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreRevenueTrends(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreRevenueTrends(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreHourlyPerformance(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreHourlyPerformance(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreHourlyPerformance(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreCategoryPerformance(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreCategoryPerformance(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreCategoryPerformance(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreDailyOperations(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreDailyOperations(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreDailyOperations(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreCustomerInsights(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreCustomerInsights(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreCustomerInsights(storeId, user, filters);
     }
     
     public List<Map<String, Object>> getStoreProductPerformance(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreProductPerformance(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreProductPerformance(storeId, user, filters);
     }
     
     public Map<String, Object> getStoreEfficiencyMetrics(String storeId, User user, Map<String, Object> filters) {
-        // For now, filters are ignored - use the basic method
-        return getStoreEfficiencyMetrics(storeId, user);
+        // Enhanced implementation with proper time filtering using materialized views
+        return getEnhancedStoreEfficiencyMetrics(storeId, user, filters);
+    }
+
+    // =================================================================
+    // ENHANCED STORE ANALYTICS METHODS - Using Materialized Views with Full Filtering
+    // =================================================================
+
+    @Cacheable(value = "storeContextualOverview", key = "#storeId + '_' + #user.role + '_' + #filters.toString()")
+    public Map<String, Object> getStoreContextualOverview(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get base store metrics using store_analytics_comprehensive
+        Map<String, Object> storeMetrics = getFilteredStoreMetrics(storeId, filters);
+        result.put("storeMetrics", storeMetrics);
+        
+        // Add state comparison if requested
+        if ((Boolean) filters.getOrDefault("compareWithState", false)) {
+            Map<String, Object> stateComparison = getStateComparisonData(storeId, filters);
+            result.put("stateComparison", stateComparison);
+        }
+        
+        // Add national comparison if requested
+        if ((Boolean) filters.getOrDefault("compareWithNational", false)) {
+            Map<String, Object> nationalComparison = getNationalComparisonData(storeId, filters);
+            result.put("nationalComparison", nationalComparison);
+        }
+        
+        // Add rankings if requested
+        if ((Boolean) filters.getOrDefault("includeRankings", false)) {
+            Map<String, Object> rankings = getStoreRankings(storeId, filters);
+            result.put("rankings", rankings);
+        }
+        
+        // Add trends if requested
+        if ((Boolean) filters.getOrDefault("includeTrends", false)) {
+            List<Map<String, Object>> trends = getStoreTrends(storeId, filters);
+            result.put("trends", trends);
+        }
+        
+        return result;
+    }
+
+    @Cacheable(value = "enhancedStoreRevenueTrends", key = "#storeId + '_' + #user.role + '_' + #filters.toString()")
+    public List<Map<String, Object>> getEnhancedStoreRevenueTrends(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String timePeriod = (String) filters.getOrDefault("timePeriod", "all-time");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
+        Integer quarter = (Integer) filters.get("quarter");
+        String startDate = (String) filters.get("startDate");
+        String endDate = (String) filters.get("endDate");
+        
+        return getFilteredRevenueTrends(storeId, timePeriod, year, month, quarter, startDate, endDate);
+    }
+
+    @Cacheable(value = "enhancedStorePerformance", key = "#storeId + '_' + #user.role + '_' + #filters.toString()")
+    public Map<String, Object> getEnhancedStorePerformance(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get comprehensive store analytics
+        Map<String, Object> performance = getFilteredStorePerformance(storeId, filters);
+        result.put("performance", performance);
+        
+        // Add state comparison by default
+        if ((Boolean) filters.getOrDefault("includeStateComparison", true)) {
+            Map<String, Object> stateComparison = getStateComparisonData(storeId, filters);
+            result.put("stateComparison", stateComparison);
+        }
+        
+        // Add national comparison by default
+        if ((Boolean) filters.getOrDefault("includeNationalComparison", true)) {
+            Map<String, Object> nationalComparison = getNationalComparisonData(storeId, filters);
+            result.put("nationalComparison", nationalComparison);
+        }
+        
+        // Add rankings by default
+        if ((Boolean) filters.getOrDefault("includeRankings", true)) {
+            Map<String, Object> rankings = getStoreRankings(storeId, filters);
+            result.put("rankings", rankings);
+        }
+        
+        return result;
+    }
+
+    // =================================================================
+    // HELPER METHODS FOR ENHANCED ANALYTICS
+    // =================================================================
+
+    private Map<String, Object> getFilteredStoreMetrics(String storeId, Map<String, Object> filters) {
+        String sql = buildFilteredQuery("sales_monthly_store_cat", storeId, filters, 
+            "SELECT storeid, state_abbr, SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
+            "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, SUM(unique_customers) as unique_customers, " +
+            "SUM(unique_customers) as total_customers, SUM(unique_customers) as customers");
+        
+        // Execute query with proper time filtering
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, storeId);
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
+    }
+
+    private List<Map<String, Object>> getFilteredRevenueTrends(String storeId, String timePeriod, 
+                                                               Integer year, Integer month, Integer quarter,
+                                                               String startDate, String endDate) {
+        String sql;
+        
+        if ("custom".equals(timePeriod) && startDate != null && endDate != null) {
+            // Custom date range using sales_facts
+            sql = "SELECT DATE(orderdate) as date, SUM(line_revenue) as revenue, COUNT(DISTINCT orderid) as orders, " +
+                  "SUM(line_revenue)/NULLIF(COUNT(DISTINCT orderid),0) as avg_order_value " +
+                  "FROM sales_facts " +
+                  "WHERE storeid = ? AND DATE(orderdate) BETWEEN ? AND ? " +
+                  "GROUP BY DATE(orderdate) ORDER BY DATE(orderdate)";
+            return jdbcTemplate.queryForList(sql, storeId, startDate, endDate);
+        } else {
+            // Use sales_monthly_store_cat aggregated by month
+            sql = "SELECT year, month, year_month as date, SUM(revenue) as revenue, SUM(orders) as orders, " +
+                  "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value " +
+                  "FROM sales_monthly_store_cat WHERE storeid = ?";
+            
+            if ("year".equals(timePeriod) && year != null) {
+                sql += " AND year = ?";
+                sql += " GROUP BY year, month, year_month ORDER BY year, month";
+                return jdbcTemplate.queryForList(sql, storeId, year);
+            } else if ("month".equals(timePeriod) && year != null && month != null) {
+                sql += " AND year = ? AND month = ?";
+                sql += " GROUP BY year, month, year_month ORDER BY year, month";
+                return jdbcTemplate.queryForList(sql, storeId, year, month);
+            } else if ("quarter".equals(timePeriod) && year != null && quarter != null) {
+                sql += " AND year = ? AND month BETWEEN ? AND ?";
+                int startMonth = (quarter - 1) * 3 + 1;
+                int endMonth = quarter * 3;
+                sql += " GROUP BY year, month, year_month ORDER BY year, month";
+                return jdbcTemplate.queryForList(sql, storeId, year, startMonth, endMonth);
+            } else {
+                // All-time data
+                sql += " GROUP BY year, month, year_month ORDER BY year, month";
+                return jdbcTemplate.queryForList(sql, storeId);
+            }
+        }
+    }
+
+    private Map<String, Object> getStateComparisonData(String storeId, Map<String, Object> filters) {
+        // Get store's state first
+        String getStateSql = "SELECT state_abbr FROM stores WHERE storeid = ?";
+        List<Map<String, Object>> stateResult = jdbcTemplate.queryForList(getStateSql, storeId);
+        
+        if (stateResult.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        String state = (String) stateResult.get(0).get("state_abbr");
+        
+        // Get state averages using filtered data from sales_monthly_store_cat
+        String sql = buildFilteredQuery("sales_monthly_store_cat", null, filters,
+            "SELECT AVG(revenue) as avg_revenue, SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+            "COUNT(DISTINCT storeid) as total_stores");
+        sql = sql.replace("WHERE storeid = ?", "WHERE state_abbr = ?");
+        sql = sql.replace("GROUP BY storeid, state_abbr", "");
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, state);
+        Map<String, Object> comparison = result.isEmpty() ? new HashMap<>() : result.get(0);
+        comparison.put("comparisonType", "state");
+        comparison.put("comparisonValue", state);
+        
+        return comparison;
+    }
+
+    private Map<String, Object> getNationalComparisonData(String storeId, Map<String, Object> filters) {
+        // Get national averages using filtered data from sales_monthly_store_cat
+        String sql = buildFilteredQuery("sales_monthly_store_cat", null, filters,
+            "SELECT AVG(revenue) as avg_revenue, SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+            "COUNT(DISTINCT storeid) as total_stores");
+        sql = sql.replace("WHERE storeid = ?", "");
+        sql = sql.replace("GROUP BY storeid, state_abbr", "");
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
+        Map<String, Object> comparison = result.isEmpty() ? new HashMap<>() : result.get(0);
+        comparison.put("comparisonType", "national");
+        comparison.put("comparisonValue", "USA");
+        
+        return comparison;
+    }
+
+    private Map<String, Object> getStoreRankings(String storeId, Map<String, Object> filters) {
+        String sql = buildFilteredQuery("sales_monthly_store_cat", null, filters,
+            "SELECT storeid, SUM(revenue) as total_revenue, " +
+            "RANK() OVER (ORDER BY SUM(revenue) DESC) as revenue_rank");
+        sql = sql.replace("WHERE storeid = ?", "");
+        sql = sql.replace("GROUP BY storeid, state_abbr", "GROUP BY storeid");
+        
+        List<Map<String, Object>> allStores = jdbcTemplate.queryForList(sql);
+        
+        // Find this store's ranking
+        for (Map<String, Object> store : allStores) {
+            if (storeId.equals(store.get("storeid"))) {
+                Map<String, Object> ranking = new HashMap<>();
+                ranking.put("revenueRank", store.get("revenue_rank"));
+                ranking.put("totalStores", allStores.size());
+                return ranking;
+            }
+        }
+        
+        return new HashMap<>();
+    }
+
+    private List<Map<String, Object>> getStoreTrends(String storeId, Map<String, Object> filters) {
+        // Get last 12 months trend from sales_monthly_store_cat
+        String sql = "SELECT year, month, year_month, SUM(revenue) as total_revenue, SUM(orders) as order_count, " +
+                     "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value " +
+                     "FROM sales_monthly_store_cat WHERE storeid = ? " +
+                     "GROUP BY year, month, year_month " +
+                     "ORDER BY year DESC, month DESC LIMIT 12";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    private Map<String, Object> getFilteredStorePerformance(String storeId, Map<String, Object> filters) {
+        String sql = buildFilteredQuery("sales_monthly_store_cat", storeId, filters,
+            "SELECT storeid, state_abbr, SUM(revenue) as total_revenue, " +
+            "SUM(orders) as total_orders, SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+            "SUM(unique_customers) as unique_customers, COUNT(DISTINCT year_month) as active_months");
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, storeId);
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
+    }
+
+    private String buildFilteredQuery(String tableName, String storeId, Map<String, Object> filters, String selectClause) {
+        StringBuilder sql = new StringBuilder(selectClause + " FROM " + tableName);
+        
+        if (storeId != null) {
+            sql.append(" WHERE storeid = ?");
+        }
+        
+        // Handle null filters
+        if (filters == null) {
+            filters = new HashMap<>();
+        }
+        
+        String timePeriod = (String) filters.getOrDefault("timePeriod", "all-time");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
+        Integer quarter = (Integer) filters.get("quarter");
+        String startDate = (String) filters.get("startDate");
+        String endDate = (String) filters.get("endDate");
+        
+        if ("custom".equals(timePeriod) && startDate != null && endDate != null) {
+            sql.append(storeId != null ? " AND" : " WHERE").append(" date_key BETWEEN '" + startDate + "' AND '" + endDate + "'");
+        } else if ("year".equals(timePeriod) && year != null) {
+            sql.append(storeId != null ? " AND" : " WHERE").append(" year = " + year);
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            sql.append(storeId != null ? " AND" : " WHERE").append(" year = " + year + " AND month = " + month);
+        } else if ("quarter".equals(timePeriod) && year != null && quarter != null) {
+            sql.append(storeId != null ? " AND" : " WHERE").append(" year = " + year + " AND quarter = " + quarter);
+        }
+        
+        if (storeId != null) {
+            sql.append(" GROUP BY storeid, state_abbr");
+        }
+        
+        return sql.toString();
+    }
+
+    private Map<String, Object> getEnhancedStoreAnalyticsOverview(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        // Enhanced analytics with proper filtering
+        
+        return getFilteredStoreMetrics(storeId, filters);
+    }
+
+    private Map<String, Object> getEnhancedStoreEfficiencyMetrics(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String sql = buildFilteredQuery("sales_monthly_store_cat", storeId, filters,
+            "SELECT storeid, state_abbr, AVG(revenue) as avg_revenue_per_month, " +
+            "AVG(units_sold) as avg_items_per_month, " +
+            "COUNT(DISTINCT year_month) as operating_months, " +
+            "SUM(unique_customers) as total_customers");
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, storeId);
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
+    }
+
+    // =================================================================
+    // CUSTOM RANGE AND COMPARE FUNCTIONALITY
+    // =================================================================
+
+    @Cacheable(value = "storeCustomRange", key = "#storeId + '_' + #user.role + '_' + #filters.toString()")
+    public Map<String, Object> getStoreCustomRangeAnalytics(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        Integer startYear = (Integer) filters.get("startYear");
+        Integer startMonth = (Integer) filters.get("startMonth");
+        Integer endYear = (Integer) filters.get("endYear");
+        Integer endMonth = (Integer) filters.get("endMonth");
+        boolean includeComparison = (Boolean) filters.getOrDefault("includeComparison", false);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get data for the custom range
+        String sql;
+        List<Object> params = new ArrayList<>();
+        
+        if (startYear.equals(endYear)) {
+            // Same year - simple month range
+            sql = "SELECT year, month, year_month, " +
+                 "SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
+                 "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+                 "SUM(unique_customers) as total_customers, SUM(units_sold) as total_units " +
+                 "FROM sales_monthly_store_cat " +
+                 "WHERE storeid = ? AND year = ? AND month >= ? AND month <= ? " +
+                 "GROUP BY year, month, year_month ORDER BY year, month";
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(endMonth);
+            System.out.println("CUSTOM RANGE DEBUG - Same year query: " + sql);
+            System.out.println("CUSTOM RANGE DEBUG - Parameters: storeId=" + storeId + ", year=" + startYear + ", startMonth=" + startMonth + ", endMonth=" + endMonth);
+        } else {
+            // Different years - more complex range
+            sql = "SELECT year, month, year_month, " +
+                 "SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
+                 "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+                 "SUM(unique_customers) as total_customers, SUM(units_sold) as total_units " +
+                 "FROM sales_monthly_store_cat " +
+                 "WHERE storeid = ? AND " +
+                 "((year = ? AND month >= ?) OR (year > ? AND year < ?) OR (year = ? AND month <= ?)) " +
+                 "GROUP BY year, month, year_month ORDER BY year, month";
+            params.add(storeId);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(startYear);
+            params.add(endYear);
+            params.add(endYear);
+            params.add(endMonth);
+            System.out.println("CUSTOM RANGE DEBUG - Multi-year query: " + sql);
+            System.out.println("CUSTOM RANGE DEBUG - Parameters: storeId=" + storeId + ", startYear=" + startYear + ", startMonth=" + startMonth + ", endYear=" + endYear + ", endMonth=" + endMonth);
+        }
+        
+        List<Map<String, Object>> monthlyData = jdbcTemplate.queryForList(sql, params.toArray());
+        
+        // Calculate summary metrics
+        Map<String, Object> summary = calculateRangeSummary(monthlyData);
+        result.put("summary", summary);
+        result.put("monthlyBreakdown", monthlyData);
+        result.put("period", Map.of(
+            "startYear", startYear, "startMonth", startMonth,
+            "endYear", endYear, "endMonth", endMonth,
+            "label", startYear + "-" + String.format("%02d", startMonth) + " to " + 
+                    endYear + "-" + String.format("%02d", endMonth)
+        ));
+        
+        // Add comparison with previous period if requested
+        if (includeComparison) {
+            Map<String, Object> previousPeriod = getPreviousPeriodComparison(storeId, startYear, startMonth, endYear, endMonth);
+            result.put("previousPeriodComparison", previousPeriod);
+        }
+        
+        return result;
+    }
+
+    @Cacheable(value = "storeComparePeriods", key = "#storeId + '_' + #periods.toString()")
+    public List<Map<String, Object>> getStoreComparePeriods(String storeId, List<Map<String, Object>> periods) {
+        
+        // We don't need current user for this method since store access validation 
+        // should be handled at controller level for these analytics endpoints
+        
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> comparisons = new ArrayList<>();
+        
+        // Process each period
+        for (Map<String, Object> period : periods) {
+            Map<String, Object> periodData = new HashMap<>();
+            
+            // Extract period data
+            Integer year = period.get("year") != null ? ((Number) period.get("year")).intValue() : null;
+            Integer month = period.get("month") != null ? ((Number) period.get("month")).intValue() : null;
+            Integer quarter = period.get("quarter") != null ? ((Number) period.get("quarter")).intValue() : null;
+            String label = (String) period.getOrDefault("label", "");
+            
+            // Build SQL query for this period
+            StringBuilder sql = new StringBuilder();
+            List<Object> params = new ArrayList<>();
+            
+            sql.append("SELECT ");
+            sql.append("SUM(sms.total_revenue) as total_revenue, ");
+            sql.append("SUM(sms.total_orders) as total_orders, ");
+            sql.append("SUM(sms.unique_customers) as total_customers, ");
+            sql.append("ROUND(SUM(sms.total_revenue) / NULLIF(SUM(sms.total_orders), 0), 2) as avg_order_value ");
+            sql.append("FROM sales_monthly_store_cat sms ");
+            sql.append("WHERE sms.store_id = ? ");
+            params.add(storeId);
+            
+            if (year != null) {
+                sql.append("AND sms.year = ? ");
+                params.add(year);
+            }
+            
+            if (month != null) {
+                sql.append("AND sms.month = ? ");
+                params.add(month);
+            }
+            
+            if (quarter != null) {
+                int startMonth = (quarter - 1) * 3 + 1;
+                int endMonth = quarter * 3;
+                sql.append("AND sms.month BETWEEN ? AND ? ");
+                params.add(startMonth);
+                params.add(endMonth);
+            }
+            
+            try {
+                Map<String, Object> metrics = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
+                periodData.put("metrics", metrics);
+                periodData.put("period", period);
+                periodData.put("label", label.isEmpty() ? generateSimplePeriodLabel(year, month, quarter) : label);
+                comparisons.add(periodData);
+            } catch (Exception e) {
+                logger.error("Error fetching data for period: " + period, e);
+                // Add empty metrics for failed periods
+                Map<String, Object> emptyMetrics = new HashMap<>();
+                emptyMetrics.put("total_revenue", 0.0);
+                emptyMetrics.put("total_orders", 0);
+                emptyMetrics.put("total_customers", 0);
+                emptyMetrics.put("avg_order_value", 0.0);
+                periodData.put("metrics", emptyMetrics);
+                periodData.put("period", period);
+                periodData.put("label", label.isEmpty() ? generateSimplePeriodLabel(year, month, quarter) : label);
+                comparisons.add(periodData);
+            }
+        }
+        
+        result.put("comparisons", comparisons);
+        result.put("compareType", "overview");
+        result.put("totalPeriods", periods.size());
+        
+        // Add summary comparison
+        Map<String, Object> summaryComparison = generateSummaryComparison(comparisons);
+        result.put("summaryComparison", summaryComparison);
+        
+        return List.of(result); // Return as list to match frontend expectation
+    }
+
+    private List<Map<String, Object>> getEnhancedStoreHourlyPerformance(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String sql = buildFilteredQuery("store_analytics_comprehensive", storeId, filters,
+            "SELECT storeid, state, city, hour_of_day, SUM(product_revenue) as revenue, COUNT(DISTINCT orderid) as orders, " +
+            "AVG(order_total) as avg_order_value, COUNT(DISTINCT customerid) as customers");
+        sql = sql.replace("GROUP BY storeid, state, city", "GROUP BY storeid, state, city, hour_of_day ORDER BY hour_of_day");
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    private List<Map<String, Object>> getEnhancedStoreCategoryPerformance(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String sql = buildFilteredQuery("sales_monthly_store_cat", storeId, filters,
+            "SELECT storeid, state_abbr, category, SUM(revenue) as total_revenue, SUM(units_sold) as units_sold, " +
+            "SUM(orders) as total_orders, SUM(unique_customers) as unique_customers, " +
+            "SUM(revenue)/NULLIF(SUM(units_sold),0) as avg_item_price");
+        sql = sql.replace("GROUP BY storeid, state_abbr", "GROUP BY storeid, state_abbr, category ORDER BY SUM(revenue) DESC");
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    private List<Map<String, Object>> getEnhancedStoreDailyOperations(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String sql = buildFilteredQuery("store_analytics_comprehensive", storeId, filters,
+            "SELECT storeid, state, city, date_key, SUM(product_revenue) as daily_revenue, COUNT(DISTINCT orderid) as daily_orders, " +
+            "AVG(order_total) as avg_order_value, COUNT(DISTINCT customerid) as unique_customers, " +
+            "SUM(quantity_sold) as total_items_sold");
+        sql = sql.replace("GROUP BY storeid, state, city", "GROUP BY storeid, state, city, date_key ORDER BY date_key DESC");
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    private List<Map<String, Object>> getEnhancedStoreCustomerInsights(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        // Use customer acquisition data from materialized views
+        String sql = "SELECT * FROM store_customer_acquisition WHERE storeid = ?";
+        
+        String timePeriod = (String) filters.getOrDefault("timePeriod", "all-time");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
+        
+        if ("year".equals(timePeriod) && year != null) {
+            sql += " AND EXTRACT(YEAR FROM month) = " + year;
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            sql += " AND EXTRACT(YEAR FROM month) = " + year + " AND EXTRACT(MONTH FROM month) = " + month;
+        }
+        
+        sql += " ORDER BY month DESC";
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    private List<Map<String, Object>> getEnhancedStoreProductPerformance(String storeId, User user, Map<String, Object> filters) {
+        validateStoreAccess(user, storeId);
+        
+        String sql = buildFilteredQuery("store_analytics_comprehensive", storeId, filters,
+            "SELECT storeid, state, city, sku, product_name, category, size, SUM(product_revenue) as total_revenue, " +
+            "SUM(quantity_sold) as total_quantity, COUNT(DISTINCT orderid) as orders_count, " +
+            "COUNT(DISTINCT customerid) as customers_count, AVG(price) as avg_price");
+        sql = sql.replace("GROUP BY storeid, state, city", "GROUP BY storeid, state, city, sku, product_name, category, size ORDER BY SUM(product_revenue) DESC");
+        
+        return jdbcTemplate.queryForList(sql, storeId);
+    }
+
+    // =================================================================
+    // HELPER METHODS FOR CUSTOM RANGE AND COMPARE FUNCTIONALITY
+    // =================================================================
+
+    private Map<String, Object> calculateRangeSummary(List<Map<String, Object>> monthlyData) {
+        Map<String, Object> summary = new HashMap<>();
+        
+        double totalRevenue = monthlyData.stream()
+            .mapToDouble(data -> ((Number) data.getOrDefault("total_revenue", 0)).doubleValue())
+            .sum();
+        
+        long totalOrders = monthlyData.stream()
+            .mapToLong(data -> ((Number) data.getOrDefault("total_orders", 0)).longValue())
+            .sum();
+        
+        long totalCustomers = monthlyData.stream()
+            .mapToLong(data -> ((Number) data.getOrDefault("total_customers", 0)).longValue())
+            .sum();
+        
+        long totalUnits = monthlyData.stream()
+            .mapToLong(data -> ((Number) data.getOrDefault("total_units", 0)).longValue())
+            .sum();
+        
+        summary.put("totalRevenue", totalRevenue);
+        summary.put("totalOrders", totalOrders);
+        summary.put("totalCustomers", totalCustomers);
+        summary.put("totalUnits", totalUnits);
+        summary.put("avgOrderValue", totalOrders > 0 ? totalRevenue / totalOrders : 0);
+        summary.put("avgRevenuePerMonth", !monthlyData.isEmpty() ? totalRevenue / monthlyData.size() : 0);
+        summary.put("monthsCount", monthlyData.size());
+        
+        return summary;
+    }
+
+    private Map<String, Object> getPreviousPeriodComparison(String storeId, Integer startYear, Integer startMonth, 
+                                                           Integer endYear, Integer endMonth) {
+        // Calculate the length of the period in months
+        int periodLength = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
+        
+        // Calculate previous period start/end
+        int prevEndYear = startYear;
+        int prevEndMonth = startMonth - 1;
+        if (prevEndMonth < 1) {
+            prevEndMonth = 12;
+            prevEndYear--;
+        }
+        
+        int prevStartYear = prevEndYear;
+        int prevStartMonth = prevEndMonth - periodLength + 1;
+        while (prevStartMonth < 1) {
+            prevStartMonth += 12;
+            prevStartYear--;
+        }
+        
+        String sql = "SELECT SUM(revenue) as total_revenue, SUM(orders) as total_orders, " +
+                    "SUM(revenue)/NULLIF(SUM(orders),0) as avg_order_value, " +
+                    "SUM(unique_customers) as total_customers " +
+                    "FROM sales_monthly_store_cat " +
+                    "WHERE storeid = ? AND " +
+                    "((year = ? AND month >= ?) OR (year > ? AND year < ?) OR (year = ? AND month <= ?))";
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, 
+            storeId, prevStartYear, prevStartMonth, prevStartYear, prevEndYear, prevEndYear, prevEndMonth);
+        
+        Map<String, Object> comparison = result.isEmpty() ? new HashMap<>() : result.get(0);
+        comparison.put("periodLabel", prevStartYear + "-" + String.format("%02d", prevStartMonth) + 
+                                     " to " + prevEndYear + "-" + String.format("%02d", prevEndMonth));
+        
+        return comparison;
+    }
+
+    private String generatePeriodLabel(String period, Map<String, Object> periodFilters) {
+        switch (period) {
+            case "year":
+                return "Year " + periodFilters.get("year");
+            case "month":
+                return periodFilters.get("year") + "-" + String.format("%02d", (Integer) periodFilters.get("month"));
+            case "quarter":
+                return "Q" + periodFilters.get("quarter") + " " + periodFilters.get("year");
+            case "custom":
+                return periodFilters.get("startDate") + " to " + periodFilters.get("endDate");
+            default:
+                return "All Time";
+        }
+    }
+
+    private Map<String, Object> generateSummaryComparison(List<Map<String, Object>> comparisons) {
+        Map<String, Object> summary = new HashMap<>();
+        
+        // Extract metrics from each comparison
+        List<Map<String, Object>> metrics = comparisons.stream()
+            .map(comp -> (Map<String, Object>) comp.get("metrics"))
+            .filter(m -> m != null)
+            .toList();
+        
+        if (metrics.isEmpty()) {
+            return summary;
+        }
+        
+        // Calculate min, max, average for key metrics
+        double[] revenues = metrics.stream()
+            .mapToDouble(m -> ((Number) m.getOrDefault("total_revenue", 0)).doubleValue())
+            .toArray();
+        
+        long[] orders = metrics.stream()
+            .mapToLong(m -> ((Number) m.getOrDefault("total_orders", 0)).longValue())
+            .toArray();
+        
+        long[] customers = metrics.stream()
+            .mapToLong(m -> ((Number) m.getOrDefault("total_customers", 0)).longValue())
+            .toArray();
+        
+        // Revenue statistics
+        summary.put("revenueStats", Map.of(
+            "min", revenues.length > 0 ? java.util.Arrays.stream(revenues).min().orElse(0) : 0,
+            "max", revenues.length > 0 ? java.util.Arrays.stream(revenues).max().orElse(0) : 0,
+            "avg", revenues.length > 0 ? java.util.Arrays.stream(revenues).average().orElse(0) : 0,
+            "total", revenues.length > 0 ? java.util.Arrays.stream(revenues).sum() : 0
+        ));
+        
+        // Order statistics
+        summary.put("ordersStats", Map.of(
+            "min", orders.length > 0 ? java.util.Arrays.stream(orders).min().orElse(0) : 0,
+            "max", orders.length > 0 ? java.util.Arrays.stream(orders).max().orElse(0) : 0,
+            "avg", orders.length > 0 ? java.util.Arrays.stream(orders).average().orElse(0) : 0,
+            "total", orders.length > 0 ? java.util.Arrays.stream(orders).sum() : 0
+        ));
+        
+        // Customer statistics
+        summary.put("customersStats", Map.of(
+            "min", customers.length > 0 ? java.util.Arrays.stream(customers).min().orElse(0) : 0,
+            "max", customers.length > 0 ? java.util.Arrays.stream(customers).max().orElse(0) : 0,
+            "avg", customers.length > 0 ? java.util.Arrays.stream(customers).average().orElse(0) : 0,
+            "total", customers.length > 0 ? java.util.Arrays.stream(customers).sum() : 0
+        ));
+        
+        // Find best and worst performing periods
+        int bestRevenueIndex = 0;
+        int worstRevenueIndex = 0;
+        for (int i = 1; i < revenues.length; i++) {
+            if (revenues[i] > revenues[bestRevenueIndex]) bestRevenueIndex = i;
+            if (revenues[i] < revenues[worstRevenueIndex]) worstRevenueIndex = i;
+        }
+        
+        summary.put("bestPeriod", Map.of(
+            "index", bestRevenueIndex,
+            "label", comparisons.get(bestRevenueIndex).get("label"),
+            "revenue", revenues[bestRevenueIndex]
+        ));
+        
+        summary.put("worstPeriod", Map.of(
+            "index", worstRevenueIndex,
+            "label", comparisons.get(worstRevenueIndex).get("label"),
+            "revenue", revenues[worstRevenueIndex]
+        ));
+        
+        return summary;
+    }
+
+    private String generateSimplePeriodLabel(Integer year, Integer month, Integer quarter) {
+        if (year == null) return "Unknown Period";
+        
+        if (quarter != null) {
+            return "Q" + quarter + " " + year;
+        } else if (month != null) {
+            String[] monthNames = {"", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+            return monthNames[month] + " " + year;
+        } else {
+            return year.toString();
+        }
     }
 }

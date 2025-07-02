@@ -2120,4 +2120,186 @@ public class OptimizedPizzaService {
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, params.toArray());
         return result.isEmpty() ? new HashMap<>() : result.get(0);
     }
+
+    // =================================================================
+    // PRODUCTS INFO ALL - New MV-based Product Analytics
+    // =================================================================
+
+    public Map<String, Object> getProductKPI(User user, Map<String, Object> filters) {
+        String sku = (String) filters.get("sku");
+        String timePeriod = (String) filters.get("timePeriod");
+        
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                revenue,
+                orders,
+                units_sold,
+                unique_customers,
+                avg_price,
+                avg_order_value
+            FROM products_info_all
+            WHERE sku = ?
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(sku);
+        
+        // Add time period filtering
+        addProductTimeFilters(sql, params, filters);
+        
+        // Add role-based filtering
+        addRoleBasedProductFilters(sql, params, user);
+        
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        return result.isEmpty() ? new HashMap<>() : result.get(0);
+    }
+
+    public List<Map<String, Object>> getProductTrend(User user, Map<String, Object> filters) {
+        String sku = (String) filters.get("sku");
+        String metric = (String) filters.get("metric");
+        String interval = (String) filters.get("interval");
+        
+        // Map metric parameter to column name
+        String columnName = switch (metric) {
+            case "revenue" -> "revenue";
+            case "orders" -> "orders";
+            case "units" -> "units_sold";
+            case "aov" -> "avg_order_value";
+            case "customers" -> "unique_customers";
+            default -> "revenue";
+        };
+        
+        StringBuilder sql = new StringBuilder(String.format("""
+            SELECT
+                COALESCE(year, 0) AS yr,
+                COALESCE(month, 0) AS mo,
+                SUM(%s) AS metric_value
+            FROM products_info_all
+            WHERE sku = ?
+            """, columnName));
+        
+        List<Object> params = new ArrayList<>();
+        params.add(sku);
+        
+        // Add time period filtering
+        addProductTimeFilters(sql, params, filters);
+        
+        // Add role-based filtering
+        addRoleBasedProductFilters(sql, params, user);
+        
+        sql.append(" GROUP BY yr, mo ORDER BY yr, mo");
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    public Map<String, Object> getProductComparison(User user, Map<String, Object> filters) {
+        String sku = (String) filters.get("sku");
+        String periodLength = (String) filters.get("periodLength");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get current period data
+        Map<String, Object> currentFilters = new HashMap<>(filters);
+        currentFilters.put("timePeriod", periodLength);
+        Map<String, Object> currentData = getProductKPI(user, currentFilters);
+        
+        // Calculate previous period
+        Map<String, Object> previousFilters = new HashMap<>(filters);
+        if ("year".equals(periodLength) && year != null) {
+            previousFilters.put("year", year - 1);
+        } else if ("month".equals(periodLength) && year != null && month != null) {
+            if (month == 1) {
+                previousFilters.put("year", year - 1);
+                previousFilters.put("month", 12);
+            } else {
+                previousFilters.put("month", month - 1);
+            }
+        }
+        previousFilters.put("timePeriod", periodLength);
+        Map<String, Object> previousData = getProductKPI(user, previousFilters);
+        
+        result.put("current", currentData);
+        result.put("previous", previousData);
+        
+        return result;
+    }
+
+    public List<Map<String, Object>> getProductsList(User user) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT DISTINCT 
+                sku, 
+                product_name, 
+                category, 
+                size, 
+                launch_date
+            FROM products_info_all
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Add role-based filtering
+        addRoleBasedProductFilters(sql, params, user);
+        
+        sql.append(" ORDER BY product_name");
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    private void addProductTimeFilters(StringBuilder sql, List<Object> params, Map<String, Object> filters) {
+        String timePeriod = (String) filters.get("timePeriod");
+        Integer year = (Integer) filters.get("year");
+        Integer month = (Integer) filters.get("month");
+        Integer startYear = (Integer) filters.get("startYear");
+        Integer startMonth = (Integer) filters.get("startMonth");
+        Integer endYear = (Integer) filters.get("endYear");
+        Integer endMonth = (Integer) filters.get("endMonth");
+        Boolean sinceLaunch = (Boolean) filters.get("sinceLaunch");
+        
+        if (Boolean.TRUE.equals(sinceLaunch)) {
+            sql.append(" AND (year IS NULL OR year >= (SELECT EXTRACT(YEAR FROM launch_date) FROM products_info_all WHERE sku = ? LIMIT 1))");
+            params.add(filters.get("sku"));
+        } else if ("all-time".equals(timePeriod)) {
+            // No additional filters for all-time
+        } else if ("year".equals(timePeriod) && year != null) {
+            sql.append(" AND (year IS NULL OR year = ?)");
+            params.add(year);
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            sql.append(" AND year = ? AND month = ?");
+            params.add(year);
+            params.add(month);
+        } else if ("custom-range".equals(timePeriod) && startYear != null && startMonth != null && endYear != null && endMonth != null) {
+            sql.append("""
+                AND ((year > ? OR (year = ? AND month >= ?))
+                AND (year < ? OR (year = ? AND month <= ?)))
+                """);
+            params.add(startYear);
+            params.add(startYear);
+            params.add(startMonth);
+            params.add(endYear);
+            params.add(endYear);
+            params.add(endMonth);
+        }
+    }
+
+    private void addRoleBasedProductFilters(StringBuilder sql, List<Object> params, User user) {
+        // Note: products_info_all MV would need to include store/state info for role-based filtering
+        // For now, we'll assume HQ_ADMIN sees all products, others might have restrictions
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                // No additional filters - see all products
+                break;
+            case "STATE_MANAGER":
+                // Would need state-level product filtering if MV includes state info
+                // sql.append(" AND state = ?");
+                // params.add(user.getStateAbbr());
+                break;
+            case "STORE_MANAGER":
+                // Would need store-level product filtering if MV includes store info
+                // sql.append(" AND storeid = ?");
+                // params.add(user.getStoreId());
+                break;
+        }
+    }
 }

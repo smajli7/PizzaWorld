@@ -1,326 +1,503 @@
-<!-- Sidebar links -->
-<app-sidebar></app-sidebar>
+<div class="min-h-screen bg-gray-50">
+  <app-sidebar></app-sidebar>
+  
+  <div class="lg:ml-64 p-6">
+    <!-- Header Section -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Product Analytics</h1>
+      <p class="text-gray-600">Comprehensive product performance metrics and insights</p>
+    </div>
 
-<!-- Loading Popup -->
-<app-loading-popup
-  [isVisible]="showLoadingPopup"
-  title="Loading Product Data"
-  [message]="loadingMessage"
-  [progress]="loadingProgress"
-  [showDetails]="false">
-</app-loading-popup>
+    <!-- Product Selection and Filters -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Product Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Product</label>
+          <select 
+            [(ngModel)]="selectedSku" 
+            (change)="onProductChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">Choose a product...</option>
+            <option *ngFor="let product of productsList" [value]="product.sku">
+              {{product.product_name}} ({{product.sku}})
+            </option>
+          </select>
+        </div>
 
-<div class="home-section lg:ml-64">
-  <!-- Modern Upper Section -->
-  <div class="products-upper-section">
-    <div class="products-stats-row">
-      <div class="fancy-total-products-box">
-        <span class="fancy-total-products-icon"><i class="pi pi-box"></i></span>
-        <span class="fancy-total-products-info">
-          <span class="fancy-total-products-number">{{ products.length }}</span>
-          <span class="fancy-total-products-label">Total Products</span>
-        </span>
+        <!-- Time Period Selection -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Time Period</label>
+          <select 
+            [(ngModel)]="selectedTimePeriod" 
+            (change)="onTimePeriodChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="all-time">All Time</option>
+            <option value="year">Year</option>
+            <option value="month">Month</option>
+            <option value="custom-range">Custom Range</option>
+            <option value="since-launch">Since Launch</option>
+            <option value="compare">Compare</option>
+          </select>
+        </div>
+
+        <!-- Year Selection -->
+        <div *ngIf="selectedTimePeriod === 'year' || selectedTimePeriod === 'month'">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+          <select 
+            [(ngModel)]="selectedYear" 
+            (change)="onYearChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">Select Year</option>
+            <option *ngFor="let yearOption of availableYears" [value]="yearOption.year">
+              {{yearOption.year_label}}
+            </option>
+          </select>
+        </div>
+
+        <!-- Month Selection -->
+        <div *ngIf="selectedTimePeriod === 'month' && selectedYear">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Month</label>
+          <select 
+            [(ngModel)]="selectedMonth" 
+            (change)="onMonthChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+            <option value="">Select Month</option>
+            <option *ngFor="let monthOption of availableMonths" [value]="monthOption.month">
+              {{monthOption.month_name_label}}
+            </option>
+          </select>
+        </div>
+
       </div>
-      <div class="filtered-results-box">
-        <span class="filtered-results-number">{{ filteredProducts.length }}</span>
-        <span class="filtered-results-label">Filtered Results</span>
+
+      <!-- Custom Range Inputs -->
+      <div *ngIf="selectedTimePeriod === 'custom-range'" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Start Year</label>
+          <input 
+            type="number" 
+            [(ngModel)]="customStartYear" 
+            (change)="onCustomRangeChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="2024">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Start Month</label>
+          <input 
+            type="number" 
+            [(ngModel)]="customStartMonth" 
+            (change)="onCustomRangeChange()"
+            min="1" max="12"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="1">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">End Year</label>
+          <input 
+            type="number" 
+            [(ngModel)]="customEndYear" 
+            (change)="onCustomRangeChange()"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="2024">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">End Month</label>
+          <input 
+            type="number" 
+            [(ngModel)]="customEndMonth" 
+            (change)="onCustomRangeChange()"
+            min="1" max="12"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="12">
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mt-4 flex justify-end space-x-3">
+        <button 
+          (click)="refreshData()"
+          [disabled]="loading || chartsLoading"
+          class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          <i class="pi pi-refresh mr-2"></i>
+          Refresh Data
+        </button>
       </div>
     </div>
-    <div class="products-filter-card">
-      <div class="products-filter-header">
-        <span class="filter-title">Search & Filter Products</span>
-        <div class="filter-actions">
-          <button pButton type="button"
-                  label="Export All"
-                  icon="pi pi-download"
-                  class="p-button-outlined p-button-sm"
-                  (click)="exportProducts()"
-                  [disabled]="products.length === 0">
-          </button>
-          <button pButton type="button"
-                  label="Export Filtered"
-                  icon="pi pi-filter"
-                  class="p-button-outlined p-button-sm"
-                  (click)="exportFilteredProducts()"
-                  [disabled]="filteredProducts.length === 0">
-          </button>
-          <button pButton type="button"
-                  label="Clear Filters"
-                  class="p-button-outlined p-button-sm"
-                  (click)="clearFilters()"
-                  [disabled]="!searchTerm && !categoryFilter && !sizeFilter && !priceRangeFilter">
-          </button>
-        </div>
-      </div>
-      <div class="products-filter-fields">
-        <div class="filter-field">
-          <label for="search" class="filter-label">Search Products</label>
-          <span class="p-input-icon-left p-w-full">
-            <i class="pi pi-search"></i>
-            <input pInputText id="search"
-                   [(ngModel)]="searchTerm"
-                   (input)="applyFilters()"
-                   placeholder="Search by name, SKU, or category..."
-                   class="p-w-full" />
-          </span>
-        </div>
-        <div class="filter-field">
-          <label for="category" class="filter-label">Category</label>
-          <p-dropdown id="category"
-                     [options]="categories"
-                     [(ngModel)]="categoryFilter"
-                     (onChange)="applyFilters()"
-                     placeholder="All Categories"
-                     [showClear]="true"
-                     class="p-w-full">
-          </p-dropdown>
-        </div>
-        <div class="filter-field">
-          <label for="size" class="filter-label">Size</label>
-          <p-dropdown id="size"
-                     [options]="sizes"
-                     [(ngModel)]="sizeFilter"
-                     (onChange)="applyFilters()"
-                     placeholder="All Sizes"
-                     [showClear]="true"
-                     class="p-w-full">
-          </p-dropdown>
-        </div>
-        <div class="filter-field">
-          <label for="priceRange" class="filter-label">Price Range</label>
-          <p-dropdown id="priceRange"
-                     [options]="priceRanges"
-                     [(ngModel)]="priceRangeFilter"
-                     (onChange)="applyFilters()"
-                     placeholder="All Prices"
-                     optionLabel="label"
-                     optionValue="value"
-                     class="p-w-full">
-          </p-dropdown>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+      <span class="ml-3 text-gray-600">Loading products...</span>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <i class="pi pi-exclamation-triangle text-red-500 mr-3"></i>
+        <div>
+          <h3 class="text-red-800 font-medium">Error Loading Data</h3>
+          <p class="text-red-600 text-sm">Please try refreshing the page or contact support if the problem persists.</p>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Products Table -->
-  <p-card>
-    <ng-template pTemplate="header">
-      <div class="table-header">
-        <h3>Product Details ({{ filteredProducts.length }} products)</h3>
-        <div class="table-actions">
-          <span class="results-count">Total Revenue: {{ formatCurrency(totalFilteredRevenue) }}</span>
+    <!-- Main Content -->
+    <div *ngIf="!loading && !error && selectedSku">
+      
+      <!-- Product Info Header -->
+      <div *ngIf="currentProduct" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">{{currentProduct.product_name}}</h2>
+            <div class="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+              <span><strong>SKU:</strong> {{currentProduct.sku}}</span>
+              <span><strong>Category:</strong> {{currentProduct.category}}</span>
+              <span><strong>Size:</strong> {{currentProduct.size}}</span>
+              <span><strong>Launch Date:</strong> {{currentProduct.launch_date | date:'mediumDate'}}</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm text-gray-500">{{getTimePeriodLabel()}}</p>
+          </div>
         </div>
       </div>
-    </ng-template>
-    <ng-template pTemplate="content">
-      <ng-container *ngIf="!loading && !error; else loadingOrError">
-        <div class="modern-table-container">
-          <p-table
-            [value]="filteredProducts"
-            (onSort)="onSort($event)"
-            [sortMode]="'single'"
-            [sortField]="sortBy"
-            [sortOrder]="sortOrder"
-            [scrollable]="true"
-            scrollHeight="600px"
-            [lazy]="false"
-            [virtualScroll]="false"
-            styleClass="modern-table">
 
-            <ng-template pTemplate="header">
-              <tr>
-                <th pSortableColumn="sku" style="width: 120px">
-                  SKU
-                  <p-sortIcon field="sku"></p-sortIcon>
-                </th>
-                <th pSortableColumn="name" style="width: 200px">
-                  Name
-                  <p-sortIcon field="name"></p-sortIcon>
-                </th>
-                <th pSortableColumn="category" style="width: 120px">
-                  Category
-                  <p-sortIcon field="category"></p-sortIcon>
-                </th>
-                <th pSortableColumn="size" style="width: 100px">
-                  Size
-                  <p-sortIcon field="size"></p-sortIcon>
-                </th>
-                <th pSortableColumn="price" style="width: 100px">
-                  Price
-                  <p-sortIcon field="price"></p-sortIcon>
-                </th>
-                <th pSortableColumn="totalOrders" style="width: 100px">
-                  Orders
-                  <p-sortIcon field="totalOrders"></p-sortIcon>
-                </th>
-                <th pSortableColumn="uniqueCustomers" style="width: 100px">
-                  Customers
-                  <p-sortIcon field="uniqueCustomers"></p-sortIcon>
-                </th>
-                <th pSortableColumn="revenue" style="width: 120px">
-                  Revenue
-                  <p-sortIcon field="revenue"></p-sortIcon>
-                </th>
-                <th style="width: 80px">
-                  Actions
-                </th>
-              </tr>
-            </ng-template>
-
-            <ng-template pTemplate="body" let-product>
-              <tr class="product-row">
-                <td class="product-sku">
-                  <span class="sku-text">{{ product.sku }}</span>
-                </td>
-                <td class="product-name">{{ product.name }}</td>
-                <td class="product-category">
-                  <span class="category-badge">{{ product.category }}</span>
-                </td>
-                <td class="product-size">{{ product.size }}</td>
-                <td class="product-price">{{ formatCurrency(product.price) }}</td>
-                <td class="product-orders">{{ formatNumber(product.totalOrders) }}</td>
-                <td class="product-customers">{{ formatNumber(product.uniqueCustomers) }}</td>
-                <td class="product-revenue">{{ formatCurrency(product.revenue) }}</td>
-                <td class="product-actions">
-                  <button pButton
-                          type="button"
-                          icon="pi pi-eye"
-                          class="p-button-text p-button-sm"
-                          (click)="getProductDetails(product.sku)"
-                          pTooltip="View Details"
-                          tooltipPosition="top">
-                  </button>
-                </td>
-              </tr>
-            </ng-template>
-
-            <ng-template pTemplate="emptymessage">
-              <tr>
-                <td colspan="9" class="no-results">
-                  <i class="pi pi-search"></i>
-                  <p>No products found matching your criteria</p>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+      <!-- KPI Cards Row (K1-K5) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <!-- Loading skeletons for cards -->
+        <ng-container *ngIf="chartsLoading">
+          <div *ngFor="let i of [1,2,3,4,5]" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+            <div class="p-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0">
+                  <div class="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                </div>
+                <div class="ml-4">
+                  <div class="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                  <div class="h-6 bg-gray-200 rounded w-24"></div>
+                </div>
+              </div>
+              <div class="mt-4">
+                <div class="h-3 bg-gray-200 rounded w-32"></div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Real KPI cards -->
+        <div *ngIf="!chartsLoading && revenueCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                  <i class="pi pi-dollar text-white text-xl"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Revenue</p>
+                <p class="text-2xl font-bold text-gray-900">{{revenueCardData.value}}</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <p class="text-xs text-gray-500">{{revenueCardData.subtitle}}</p>
+            </div>
+          </div>
         </div>
-      </ng-container>
+        <div *ngIf="!chartsLoading && ordersCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <i class="pi pi-shopping-cart text-white text-xl"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Orders</p>
+                <p class="text-2xl font-bold text-gray-900">{{ordersCardData.value}}</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <p class="text-xs text-gray-500">{{ordersCardData.subtitle}}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!chartsLoading && unitsCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                  <i class="pi pi-box text-white text-xl"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Units Sold</p>
+                <p class="text-2xl font-bold text-gray-900">{{unitsCardData.value}}</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <p class="text-xs text-gray-500">{{unitsCardData.subtitle}}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!chartsLoading && customersCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <i class="pi pi-users text-white text-xl"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Unique Customers</p>
+                <p class="text-2xl font-bold text-gray-900">{{customersCardData.value}}</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <p class="text-xs text-gray-500">{{customersCardData.subtitle}}</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!chartsLoading && avgPriceCardData" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <i class="pi pi-tag text-white text-xl"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Avg Price</p>
+                <p class="text-2xl font-bold text-gray-900">{{avgPriceCardData.value}}</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <p class="text-xs text-gray-500">{{avgPriceCardData.subtitle}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <ng-template #loadingOrError>
-        <div class="p-d-flex p-flex-column p-ai-center p-jc-center" style="min-height:200px;">
-          <ng-container *ngIf="loading; else errorState">
-            <i class="pi pi-spin pi-spinner" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-            <div>Loading products data...</div>
+      <!-- Charts Loading State -->
+      <div *ngIf="chartsLoading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        <span class="ml-3 text-gray-600">Loading charts...</span>
+      </div>
+
+      <!-- Charts Grid -->
+      <div *ngIf="!chartsLoading" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- C1 - Revenue Trend (Area Chart) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Revenue Trend</h3>
+            <button 
+              (click)="exportChartData('revenue')"
+              class="text-sm text-orange-600 hover:text-orange-800">
+              <i class="pi pi-download mr-1"></i>Export
+            </button>
+          </div>
+          <ng-container *ngIf="revenueTrendChartOptions; else noRevenueData">
+            <apx-chart
+              [series]="revenueTrendChartOptions?.series ?? []"
+              [chart]="revenueTrendChartOptions?.chart ?? { type: 'line' }"
+              [xaxis]="revenueTrendChartOptions?.xaxis ?? {}"
+              [yaxis]="revenueTrendChartOptions?.yaxis ?? {}"
+              [colors]="revenueTrendChartOptions?.colors ?? []"
+              [stroke]="revenueTrendChartOptions?.stroke ?? {}"
+              [fill]="revenueTrendChartOptions?.fill ?? {}"
+              [dataLabels]="revenueTrendChartOptions?.dataLabels ?? {}"
+              [grid]="revenueTrendChartOptions?.grid ?? {}"
+              [tooltip]="revenueTrendChartOptions?.tooltip ?? {}">
+            </apx-chart>
           </ng-container>
-          <ng-template #errorState>
-            <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: #f44336; margin-bottom: 1rem;"></i>
-            <div>Failed to load products data</div>
-            <button pButton type="button" label="Retry" class="p-button-outlined" (click)="loadProducts()" style="margin-top: 1rem;"></button>
+          <ng-template #noRevenueData>
+            <div class="text-center text-gray-400 py-8">No revenue data available for this period.</div>
           </ng-template>
         </div>
-      </ng-template>
-    </ng-template>
-  </p-card>
 
-  <!-- Products Charts -->
-  <div class="charts-section" *ngIf="!loading && !error && products.length > 0">
-    <div class="charts-grid">
-      <!-- Revenue Chart -->
-      <p-card class="chart-card" *ngIf="revenueChartOptions">
-        <ng-template pTemplate="header">
-          <h3>Revenue by Product</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <apx-chart
-            [series]="revenueChartOptions.series!"
-            [chart]="revenueChartOptions.chart!"
-            [xaxis]="revenueChartOptions.xaxis!"
-            [yaxis]="revenueChartOptions.yaxis!"
-            [title]="revenueChartOptions.title!"
-            [dataLabels]="revenueChartOptions.dataLabels!"
-            [tooltip]="revenueChartOptions.tooltip!"
-            [plotOptions]="revenueChartOptions.plotOptions!"
-            [stroke]="revenueChartOptions.stroke!"
-            [responsive]="revenueChartOptions.responsive!"
-            [legend]="revenueChartOptions.legend!"
-            [colors]="revenueChartOptions.colors!"
-            [fill]="revenueChartOptions.fill!">
-          </apx-chart>
-        </ng-template>
-      </p-card>
+        <!-- C2 - Orders Trend (Line Chart) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Orders Trend</h3>
+            <button 
+              (click)="exportChartData('orders')"
+              class="text-sm text-orange-600 hover:text-orange-800">
+              <i class="pi pi-download mr-1"></i>Export
+            </button>
+          </div>
+          <ng-container *ngIf="ordersTrendChartOptions; else noOrdersData">
+            <apx-chart
+              [series]="ordersTrendChartOptions?.series ?? []"
+              [chart]="ordersTrendChartOptions?.chart ?? { type: 'line' }"
+              [xaxis]="ordersTrendChartOptions?.xaxis ?? {}"
+              [yaxis]="ordersTrendChartOptions?.yaxis ?? {}"
+              [colors]="ordersTrendChartOptions?.colors ?? []"
+              [stroke]="ordersTrendChartOptions?.stroke ?? {}"
+              [dataLabels]="ordersTrendChartOptions?.dataLabels ?? {}"
+              [grid]="ordersTrendChartOptions?.grid ?? {}"
+              [tooltip]="ordersTrendChartOptions?.tooltip ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noOrdersData>
+            <div class="text-center text-gray-400 py-8">No orders data available for this period.</div>
+          </ng-template>
+        </div>
 
-      <!-- Orders Chart -->
-      <p-card class="chart-card" *ngIf="ordersChartOptions">
-        <ng-template pTemplate="header">
-          <h3>Orders by Product</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <apx-chart
-            [series]="ordersChartOptions.series!"
-            [chart]="ordersChartOptions.chart!"
-            [xaxis]="ordersChartOptions.xaxis!"
-            [yaxis]="ordersChartOptions.yaxis!"
-            [title]="ordersChartOptions.title!"
-            [dataLabels]="ordersChartOptions.dataLabels!"
-            [tooltip]="ordersChartOptions.tooltip!"
-            [plotOptions]="ordersChartOptions.plotOptions!"
-            [stroke]="ordersChartOptions.stroke!"
-            [responsive]="ordersChartOptions.responsive!"
-            [legend]="ordersChartOptions.legend!"
-            [colors]="ordersChartOptions.colors!"
-            [fill]="ordersChartOptions.fill!">
-          </apx-chart>
-        </ng-template>
-      </p-card>
+        <!-- C3 - Units Trend (Column Chart) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Units Sold Trend</h3>
+            <button 
+              (click)="exportChartData('units')"
+              class="text-sm text-orange-600 hover:text-orange-800">
+              <i class="pi pi-download mr-1"></i>Export
+            </button>
+          </div>
+          <ng-container *ngIf="unitsTrendChartOptions; else noUnitsData">
+            <apx-chart
+              [series]="unitsTrendChartOptions?.series ?? []"
+              [chart]="unitsTrendChartOptions?.chart ?? { type: 'bar' }"
+              [xaxis]="unitsTrendChartOptions?.xaxis ?? {}"
+              [yaxis]="unitsTrendChartOptions?.yaxis ?? {}"
+              [colors]="unitsTrendChartOptions?.colors ?? []"
+              [plotOptions]="unitsTrendChartOptions?.plotOptions ?? {}"
+              [dataLabels]="unitsTrendChartOptions?.dataLabels ?? {}"
+              [grid]="unitsTrendChartOptions?.grid ?? {}"
+              [tooltip]="unitsTrendChartOptions?.tooltip ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noUnitsData>
+            <div class="text-center text-gray-400 py-8">No units data available for this period.</div>
+          </ng-template>
+        </div>
 
-      <!-- Category Chart -->
-      <p-card class="chart-card" *ngIf="categoryChartOptions">
-        <ng-template pTemplate="header">
-          <h3>Products by Category</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <apx-chart
-            [series]="categoryChartOptions.series!"
-            [chart]="categoryChartOptions.chart!"
-            [xaxis]="categoryChartOptions.xaxis!"
-            [yaxis]="categoryChartOptions.yaxis!"
-            [title]="categoryChartOptions.title!"
-            [dataLabels]="categoryChartOptions.dataLabels!"
-            [tooltip]="categoryChartOptions.tooltip!"
-            [plotOptions]="categoryChartOptions.plotOptions!"
-            [stroke]="categoryChartOptions.stroke!"
-            [responsive]="categoryChartOptions.responsive!"
-            [legend]="categoryChartOptions.legend!"
-            [colors]="categoryChartOptions.colors!"
-            [fill]="categoryChartOptions.fill!">
-          </apx-chart>
-        </ng-template>
-      </p-card>
+        <!-- C4 - AOV Trend (Line Chart) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Average Order Value Trend</h3>
+            <button 
+              (click)="exportChartData('aov')"
+              class="text-sm text-orange-600 hover:text-orange-800">
+              <i class="pi pi-download mr-1"></i>Export
+            </button>
+          </div>
+          <ng-container *ngIf="aovTrendChartOptions; else noAovData">
+            <apx-chart
+              [series]="aovTrendChartOptions?.series ?? []"
+              [chart]="aovTrendChartOptions?.chart ?? { type: 'line' }"
+              [xaxis]="aovTrendChartOptions?.xaxis ?? {}"
+              [yaxis]="aovTrendChartOptions?.yaxis ?? {}"
+              [colors]="aovTrendChartOptions?.colors ?? []"
+              [stroke]="aovTrendChartOptions?.stroke ?? {}"
+              [dataLabels]="aovTrendChartOptions?.dataLabels ?? {}"
+              [grid]="aovTrendChartOptions?.grid ?? {}"
+              [tooltip]="aovTrendChartOptions?.tooltip ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noAovData>
+            <div class="text-center text-gray-400 py-8">No AOV data available for this period.</div>
+          </ng-template>
+        </div>
 
-      <!-- Top Products Chart -->
-      <p-card class="chart-card" *ngIf="topProductsChartOptions">
-        <ng-template pTemplate="header">
-          <h3>Top Products by Revenue</h3>
-        </ng-template>
-        <ng-template pTemplate="content">
-          <apx-chart
-            [series]="topProductsChartOptions.series!"
-            [chart]="topProductsChartOptions.chart!"
-            [xaxis]="topProductsChartOptions.xaxis!"
-            [yaxis]="topProductsChartOptions.yaxis!"
-            [title]="topProductsChartOptions.title!"
-            [dataLabels]="topProductsChartOptions.dataLabels!"
-            [tooltip]="topProductsChartOptions.tooltip!"
-            [plotOptions]="topProductsChartOptions.plotOptions!"
-            [stroke]="topProductsChartOptions.stroke!"
-            [responsive]="topProductsChartOptions.responsive!"
-            [legend]="topProductsChartOptions.legend!"
-            [colors]="topProductsChartOptions.colors!"
-            [fill]="topProductsChartOptions.fill!">
-          </apx-chart>
-        </ng-template>
-      </p-card>
+        <!-- C5 - Launch Progress (RadialBar) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Launch-to-Date Progress</h3>
+          </div>
+          <ng-container *ngIf="launchProgressChartOptions; else noLaunchData">
+            <apx-chart
+              [series]="launchProgressChartOptions?.series ?? []"
+              [chart]="launchProgressChartOptions?.chart ?? { type: 'radialBar' }"
+              [colors]="launchProgressChartOptions?.colors ?? []"
+              [plotOptions]="launchProgressChartOptions?.plotOptions ?? {}"
+              [fill]="launchProgressChartOptions?.fill ?? {}"
+              [labels]="launchProgressChartOptions?.labels ?? []">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noLaunchData>
+            <div class="text-center text-gray-400 py-8">No launch data available for this period.</div>
+          </ng-template>
+        </div>
+
+        <!-- C6 - Year-over-Year Revenue (Grouped Column) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Year-over-Year Revenue</h3>
+          </div>
+          <ng-container *ngIf="yearOverYearChartOptions; else noYearOverYearData">
+            <apx-chart
+              [series]="yearOverYearChartOptions?.series ?? []"
+              [chart]="yearOverYearChartOptions?.chart ?? { type: 'bar' }"
+              [xaxis]="yearOverYearChartOptions?.xaxis ?? {}"
+              [yaxis]="yearOverYearChartOptions?.yaxis ?? {}"
+              [colors]="yearOverYearChartOptions?.colors ?? []"
+              [plotOptions]="yearOverYearChartOptions?.plotOptions ?? {}"
+              [dataLabels]="yearOverYearChartOptions?.dataLabels ?? {}"
+              [legend]="yearOverYearChartOptions?.legend ?? {}"
+              [grid]="yearOverYearChartOptions?.grid ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noYearOverYearData>
+            <div class="text-center text-gray-400 py-8">No year-over-year data available for this period.</div>
+          </ng-template>
+        </div>
+
+        <!-- C7 - Month-over-Month Orders (Column) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Month-over-Month Orders</h3>
+          </div>
+          <ng-container *ngIf="monthOverMonthChartOptions; else noMonthOverMonthData">
+            <apx-chart
+              [series]="monthOverMonthChartOptions?.series ?? []"
+              [chart]="monthOverMonthChartOptions?.chart ?? { type: 'bar' }"
+              [xaxis]="monthOverMonthChartOptions?.xaxis ?? {}"
+              [yaxis]="monthOverMonthChartOptions?.yaxis ?? {}"
+              [colors]="monthOverMonthChartOptions?.colors ?? []"
+              [plotOptions]="monthOverMonthChartOptions?.plotOptions ?? {}"
+              [dataLabels]="monthOverMonthChartOptions?.dataLabels ?? {}"
+              [grid]="monthOverMonthChartOptions?.grid ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noMonthOverMonthData>
+            <div class="text-center text-gray-400 py-8">No month-over-month data available for this period.</div>
+          </ng-template>
+        </div>
+
+        <!-- C8 - Revenue Share by Category (Pie) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Revenue Share by Category</h3>
+          </div>
+          <ng-container *ngIf="categoryShareChartOptions; else noCategoryData">
+            <apx-chart
+              [series]="categoryShareChartOptions?.series ?? []"
+              [chart]="categoryShareChartOptions?.chart ?? { type: 'pie' }"
+              [labels]="categoryShareChartOptions?.labels ?? []"
+              [colors]="categoryShareChartOptions?.colors ?? []"
+              [dataLabels]="categoryShareChartOptions?.dataLabels ?? {}"
+              [plotOptions]="categoryShareChartOptions?.plotOptions ?? {}"
+              [legend]="categoryShareChartOptions?.legend ?? {}">
+            </apx-chart>
+          </ng-container>
+          <ng-template #noCategoryData>
+            <div class="text-center text-gray-400 py-8">No category data available for this period.</div>
+          </ng-template>
+        </div>
+
+      </div>
+
     </div>
+
+    <!-- No Selection State -->
+    <div *ngIf="!loading && !error && !selectedSku" class="text-center py-12">
+      <div class="max-w-md mx-auto">
+        <i class="pi pi-box text-4xl text-gray-400 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Select a Product</h3>
+        <p class="text-gray-500">Choose a product from the dropdown above to view detailed analytics and performance metrics.</p>
+      </div>
+    </div>
+
   </div>
 </div>
-

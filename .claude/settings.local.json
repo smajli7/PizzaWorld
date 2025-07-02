@@ -6,7 +6,9 @@
       "Bash(npm install)",
       "Bash(curl:*)",
       "Bash(java:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

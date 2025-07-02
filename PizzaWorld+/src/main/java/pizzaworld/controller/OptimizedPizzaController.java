@@ -890,4 +890,133 @@ public class OptimizedPizzaController {
         filters.put("includeTrends", includeTrends);
         return filters;
     }
+
+    // =================================================================
+    // PRODUCTS INFO ALL - New MV-based Product Analytics
+    // =================================================================
+
+    @GetMapping("/products/kpi")
+    public ResponseEntity<Map<String, Object>> getProductKPI(
+            @RequestParam String sku,
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer startYear,
+            @RequestParam(required = false) Integer startMonth,
+            @RequestParam(required = false) Integer endYear,
+            @RequestParam(required = false) Integer endMonth,
+            @RequestParam(defaultValue = "false") boolean sinceLaunch,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildProductFilters(sku, timePeriod, year, month, startYear, startMonth, endYear, endMonth, sinceLaunch);
+        return ResponseEntity.ok(pizzaService.getProductKPI(user, filters));
+    }
+
+    @GetMapping("/products/trend")
+    public ResponseEntity<List<Map<String, Object>>> getProductTrend(
+            @RequestParam String sku,
+            @RequestParam String metric,
+            @RequestParam(defaultValue = "month") String interval,
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer startYear,
+            @RequestParam(required = false) Integer startMonth,
+            @RequestParam(required = false) Integer endYear,
+            @RequestParam(required = false) Integer endMonth,
+            @RequestParam(defaultValue = "false") boolean sinceLaunch,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildProductFilters(sku, timePeriod, year, month, startYear, startMonth, endYear, endMonth, sinceLaunch);
+        filters.put("metric", metric);
+        filters.put("interval", interval);
+        return ResponseEntity.ok(pizzaService.getProductTrend(user, filters));
+    }
+
+    @GetMapping("/products/compare")
+    public ResponseEntity<Map<String, Object>> getProductComparison(
+            @RequestParam String sku,
+            @RequestParam String periodLength,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer startYear,
+            @RequestParam(required = false) Integer startMonth,
+            @RequestParam(required = false) Integer endYear,
+            @RequestParam(required = false) Integer endMonth,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("sku", sku);
+        filters.put("periodLength", periodLength);
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("startYear", startYear);
+        filters.put("startMonth", startMonth);
+        filters.put("endYear", endYear);
+        filters.put("endMonth", endMonth);
+        return ResponseEntity.ok(pizzaService.getProductComparison(user, filters));
+    }
+
+    @GetMapping("/products/trend/export")
+    public void exportProductTrend(
+            @RequestParam String sku,
+            @RequestParam String metric,
+            @RequestParam(defaultValue = "month") String interval,
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer startYear,
+            @RequestParam(required = false) Integer startMonth,
+            @RequestParam(required = false) Integer endYear,
+            @RequestParam(required = false) Integer endMonth,
+            @RequestParam(defaultValue = "false") boolean sinceLaunch,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        Map<String, Object> filters = buildProductFilters(sku, timePeriod, year, month, startYear, startMonth, endYear, endMonth, sinceLaunch);
+        filters.put("metric", metric);
+        filters.put("interval", interval);
+        
+        List<Map<String, Object>> data = pizzaService.getProductTrend(user, filters);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "product-trend.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, String.format("product-trend-%s-%s.csv", sku, metric));
+    }
+
+    @GetMapping("/products/list")
+    public ResponseEntity<List<Map<String, Object>>> getProductsList(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getProductsList(user));
+    }
+
+    private Map<String, Object> buildProductFilters(String sku, String timePeriod, Integer year, Integer month,
+                                                   Integer startYear, Integer startMonth, Integer endYear, Integer endMonth,
+                                                   boolean sinceLaunch) {
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("sku", sku);
+        filters.put("timePeriod", timePeriod);
+        filters.put("year", year);
+        filters.put("month", month);
+        filters.put("startYear", startYear);
+        filters.put("startMonth", startMonth);
+        filters.put("endYear", endYear);
+        filters.put("endMonth", endMonth);
+        filters.put("sinceLaunch", sinceLaunch);
+        return filters;
+    }
 }

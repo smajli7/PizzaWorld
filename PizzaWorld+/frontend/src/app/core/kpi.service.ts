@@ -1,7 +1,28 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams }         from '@angular/common/http';
 import { Observable, shareReplay, map, catchError, of }         from 'rxjs';
-import { ProductsComponent, ProductInfo } from '../pages/products/products.component';
+// Removed unused import
+
+/** Product information interface */
+export interface ProductInfo {
+  sku: string;
+  name: string;
+  product_name?: string;
+  category: string;
+  price: number;
+  size: string;
+  ingredients?: string;
+  launch?: string;
+  totalOrders: number;
+  total_orders?: number;
+  uniqueCustomers: number;
+  total_unique_customers?: number;
+  revenue: number;
+  total_revenue?: number;
+  avgOrder: number;
+  total_quantity?: number;
+  quantity_sold?: number;
+}
 
 /** Entspricht DashboardKpiDto im Backend */
 export interface DashboardKpiDto {
@@ -1036,13 +1057,96 @@ export class KpiService {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
 
-    return this.http.get<any[]>('/api/dashboard/analytics/product-category-performance', { headers })
+    return this.http.get<any[]>('/api/v2/analytics/category-performance', { headers })
       .pipe(
         catchError(error => {
           console.error('❌ Product category performance loading failed:', error);
           return of([]);
         })
       );
+  }
+
+  // Enhanced product performance analytics with role-based access
+  getProductPerformanceAnalytics(category?: string): Observable<ProductPerformancePoint[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    let params = new HttpParams();
+    if (category) {
+      params = params.set('category', category);
+    }
+    
+    return this.http.get<ProductPerformancePoint[]>('/api/v2/analytics/product-performance', { headers, params })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Product performance analytics loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  // Get top products with category filtering and limit
+  getTopProductsEnhanced(category?: string, limit: number = 20): Observable<any[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    let params = new HttpParams().set('limit', limit.toString());
+    if (category) {
+      params = params.set('category', category);
+    }
+    
+    return this.http.get<any[]>('/api/v2/products/top', { headers, params })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Top products loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
+  // Enhanced store product performance with time filtering
+  getStoreProductPerformanceWithFilters(
+    storeId: string, 
+    filters: Partial<ChartFilterOptions>
+  ): Observable<ProductPerformancePoint[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    let params = new HttpParams();
+    
+    // Add time filtering parameters
+    if (filters.timePeriod) params = params.set('timePeriod', filters.timePeriod);
+    if (filters.year) params = params.set('year', filters.year.toString());
+    if (filters.month) params = params.set('month', filters.month.toString());
+    if (filters.quarter) params = params.set('quarter', filters.quarter.toString());
+    
+    return this.http.get<ProductPerformancePoint[]>(
+      `/api/v2/stores/${storeId}/analytics/product-performance`, 
+      { headers, params }
+    ).pipe(
+      catchError(error => {
+        console.error('❌ Store product performance loading failed:', error);
+        return of([]);
+      })
+    );
+  }
+
+  // Export product analytics data
+  exportProductPerformanceAnalytics(category?: string, limit: number = 100): Observable<Blob> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    let params = new HttpParams().set('limit', limit.toString());
+    if (category) {
+      params = params.set('category', category);
+    }
+    
+    return this.http.get('/api/v2/analytics/product-performance/export', {
+      headers,
+      params,
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Product performance export failed:', error);
+        return of(new Blob());
+      })
+    );
   }
 
   /** Get customer acquisition by month */
@@ -1468,6 +1572,22 @@ export class KpiService {
     const headers = this.getAuthHeaders();
     const body = { periods };
     return this.http.post<PeriodComparison[]>(`/api/v2/stores/${storeId}/analytics/compare`, body, { headers });
+  }
+
+  /**
+   * Compare product performance for current vs previous period
+   */
+  getProductComparison(sku: string, periodLength: string, year?: number, month?: number, startYear?: number, startMonth?: number, endYear?: number, endMonth?: number): Observable<any> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+    let params = new HttpParams().set('sku', sku).set('periodLength', periodLength);
+    if (year) params = params.set('year', year.toString());
+    if (month) params = params.set('month', month.toString());
+    if (startYear) params = params.set('startYear', startYear.toString());
+    if (startMonth) params = params.set('startMonth', startMonth.toString());
+    if (endYear) params = params.set('endYear', endYear.toString());
+    if (endMonth) params = params.set('endMonth', endMonth.toString());
+    return this.http.get<any>('/api/v2/products/compare', { headers, params });
   }
 
   // Helper to get auth headers (moved from stores component)

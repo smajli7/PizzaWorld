@@ -150,7 +150,7 @@ export class SalesComponent implements OnInit {
   private initializeDateRange(): void {
     const today = new Date();
     const fromDate = new Date();
-    
+
     switch (this.selectedPeriod) {
       case 'day':
         fromDate.setDate(today.getDate() - 1);
@@ -403,7 +403,7 @@ export class SalesComponent implements OnInit {
 
   private initializeRevenueByStoreChart(): void {
     const topStores = this.storesByRevenue.slice(0, 10);
-    
+
     this.revenueByStoreChart = {
       series: [
         {
@@ -502,18 +502,18 @@ export class SalesComponent implements OnInit {
     const storesRevenue = this.kpi.getCachedAllTimeStoresByRevenue(this.fromDate, this.toDate);
     const salesTrend = this.kpi.getCachedAllTimeSalesTrend(this.fromDate, this.toDate);
     const categoryRevenue = this.kpi.getCachedAllTimeRevenueByCategory(this.fromDate, this.toDate);
-    
+
     // Check if we have all the necessary cached data
     if (kpis && bestProducts.length > 0 && storesRevenue.length > 0 && salesTrend.length > 0 && categoryRevenue.length > 0) {
       console.log('📊 Loading complete cached dataset INSTANTLY...');
-      
+
       this.salesKPI = {
         revenue: kpis.revenue || 0,
         totalOrders: kpis.total_orders || 0,
         uniqueCustomers: kpis.unique_customers || 0,
         avgOrder: kpis.avg_order || 0
       };
-      
+
       this.bestSellingProducts = bestProducts.map((p: any) => ({
         sku: p.sku,
         name: p.name,
@@ -521,7 +521,7 @@ export class SalesComponent implements OnInit {
         revenue: p.revenue || 0,
         totalSold: p.total_sold || 0
       }));
-      
+
       this.storesByRevenue = storesRevenue.map((s: any) => ({
         storeid: s.storeid,
         city: s.city,
@@ -529,23 +529,23 @@ export class SalesComponent implements OnInit {
         revenue: s.revenue || 0,
         orders: s.orders || 0
       }));
-      
+
       this.salesTrend = salesTrend.map((t: any) => ({
         day: t.day,
         revenue: t.revenue || 0,
         orders: t.orders || 0
       }));
-      
+
       this.categoryRevenue = categoryRevenue.map((c: any) => ({
         category: c.category,
         revenue: c.revenue || 0,
         orders: c.orders || 0
       }));
-      
+
       this.initializeRevenueByStoreChart();
       this.initializeSalesTrendChart();
       this.initializeCategoryRevenueChart();
-      
+
       // Ensure UI is updated and loading is set to false
       this.cdr.detectChanges();
       this.loading = false;

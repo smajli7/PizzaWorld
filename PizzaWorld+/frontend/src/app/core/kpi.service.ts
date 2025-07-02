@@ -77,6 +77,7 @@ export interface OrderInfo {
   orderdate: string;
   nitems: number;
   total: number;
+  order_value?: number;  // New field from updated materialized view
   store_city?: string;
   store_state?: string;
 }
@@ -969,6 +970,93 @@ export class KpiService {
       );
   }
 
+  /** Get orders with new v2 endpoint */
+  getOrdersV2(
+    page: number = 0,
+    limit: number = 25,
+    store?: string,
+    state?: string,
+    orderid?: string,
+    search?: string,
+    from?: string,
+    to?: string
+  ): Observable<PaginatedOrdersResponse> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    if (store && store.trim()) params.append('store', store);
+    if (state && state.trim()) params.append('state', state);
+    if (orderid && orderid.trim()) params.append('orderid', orderid);
+    if (search && search.trim()) params.append('search', search);
+    if (from && from.trim()) params.append('from', from);
+    if (to && to.trim()) params.append('to', to);
+
+    return this.http.get<PaginatedOrdersResponse>(`/api/v2/orders?${params.toString()}`, { headers })
+      .pipe(
+        map(data => {
+          // Cache the results
+          const cacheKey = `pizzaWorld_orders_v2_${page}_${limit}_${store || ''}_${state || ''}_${orderid || ''}_${search || ''}_${from || ''}_${to || ''}`;
+          localStorage.setItem(cacheKey, JSON.stringify(data));
+          return data;
+        }),
+        catchError(error => {
+          console.error('❌ Orders v2 loading failed:', error);
+          throw error;
+        })
+      );
+  }
+
+  /** Export orders with filters */
+  exportOrdersV2(
+    store?: string,
+    state?: string,
+    orderid?: string,
+    search?: string,
+    from?: string,
+    to?: string
+  ): Observable<Blob> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (store && store.trim()) params.append('store', store);
+    if (state && state.trim()) params.append('state', state);
+    if (orderid && orderid.trim()) params.append('orderid', orderid);
+    if (search && search.trim()) params.append('search', search);
+    if (from && from.trim()) params.append('from', from);
+    if (to && to.trim()) params.append('to', to);
+
+    return this.http.get(`/api/v2/orders/export?${params.toString()}`, {
+      headers,
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Orders export failed:', error);
+        throw error;
+      })
+    );
+  }
+
+  /** Get available states for orders filtering based on user role */
+  getAvailableStatesForOrders(): Observable<{state_code: string, state: string}[]> {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+
+    return this.http.get<{state_code: string, state: string}[]>('/api/v2/orders/available-states', { headers })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Available states loading failed:', error);
+          return of([]);
+        })
+      );
+  }
+
   /** Get cached recent orders */
   getCachedRecentOrders(): OrderInfo[] | null {
     const cached = localStorage.getItem('pizzaWorld_recent_orders');
@@ -1074,7 +1162,7 @@ export class KpiService {
     if (category) {
       params = params.set('category', category);
     }
-    
+
     return this.http.get<ProductPerformancePoint[]>('/api/v2/analytics/product-performance', { headers, params })
       .pipe(
         catchError(error => {
@@ -1092,7 +1180,7 @@ export class KpiService {
     if (category) {
       params = params.set('category', category);
     }
-    
+
     return this.http.get<any[]>('/api/v2/products/top', { headers, params })
       .pipe(
         catchError(error => {
@@ -1104,21 +1192,21 @@ export class KpiService {
 
   // Enhanced store product performance with time filtering
   getStoreProductPerformanceWithFilters(
-    storeId: string, 
+    storeId: string,
     filters: Partial<ChartFilterOptions>
   ): Observable<ProductPerformancePoint[]> {
     const token = localStorage.getItem('authToken');
     const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
     let params = new HttpParams();
-    
+
     // Add time filtering parameters
     if (filters.timePeriod) params = params.set('timePeriod', filters.timePeriod);
     if (filters.year) params = params.set('year', filters.year.toString());
     if (filters.month) params = params.set('month', filters.month.toString());
     if (filters.quarter) params = params.set('quarter', filters.quarter.toString());
-    
+
     return this.http.get<ProductPerformancePoint[]>(
-      `/api/v2/stores/${storeId}/analytics/product-performance`, 
+      `/api/v2/stores/${storeId}/analytics/product-performance`,
       { headers, params }
     ).pipe(
       catchError(error => {
@@ -1136,7 +1224,7 @@ export class KpiService {
     if (category) {
       params = params.set('category', category);
     }
-    
+
     return this.http.get('/api/v2/analytics/product-performance/export', {
       headers,
       params,
@@ -1455,7 +1543,7 @@ export class KpiService {
   private buildEnhancedParams(filters?: Partial<EnhancedFilterOptions>): HttpParams {
     let params = new HttpParams();
     if (!filters) return params;
-    
+
     // Include all time filtering parameters
     if (filters.timePeriod) params = params.set('timePeriod', filters.timePeriod);
     if (filters.year) params = params.set('year', filters.year.toString());
@@ -1463,7 +1551,7 @@ export class KpiService {
     if (filters.quarter) params = params.set('quarter', filters.quarter.toString());
     if (filters.startDate) params = params.set('startDate', filters.startDate);
     if (filters.endDate) params = params.set('endDate', filters.endDate);
-    
+
     // Include enhanced comparison parameters
     if (filters.compareWithState !== undefined) params = params.set('compareWithState', filters.compareWithState.toString());
     if (filters.compareWithNational !== undefined) params = params.set('compareWithNational', filters.compareWithNational.toString());
@@ -1471,7 +1559,7 @@ export class KpiService {
     if (filters.includeTrends !== undefined) params = params.set('includeTrends', filters.includeTrends.toString());
     if (filters.includeStateComparison !== undefined) params = params.set('includeStateComparison', filters.includeStateComparison.toString());
     if (filters.includeNationalComparison !== undefined) params = params.set('includeNationalComparison', filters.includeNationalComparison.toString());
-    
+
     return params;
   }
 
@@ -1594,5 +1682,83 @@ export class KpiService {
   private getAuthHeaders(): HttpHeaders | undefined {
     const token = localStorage.getItem('authToken');
     return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
+  }
+
+  // =================================================================
+  // PRODUCT ANALYTICS - Custom Range and Compare Functionality
+  // =================================================================
+
+  /** Get product analytics for custom date range */
+  getProductCustomRangeAnalytics(sku: string, fromYear: number, fromMonth: number, toYear: number, toMonth: number): Observable<CustomRangeAnalytics> {
+    const headers = this.getAuthHeaders();
+    const params = new HttpParams()
+      .set('sku', sku)
+      .set('startYear', fromYear.toString())
+      .set('startMonth', fromMonth.toString())
+      .set('endYear', toYear.toString())
+      .set('endMonth', toMonth.toString());
+    return this.http.get<CustomRangeAnalytics>(`/api/v2/products/analytics/custom-range`, { headers, params });
+  }
+
+  /** Get product comparison across multiple time periods */
+  getProductComparePeriods(sku: string, periods: { year: number, month?: number, quarter?: number, label?: string }[]): Observable<PeriodComparison[]> {
+    const headers = this.getAuthHeaders();
+    const body = { sku, periods };
+    return this.http.post<PeriodComparison[]>(`/api/v2/products/analytics/compare`, body, { headers });
+  }
+
+  /** Get products overview with custom range filtering */
+  getProductsCustomRangeOverview(fromYear: number, fromMonth: number, toYear: number, toMonth: number): Observable<any[]> {
+    const headers = this.getAuthHeaders();
+    const params = new HttpParams()
+      .set('startYear', fromYear.toString())
+      .set('startMonth', fromMonth.toString())
+      .set('endYear', toYear.toString())
+      .set('endMonth', toMonth.toString());
+    return this.http.get<any[]>(`/api/v2/products/overview-chart/custom-range`, { headers, params });
+  }
+
+  /** Get products comparison overview across multiple time periods */
+  getProductsComparePeriodsOverview(periods: { year: number, month?: number, quarter?: number, label?: string }[]): Observable<any> {
+    const headers = this.getAuthHeaders();
+    const body = { periods };
+    return this.http.post<any>(`/api/v2/products/overview-chart/compare`, body, { headers });
+  }
+
+  /** Export products analytics data with custom range */
+  exportProductsCustomRangeAnalytics(fromYear: number, fromMonth: number, toYear: number, toMonth: number): Observable<Blob> {
+    const headers = this.getAuthHeaders();
+    const params = new HttpParams()
+      .set('startYear', fromYear.toString())
+      .set('startMonth', fromMonth.toString())
+      .set('endYear', toYear.toString())
+      .set('endMonth', toMonth.toString());
+
+    return this.http.get('/api/v2/products/analytics/custom-range/export', {
+      headers,
+      params,
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Product custom range export failed:', error);
+        return of(new Blob());
+      })
+    );
+  }
+
+  /** Export products comparison analytics data */
+  exportProductsCompareAnalytics(periods: { year: number, month?: number, quarter?: number, label?: string }[]): Observable<Blob> {
+    const headers = this.getAuthHeaders();
+    const body = { periods };
+
+    return this.http.post('/api/v2/products/analytics/compare/export', body, {
+      headers,
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Product compare export failed:', error);
+        return of(new Blob());
+      })
+    );
   }
 }

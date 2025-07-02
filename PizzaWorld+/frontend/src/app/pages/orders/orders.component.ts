@@ -1,20 +1,16 @@
-import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { NgApexchartsModule, ApexAxisChartSeries, ApexChart, ApexXAxis, ApexTitleSubtitle, ApexDataLabels, ApexTooltip, ApexPlotOptions, ApexYAxis, ApexStroke } from 'ng-apexcharts';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-import { KpiService, OrderInfo, PaginatedOrdersResponse, OrderFilters } from '../../core/kpi.service';
+import { KpiService, OrderInfo, PaginatedOrdersResponse } from '../../core/kpi.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
-export interface ChartOptions {
-  series: ApexAxisChartSeries;
-  chart: ApexChart;
-  xaxis: ApexXAxis;
-  yaxis: ApexYAxis;
-  stroke: ApexStroke;
-  dataLabels: ApexDataLabels;
-  tooltip: ApexTooltip;
+interface OrderExtended extends OrderInfo {
+  state_code?: string;
+  state?: string;
+  city?: string;
 }
 
 @Component({
@@ -24,82 +20,73 @@ export interface ChartOptions {
     CommonModule,
     RouterModule,
     FormsModule,
-    NgApexchartsModule,
     SidebarComponent
   ],
   templateUrl: './orders.component.html',
   styleUrls: ['./orders.component.scss']
 })
 export class OrdersComponent implements OnInit, OnDestroy {
-  @ViewChild('sidebar', { static: true }) sidebar!: ElementRef<HTMLElement>;
-
-  /** Filled after HTTP call; null until then */
-  ordersOpts: ChartOptions | null = null;
-
-  // Orders table data
-  orders: OrderInfo[] = [];
-  loading: boolean = false;
-  error: string | null = null;
-
-  // Pagination
-  currentPage: number = 0;
-  pageSize: number = 50;
-  totalCount: number = 0;
-  totalPages: number = 0;
-  hasNext: boolean = false;
-  hasPrevious: boolean = false;
-
-  // Sorting
-  sortBy: string = 'orderdate';
-  sortOrder: string = 'DESC';
+  // Data
+  orders: OrderExtended[] = [];
+  totalCount = 0;
+  totalPages = 0;
+  currentPage = 0;
+  pageSize = 25;
+  hasNext = false;
+  hasPrevious = false;
 
   // Filters
-  filters: OrderFilters = {};
-  filterSubject = new Subject<void>();
+  storeFilter = '';
+  stateFilter = '';
+  orderIdFilter = '';
+  searchFilter = '';
+  fromDateFilter = '';
+  toDateFilter = '';
 
-  // Page size options
-  pageSizeOptions = [25, 50, 100, 200];
+  // UI State
+  loading = false;
+  error = false;
+  exportLoading = false;
 
-  // Math property for template
+  // Available states for dropdown
+  availableStates: {state_code: string, state: string}[] = [];
+
+  // Math reference for template
   Math = Math;
 
-  // Destroy subject for cleanup
+  // Search debouncing
+  private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  constructor(private kpi: KpiService) {
-    // Debounce filter changes
-    this.filterSubject
-      .pipe(
-        takeUntil(this.destroy$),
-        debounceTime(300),
-        distinctUntilChanged()
-      )
-      .subscribe(() => {
-        this.loadOrders();
-      });
+  constructor(
+    private kpiService: KpiService,
+    private http: HttpClient
+  ) {
+    // Setup search debouncing
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadOrders();
+    });
   }
 
   ngOnInit(): void {
-    // Load chart data - use test endpoint for now
-    this.kpi.getOrdersPerDayTest().subscribe(rows => {
-      this.ordersOpts = {
-        series: [
-          {
-            name: 'Orders',
-            data: rows.map(r => [new Date(r.day).getTime(), +r.count])
-          }
-        ],
-        chart: { type: 'area', height: 320, toolbar: { show: false } },
-        xaxis: { type: 'datetime' },
-        yaxis: { title: { text: 'Orders' } },
-        stroke: { curve: 'smooth' },
-        dataLabels: { enabled: false },
-        tooltip: { shared: true }
-      };
-    });
+    this.loadAvailableStates();
+    this.loadOrders();
+  }
 
-    // Load initial orders (try cache first, then API)
-    this.loadInitialOrders();
+  loadAvailableStates(): void {
+    this.kpiService.getAvailableStatesForOrders().subscribe({
+      next: (states) => {
+        this.availableStates = states;
+      },
+      error: (error) => {
+        console.error('Error loading available states:', error);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -107,94 +94,75 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /**
-   * Load initial orders with caching strategy
-   */
-  private loadInitialOrders(): void {
-    // Try to get cached recent orders first
-    const cachedOrders = this.kpi.getCachedRecentOrders();
-    if (cachedOrders && cachedOrders.length > 0) {
-      this.orders = cachedOrders;
-      this.totalCount = cachedOrders.length;
-      this.totalPages = Math.ceil(this.totalCount / this.pageSize);
-      this.updatePaginationInfo();
-      console.log('✅ Loaded orders from cache');
-    }
-
-    // Always fetch fresh data in background using test endpoint
-    this.loadOrders();
-  }
-
-  /**
-   * Load orders with current filters and pagination
-   */
   loadOrders(): void {
     this.loading = true;
-    this.error = null;
+    this.error = false;
 
-    // Use test endpoint for now
-    this.kpi.getPaginatedOrdersTest(this.filters, this.currentPage, this.pageSize, this.sortBy, this.sortOrder)
-      .subscribe({
-        next: (response: PaginatedOrdersResponse) => {
-          this.orders = response.orders;
-          this.totalCount = response.totalCount;
-          this.totalPages = response.totalPages;
-          this.currentPage = response.currentPage;
-          this.pageSize = response.pageSize;
-          this.hasNext = response.hasNext;
-          this.hasPrevious = response.hasPrevious;
-          this.loading = false;
-          console.log(`✅ Loaded ${this.orders.length} orders (page ${this.currentPage + 1}/${this.totalPages})`);
-        },
-        error: (error) => {
-          this.loading = false;
-          this.error = 'Failed to load orders. Please try again.';
-          console.error('❌ Error loading orders:', error);
-        }
-      });
+    this.kpiService.getOrdersV2(
+      this.currentPage,
+      this.pageSize,
+      this.storeFilter || undefined,
+      this.stateFilter || undefined,
+      this.orderIdFilter || undefined,
+      this.searchFilter || undefined,
+      this.fromDateFilter || undefined,
+      this.toDateFilter || undefined
+    ).subscribe({
+      next: (response: PaginatedOrdersResponse) => {
+        this.orders = response.orders as OrderExtended[];
+        this.totalCount = response.totalCount;
+        this.totalPages = response.totalPages;
+        this.currentPage = response.currentPage;
+        this.pageSize = response.pageSize;
+        this.hasNext = response.hasNext;
+        this.hasPrevious = response.hasPrevious;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading orders:', error);
+        this.error = true;
+        this.loading = false;
+      }
+    });
   }
 
-  /**
-   * Update pagination info
-   */
-  private updatePaginationInfo(): void {
-    this.totalPages = Math.ceil(this.totalCount / this.pageSize);
-    this.hasNext = this.currentPage < this.totalPages - 1;
-    this.hasPrevious = this.currentPage > 0;
-  }
-
-  /**
-   * Handle filter changes
-   */
-  onFilterChange(): void {
-    this.currentPage = 0; // Reset to first page
-    this.filterSubject.next();
-  }
-
-  /**
-   * Handle sorting changes
-   */
-  onSortChange(column: string): void {
-    if (this.sortBy === column) {
-      this.sortOrder = this.sortOrder === 'ASC' ? 'DESC' : 'ASC';
-    } else {
-      this.sortBy = column;
-      this.sortOrder = 'DESC';
-    }
+  // Filter methods
+  onStoreFilterChange(): void {
+    this.currentPage = 0;
     this.loadOrders();
   }
 
-  /**
-   * Handle page size changes
-   */
-  onPageSizeChange(): void {
-    this.currentPage = 0; // Reset to first page
+  onStateFilterChange(): void {
+    this.currentPage = 0;
     this.loadOrders();
   }
 
-  /**
-   * Navigate to specific page
-   */
+  onOrderIdFilterChange(): void {
+    this.currentPage = 0;
+    this.loadOrders();
+  }
+
+  onSearchFilterChange(): void {
+    this.searchSubject.next(this.searchFilter);
+  }
+
+  onDateFilterChange(): void {
+    this.currentPage = 0;
+    this.loadOrders();
+  }
+
+  clearFilters(): void {
+    this.storeFilter = '';
+    this.stateFilter = '';
+    this.orderIdFilter = '';
+    this.searchFilter = '';
+    this.fromDateFilter = '';
+    this.toDateFilter = '';
+    this.currentPage = 0;
+    this.loadOrders();
+  }
+
+  // Pagination methods
   goToPage(page: number): void {
     if (page >= 0 && page < this.totalPages) {
       this.currentPage = page;
@@ -202,55 +170,83 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Clear all filters
-   */
-  clearFilters(): void {
-    this.filters = {};
-    this.currentPage = 0;
-    this.loadOrders();
+  nextPage(): void {
+    if (this.hasNext) {
+      this.currentPage++;
+      this.loadOrders();
+    }
   }
 
-  /**
-   * Format date for display
-   */
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString();
+  previousPage(): void {
+    if (this.hasPrevious) {
+      this.currentPage--;
+      this.loadOrders();
+    }
   }
 
-  /**
-   * Format currency for display
-   */
-  formatCurrency(amount: number): string {
+  // Export functionality
+  exportOrders(): void {
+    this.exportLoading = true;
+
+    this.kpiService.exportOrdersV2(
+      this.storeFilter || undefined,
+      this.stateFilter || undefined,
+      this.orderIdFilter || undefined,
+      this.searchFilter || undefined,
+      this.fromDateFilter || undefined,
+      this.toDateFilter || undefined
+    ).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `pizza-world-orders-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.exportLoading = false;
+      },
+      error: (error) => {
+        console.error('Error exporting orders:', error);
+        this.exportLoading = false;
+      }
+    });
+  }
+
+  // Utility methods
+  formatCurrency(value: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(value);
   }
 
-  /**
-   * Get sort icon for column
-   */
-  getSortIcon(column: string): string {
-    if (this.sortBy !== column) return '↕️';
-    return this.sortOrder === 'ASC' ? '↑' : '↓';
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
-  /**
-   * Get pagination range for display
-   */
-  getPaginationRange(): number[] {
-    const range = [];
-    const start = Math.max(0, this.currentPage - 2);
-    const end = Math.min(this.totalPages - 1, this.currentPage + 2);
-    
-    for (let i = start; i <= end; i++) {
-      range.push(i);
+  getFilterLabel(): string {
+    const filters = [];
+    if (this.storeFilter) filters.push(`Store: ${this.storeFilter}`);
+    if (this.stateFilter) filters.push(`State: ${this.stateFilter}`);
+    if (this.orderIdFilter) filters.push(`Order: ${this.orderIdFilter}`);
+    if (this.searchFilter) filters.push(`Search: ${this.searchFilter}`);
+    if (this.fromDateFilter || this.toDateFilter) {
+      const dateRange = `${this.fromDateFilter || 'Start'} - ${this.toDateFilter || 'End'}`;
+      filters.push(`Date: ${dateRange}`);
     }
-    return range;
+    return filters.length > 0 ? filters.join(' • ') : 'All Orders';
   }
 
-  toggleSidebar(): void {
-    this.sidebar.nativeElement.classList.toggle('collapsed');
+  getPaginationArray(): number[] {
+    const maxVisible = 5;
+    const start = Math.max(0, this.currentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(this.totalPages, start + maxVisible);
+    return Array.from({ length: end - start }, (_, i) => start + i);
   }
 }

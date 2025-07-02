@@ -1,6 +1,7 @@
 package pizzaworld.controller;
 
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -996,12 +997,114 @@ public class OptimizedPizzaController {
         CsvExportUtil.writeCsv(response, headers, rows, String.format("product-trend-%s-%s.csv", sku, metric));
     }
 
-    @GetMapping("/products/list")
-    public ResponseEntity<List<Map<String, Object>>> getProductsList(
+    // =================================================================
+    // NEW PRODUCTS PAGE API - Following Specification
+    // =================================================================
+
+    @GetMapping("/products")
+    public ResponseEntity<List<Map<String, Object>>> getProductsCatalogue(
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<Map<String, Object>> products = pizzaService.getProductsCatalogueWithLaunchDate(search);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/products/performance") 
+    public ResponseEntity<List<Map<String, Object>>> getProductsPerformance(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getProductsList(user));
+        return ResponseEntity.ok(pizzaService.getProductsPerformance(year, month, category, search));
+    }
+
+    @GetMapping("/products/kpis")
+    public ResponseEntity<Map<String, Object>> getProductsKpis(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String category,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getProductsKpis(year, category));
+    }
+
+    @GetMapping("/products/export")
+    public void exportProductsCatalogue(
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        
+        try {
+            List<Map<String, Object>> products = pizzaService.getProductsCatalogueWithLaunchDate(search);
+            
+            List<String> headers = List.of("SKU", "Product Name", "Size", "Price", "Category", "Launch Date");
+            List<List<String>> rows = products.stream()
+                .map(product -> List.of(
+                    String.valueOf(product.get("sku")),
+                    String.valueOf(product.get("product_name")),
+                    String.valueOf(product.get("size")),
+                    String.valueOf(product.get("price")),
+                    String.valueOf(product.get("category")),
+                    String.valueOf(product.get("launch_date"))
+                ))
+                .toList();
+            
+            String filename = "products-catalogue-" + (search != null ? "filtered-" : "") + new Date().toInstant().toString().split("T")[0] + ".csv";
+            CsvExportUtil.writeCsv(response, headers, rows, filename);
+        } catch (Exception e) {
+            logger.error("Error exporting products catalogue", e);
+            List<String> headers = List.of("Error");
+            List<List<String>> rows = List.of(List.of("Export failed"));
+            CsvExportUtil.writeCsv(response, headers, rows, "error.csv");
+        }
+    }
+
+    @GetMapping("/products/performance/export")
+    public void exportProductsPerformance(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        
+        try {
+            List<Map<String, Object>> performance = pizzaService.getProductsPerformance(year, month, category, search);
+            
+            List<String> headers = List.of("SKU", "Product Name", "Size", "Price", "Category", "Launch Date", "Total Revenue", "Orders", "Units Sold");
+            List<List<String>> rows = performance.stream()
+                .map(product -> List.of(
+                    String.valueOf(product.get("sku")),
+                    String.valueOf(product.get("product_name")),
+                    String.valueOf(product.get("size")),
+                    String.valueOf(product.get("price")),
+                    String.valueOf(product.get("category")),
+                    String.valueOf(product.get("launch_date")),
+                    String.valueOf(product.get("total_revenue")),
+                    String.valueOf(product.get("amount_ordered")),
+                    String.valueOf(product.get("units_sold"))
+                ))
+                .toList();
+            
+            String filterSuffix = (year != null ? "-year" + year : "") + 
+                                (month != null ? "-month" + month : "") + 
+                                (category != null ? "-" + category.toLowerCase() : "") +
+                                (search != null ? "-filtered" : "");
+            String filename = "products-performance" + filterSuffix + "-" + new Date().toInstant().toString().split("T")[0] + ".csv";
+            CsvExportUtil.writeCsv(response, headers, rows, filename);
+        } catch (Exception e) {
+            logger.error("Error exporting products performance", e);
+            List<String> headers = List.of("Error");
+            List<List<String>> rows = List.of(List.of("Export failed"));
+            CsvExportUtil.writeCsv(response, headers, rows, "error.csv");
+        }
     }
 
     @GetMapping("/products/overview-chart")
@@ -1013,6 +1116,174 @@ public class OptimizedPizzaController {
         
         User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getProductsOverviewChart(user, timePeriod, year, month));
+    }
+
+    @GetMapping("/products/overview-chart/custom-range")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getProductsCustomRangeOverview(
+            @RequestParam Integer startYear,
+            @RequestParam Integer startMonth,
+            @RequestParam Integer endYear,
+            @RequestParam Integer endMonth,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        
+        try {
+            List<Map<String, Object>> result = pizzaService.getProductsCustomRangeOverview(user, startYear, startMonth, endYear, endMonth);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error getting products custom range overview for user: " + user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/products/overview-chart/compare")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getProductsComparePeriodsOverview(
+            @RequestBody Map<String, Object> requestBody,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> periods = (List<Map<String, Object>>) requestBody.get("periods");
+        
+        if (periods == null || periods.size() < 2 || periods.size() > 4) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        try {
+            Map<String, Object> result = pizzaService.getProductsComparePeriodsOverview(user, periods);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error comparing products periods for user: " + user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/products/analytics/custom-range")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getProductCustomRangeAnalytics(
+            @RequestParam String sku,
+            @RequestParam Integer startYear,
+            @RequestParam Integer startMonth,
+            @RequestParam Integer endYear,
+            @RequestParam Integer endMonth,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        
+        try {
+            Map<String, Object> result = pizzaService.getProductCustomRangeAnalytics(user, sku, startYear, startMonth, endYear, endMonth);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error getting product custom range analytics for sku: " + sku, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/products/analytics/compare")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getProductComparePeriods(
+            @RequestBody Map<String, Object> requestBody,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        
+        String sku = (String) requestBody.get("sku");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> periods = (List<Map<String, Object>>) requestBody.get("periods");
+        
+        if (sku == null || periods == null || periods.size() < 2 || periods.size() > 4) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        try {
+            List<Map<String, Object>> result = pizzaService.getProductComparePeriods(user, sku, periods);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error comparing product periods for sku: " + sku, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/products/analytics/custom-range/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportProductCustomRangeAnalytics(
+            @RequestParam String sku,
+            @RequestParam Integer startYear,
+            @RequestParam Integer startMonth,
+            @RequestParam Integer endYear,
+            @RequestParam Integer endMonth,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        
+        try {
+            Map<String, Object> analytics = pizzaService.getProductCustomRangeAnalytics(user, sku, startYear, startMonth, endYear, endMonth);
+            
+            // Convert analytics to CSV-friendly format
+            List<String> headers = List.of("SKU", "Period", "Revenue", "Orders", "Units Sold", "Unique Customers", "Avg Order Value");
+            List<List<String>> rows = List.of(List.of(
+                sku,
+                startYear + "-" + startMonth + " to " + endYear + "-" + endMonth,
+                String.valueOf(analytics.get("totalRevenue")),
+                String.valueOf(analytics.get("totalOrders")),
+                String.valueOf(analytics.get("totalUnits")),
+                String.valueOf(analytics.get("totalCustomers")),
+                String.valueOf(analytics.get("avgOrderValue"))
+            ));
+            
+            String filename = "product-analytics-" + sku + "-" + startYear + "-" + startMonth + "-to-" + endYear + "-" + endMonth + ".csv";
+            CsvExportUtil.writeCsv(response, headers, rows, filename);
+        } catch (Exception e) {
+            logger.error("Error exporting product custom range analytics for sku: " + sku, e);
+            List<String> headers = List.of("Error");
+            List<List<String>> rows = List.of(List.of("Export failed"));
+            CsvExportUtil.writeCsv(response, headers, rows, "error.csv");
+        }
+    }
+
+    @PostMapping("/products/analytics/compare/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportProductCompareAnalytics(
+            @RequestBody Map<String, Object> requestBody,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        
+        String sku = (String) requestBody.get("sku");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> periods = (List<Map<String, Object>>) requestBody.get("periods");
+        
+        try {
+            List<Map<String, Object>> compareData = pizzaService.getProductComparePeriods(user, sku, periods);
+            
+            // Convert comparison data to CSV-friendly format
+            List<String> headers = List.of("SKU", "Period", "Revenue", "Orders", "Units Sold", "Unique Customers", "Avg Order Value");
+            List<List<String>> rows = compareData.stream()
+                .map(data -> List.of(
+                    sku,
+                    String.valueOf(data.get("periodLabel")),
+                    String.valueOf(data.get("revenue")),
+                    String.valueOf(data.get("orders")),
+                    String.valueOf(data.get("units")),
+                    String.valueOf(data.get("customers")),
+                    String.valueOf(data.get("avgOrderValue"))
+                ))
+                .toList();
+            
+            String filename = "product-comparison-" + sku + "-" + periods.size() + "periods.csv";
+            CsvExportUtil.writeCsv(response, headers, rows, filename);
+        } catch (Exception e) {
+            logger.error("Error exporting product compare analytics for sku: " + sku, e);
+            List<String> headers = List.of("Error");
+            List<List<String>> rows = List.of(List.of("Export failed"));
+            CsvExportUtil.writeCsv(response, headers, rows, "error.csv");
+        }
     }
 
     private Map<String, Object> buildProductFilters(String sku, String timePeriod, Integer year, Integer month,
@@ -1029,5 +1300,87 @@ public class OptimizedPizzaController {
         filters.put("endMonth", endMonth);
         filters.put("sinceLaunch", sinceLaunch);
         return filters;
+    }
+
+    // =================================================================
+    // ORDERS ANALYTICS - Dashboard with Filtering and Pagination
+    // =================================================================
+
+    @GetMapping("/orders")
+    public ResponseEntity<Map<String, Object>> getOrdersWithFiltersAndPagination(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int limit,
+            @RequestParam(required = false) String store,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String orderid,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        User user = userDetails.getUser();
+        
+        Map<String, Object> result = pizzaService.getOrdersWithFiltersAndPagination(
+            page, limit, store, state, orderid, search, from, to, user);
+        
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/orders/export")
+    public void exportOrdersWithFilters(
+            @RequestParam(required = false) String store,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String orderid,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        
+        User user = userDetails.getUser();
+        
+        // Get all orders without pagination for export
+        Map<String, Object> result = pizzaService.getOrdersWithFiltersAndPagination(
+            0, 10000, store, state, orderid, search, from, to, user);
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> orders = (List<Map<String, Object>>) result.get("orders");
+        
+        if (orders.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "orders.csv");
+            return;
+        }
+
+        List<String> headers = List.of(
+            "Order ID", "Customer ID", "Order Date", "Store ID", "State", "City", "Items", "Total"
+        );
+        
+        List<List<String>> rows = orders.stream()
+                .map(order -> List.of(
+                    String.valueOf(order.get("orderid")),
+                    String.valueOf(order.get("customerid")),
+                    String.valueOf(order.get("orderdate")),
+                    String.valueOf(order.get("storeid")),
+                    String.valueOf(order.get("state_code")),
+                    String.valueOf(order.get("city")),
+                    String.valueOf(order.get("nitems")),
+                    String.valueOf(order.get("order_value"))
+                ))
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "pizza-world-orders.csv");
+    }
+
+    @GetMapping("/orders/available-states")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableStatesForOrders(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            User user = userDetails.getUser();
+            List<Map<String, Object>> states = pizzaService.getAvailableStatesForOrders(user);
+            return ResponseEntity.ok(states);
+        } catch (Exception e) {
+            logger.error("Error fetching available states for orders", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

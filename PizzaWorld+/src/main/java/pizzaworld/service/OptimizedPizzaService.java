@@ -2330,42 +2330,638 @@ public class OptimizedPizzaService {
 
     // Products overview chart - use products_info_all materialized view
     public List<Map<String, Object>> getProductsOverviewChart(User user, String timePeriod, Integer year, Integer month) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        
+        // Add time period filtering based on materialized view structure
+        if ("all-time".equals(timePeriod)) {
+            // For all-time, aggregate all data across all periods
+            sql.append("""
+                SELECT 
+                    sku, 
+                    product_name, 
+                    category, 
+                    size,
+                    SUM(units_sold) as total_units,
+                    SUM(revenue) as total_revenue,
+                    SUM(orders) as total_orders,
+                    SUM(unique_customers) as unique_customers
+                FROM products_info_all
+                WHERE year IS NOT NULL AND month IS NOT NULL
+                GROUP BY sku, product_name, category, size
+                """);
+        } else if ("year".equals(timePeriod) && year != null) {
+            // For year, aggregate all months in that year
+            sql.append("""
+                SELECT 
+                    sku, 
+                    product_name, 
+                    category, 
+                    size,
+                    SUM(units_sold) as total_units,
+                    SUM(revenue) as total_revenue,
+                    SUM(orders) as total_orders,
+                    SUM(unique_customers) as unique_customers
+                FROM products_info_all
+                WHERE year = ? AND month IS NOT NULL
+                GROUP BY sku, product_name, category, size
+                """);
+            params.add(year);
+        } else if ("month".equals(timePeriod) && year != null && month != null) {
+            // For month, get the specific month data
+            sql.append("""
+                SELECT 
+                    sku, 
+                    product_name, 
+                    category, 
+                    size,
+                    units_sold as total_units,
+                    revenue as total_revenue,
+                    orders as total_orders,
+                    unique_customers
+                FROM products_info_all
+                WHERE year = ? AND month = ?
+                """);
+            params.add(year);
+            params.add(month);
+        } else {
+            // Default fallback - return all time data
+            sql.append("""
+                SELECT 
+                    sku, 
+                    product_name, 
+                    category, 
+                    size,
+                    SUM(units_sold) as total_units,
+                    SUM(revenue) as total_revenue,
+                    SUM(orders) as total_orders,
+                    SUM(unique_customers) as unique_customers
+                FROM products_info_all
+                WHERE year IS NOT NULL AND month IS NOT NULL
+                GROUP BY sku, product_name, category, size
+                """);
+        }
+        
+        sql.append(" ORDER BY total_revenue DESC LIMIT 20");
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    // Products custom range overview
+    public List<Map<String, Object>> getProductsCustomRangeOverview(User user, Integer startYear, Integer startMonth, Integer endYear, Integer endMonth) {
         StringBuilder sql = new StringBuilder("""
             SELECT 
-                sku, 
-                product_name, 
-                category, 
-                size,
-                units_sold as total_units,
-                revenue as total_revenue,
-                orders as total_orders,
-                unique_customers
-            FROM products_info_all
+                pia.sku, 
+                pia.product_name, 
+                pia.category, 
+                pia.size,
+                SUM(pia.units_sold) as total_units,
+                SUM(pia.revenue) as total_revenue,
+                SUM(pia.orders) as total_orders,
+                SUM(pia.unique_customers) as total_customers
+            FROM products_info_all pia
+            WHERE pia.year IS NOT NULL AND pia.month IS NOT NULL
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Add date range filtering
+        sql.append(" AND ((pia.year > ?) OR (pia.year = ? AND pia.month >= ?))");
+        params.add(startYear);
+        params.add(startYear);
+        params.add(startMonth);
+        
+        sql.append(" AND ((pia.year < ?) OR (pia.year = ? AND pia.month <= ?))");
+        params.add(endYear);
+        params.add(endYear);
+        params.add(endMonth);
+        
+        sql.append(" GROUP BY pia.sku, pia.product_name, pia.category, pia.size");
+        sql.append(" ORDER BY total_revenue DESC LIMIT 20");
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    // Products compare periods overview
+    public Map<String, Object> getProductsComparePeriodsOverview(User user, List<Map<String, Object>> periods) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> comparisons = new ArrayList<>();
+        
+        for (Map<String, Object> period : periods) {
+            Integer year = period.get("year") != null ? ((Number) period.get("year")).intValue() : null;
+            Integer month = period.get("month") != null ? ((Number) period.get("month")).intValue() : null;
+            String label = (String) period.getOrDefault("label", "");
+            
+            StringBuilder sql = new StringBuilder("""
+                SELECT 
+                    sku, 
+                    product_name, 
+                    category, 
+                    size,
+                    units_sold as total_units,
+                    revenue as total_revenue,
+                    orders as total_orders,
+                    unique_customers
+                FROM products_info_all
+                WHERE 1=1
+                """);
+            
+            List<Object> params = new ArrayList<>();
+            
+            if (year != null && month != null) {
+                sql.append(" AND year = ? AND month = ?");
+                params.add(year);
+                params.add(month);
+            } else if (year != null) {
+                sql.append(" AND year = ? AND month IS NULL");
+                params.add(year);
+            } else {
+                sql.append(" AND year IS NULL AND month IS NULL");
+            }
+            
+            sql.append(" ORDER BY total_revenue DESC LIMIT 10");
+            
+            List<Map<String, Object>> periodData = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            
+            Map<String, Object> comparison = new HashMap<>();
+            comparison.put("period", Map.of("year", year, "month", month, "label", label));
+            comparison.put("products", periodData);
+            comparison.put("summary", calculatePeriodSummary(periodData));
+            
+            comparisons.add(comparison);
+        }
+        
+        result.put("comparisons", comparisons);
+        result.put("compareType", "periods");
+        result.put("totalPeriods", periods.size());
+        
+        return result;
+    }
+
+    // Product custom range analytics (individual product)
+    public Map<String, Object> getProductCustomRangeAnalytics(User user, String sku, Integer startYear, Integer startMonth, Integer endYear, Integer endMonth) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                SUM(pia.units_sold) as total_units,
+                SUM(pia.revenue) as total_revenue,
+                SUM(pia.orders) as total_orders,
+                SUM(pia.unique_customers) as total_customers,
+                AVG(pia.revenue / NULLIF(pia.orders, 0)) as avg_order_value
+            FROM products_info_all pia
+            WHERE pia.sku = ? AND pia.year IS NOT NULL AND pia.month IS NOT NULL
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(sku);
+        
+        // Add date range filtering
+        sql.append(" AND ((pia.year > ?) OR (pia.year = ? AND pia.month >= ?))");
+        params.add(startYear);
+        params.add(startYear);
+        params.add(startMonth);
+        
+        sql.append(" AND ((pia.year < ?) OR (pia.year = ? AND pia.month <= ?))");
+        params.add(endYear);
+        params.add(endYear);
+        params.add(endMonth);
+        
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        
+        if (results.isEmpty()) {
+            return Map.of(
+                "totalRevenue", 0,
+                "totalOrders", 0,
+                "totalUnits", 0,
+                "totalCustomers", 0,
+                "avgOrderValue", 0.0
+            );
+        }
+        
+        Map<String, Object> summary = results.get(0);
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalRevenue", summary.get("total_revenue"));
+        result.put("totalOrders", summary.get("total_orders"));
+        result.put("totalUnits", summary.get("total_units"));
+        result.put("totalCustomers", summary.get("total_customers"));
+        result.put("avgOrderValue", summary.get("avg_order_value"));
+        result.put("period", Map.of(
+            "startYear", startYear,
+            "startMonth", startMonth,
+            "endYear", endYear,
+            "endMonth", endMonth,
+            "label", startYear + "-" + startMonth + " to " + endYear + "-" + endMonth
+        ));
+        
+        return result;
+    }
+
+    // Product compare periods (individual product)
+    public List<Map<String, Object>> getProductComparePeriods(User user, String sku, List<Map<String, Object>> periods) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (Map<String, Object> period : periods) {
+            Integer year = period.get("year") != null ? ((Number) period.get("year")).intValue() : null;
+            Integer month = period.get("month") != null ? ((Number) period.get("month")).intValue() : null;
+            String label = (String) period.getOrDefault("label", "");
+            
+            StringBuilder sql = new StringBuilder("""
+                SELECT 
+                    units_sold as total_units,
+                    revenue as total_revenue,
+                    orders as total_orders,
+                    unique_customers as total_customers,
+                    (revenue / NULLIF(orders, 0)) as avg_order_value
+                FROM products_info_all
+                WHERE sku = ?
+                """);
+            
+            List<Object> params = new ArrayList<>();
+            params.add(sku);
+            
+            if (year != null && month != null) {
+                sql.append(" AND year = ? AND month = ?");
+                params.add(year);
+                params.add(month);
+            } else if (year != null) {
+                sql.append(" AND year = ? AND month IS NULL");
+                params.add(year);
+            } else {
+                sql.append(" AND year IS NULL AND month IS NULL");
+            }
+            
+            List<Map<String, Object>> periodData = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+            
+            Map<String, Object> periodResult = new HashMap<>();
+            periodResult.put("periodLabel", label);
+            periodResult.put("year", year);
+            periodResult.put("month", month);
+            
+            if (!periodData.isEmpty()) {
+                Map<String, Object> data = periodData.get(0);
+                periodResult.put("revenue", data.get("total_revenue"));
+                periodResult.put("orders", data.get("total_orders"));
+                periodResult.put("units", data.get("total_units"));
+                periodResult.put("customers", data.get("total_customers"));
+                periodResult.put("avgOrderValue", data.get("avg_order_value"));
+            } else {
+                periodResult.put("revenue", 0);
+                periodResult.put("orders", 0);
+                periodResult.put("units", 0);
+                periodResult.put("customers", 0);
+                periodResult.put("avgOrderValue", 0.0);
+            }
+            
+            result.add(periodResult);
+        }
+        
+        return result;
+    }
+
+    // Helper method to calculate period summary
+    private Map<String, Object> calculatePeriodSummary(List<Map<String, Object>> periodData) {
+        if (periodData.isEmpty()) {
+            return Map.of(
+                "totalRevenue", 0,
+                "totalOrders", 0,
+                "totalUnits", 0,
+                "totalProducts", 0
+            );
+        }
+        
+        double totalRevenue = periodData.stream()
+            .mapToDouble(p -> ((Number) p.getOrDefault("total_revenue", 0)).doubleValue())
+            .sum();
+        
+        int totalOrders = periodData.stream()
+            .mapToInt(p -> ((Number) p.getOrDefault("total_orders", 0)).intValue())
+            .sum();
+        
+        int totalUnits = periodData.stream()
+            .mapToInt(p -> ((Number) p.getOrDefault("total_units", 0)).intValue())
+            .sum();
+        
+        return Map.of(
+            "totalRevenue", totalRevenue,
+            "totalOrders", totalOrders,
+            "totalUnits", totalUnits,
+            "totalProducts", periodData.size()
+        );
+    }
+
+    // =================================================================
+    // NEW PRODUCTS PAGE METHODS - Following Specification 
+    // =================================================================
+
+    /**
+     * Get catalogue products (from products table)
+     * SQL from spec: SELECT sku, name AS product_name, size, price, category
+     *                FROM public.products  
+     *                WHERE (:search IS NULL OR sku ILIKE '%'||:search||'%' OR name ILIKE '%'||:search||'%')
+     *                ORDER BY category, name
+     *                LIMIT :limit OFFSET (:page - 1) * :limit;
+     */
+    public List<Map<String, Object>> getProductsCatalogue(String search) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT sku,
+                   name AS product_name,
+                   size,
+                   price,
+                   category
+            FROM public.products
+            WHERE (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
+                   OR name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
+            ORDER BY category, name
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(search);
+        params.add(search);
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    /**
+     * Get catalogue products with launch date (for export and enhanced display)
+     */
+    public List<Map<String, Object>> getProductsCatalogueWithLaunchDate(String search) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT sku,
+                   name AS product_name,
+                   size,
+                   price,
+                   category,
+                   launch_date
+            FROM public.products
+            WHERE (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
+                   OR name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
+            ORDER BY category, name
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(search);
+        params.add(search);
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    /**
+     * Get products performance (from product_performance_monthly MV)
+     * SQL from spec: SELECT sku, product_name, size, price, category, launch_date, total_revenue, amount_ordered, units_sold
+     *                FROM public.product_performance_monthly
+     *                WHERE ($1 IS NULL OR year = $1) AND ($2 IS NULL OR month = $2) 
+     *                AND ($3 IS NULL OR category ILIKE $3) AND ($4 IS NULL OR sku ILIKE '%'||$4||'%' OR product_name ILIKE '%'||$4||'%')
+     *                ORDER BY total_revenue DESC
+     *                LIMIT $5 OFFSET ($6 - 1) * $5;
+     */
+    public List<Map<String, Object>> getProductsPerformance(Integer year, Integer month, String category, String search) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT sku,
+                   MAX(product_name) as product_name,
+                   MAX(size) as size,
+                   MAX(price) as price,
+                   MAX(category) as category,
+                   MAX(launch_date) as launch_date,
+                   SUM(total_revenue) as total_revenue,
+                   SUM(amount_ordered) as amount_ordered,
+                   SUM(units_sold) as units_sold
+            FROM public.product_performance_monthly
+            WHERE year = COALESCE(?, year)
+              AND month = COALESCE(?, month)
+              AND category ILIKE COALESCE(?, category)
+              AND (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
+                   OR product_name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
+            GROUP BY sku
+            ORDER BY SUM(total_revenue) DESC
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        params.add(year);
+        params.add(month);
+        params.add(category);
+        params.add(search);
+        params.add(search);
+        
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    /**
+     * Get aggregate KPIs for hero tiles
+     */
+    public Map<String, Object> getProductsKpis(Integer year, String category) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+
+        sql.append("""
+            SELECT 
+                COUNT(DISTINCT p.sku) as total_products,
+                SUM(perf.total_revenue) as total_revenue,
+                SUM(perf.amount_ordered) as total_orders,
+                SUM(perf.units_sold) as total_units,
+                AVG(p.price) as avg_price
+            FROM products p
+            LEFT JOIN (
+                SELECT 
+                    sku,
+                    SUM(oi.quantity * p.price) as total_revenue,
+                    COUNT(DISTINCT oi.orderid) as amount_ordered,
+                    SUM(oi.quantity) as units_sold
+                FROM order_items oi
+                JOIN orders o ON oi.orderid = o.orderid
+                JOIN products p ON oi.sku = p.sku
+                WHERE 1=1
+            """);
+
+        int paramIndex = 1;
+        if (year != null) {
+            sql.append(" AND EXTRACT(YEAR FROM o.orderdate) = ?");
+            params.add(year);
+            paramIndex++;
+        }
+        
+        if (category != null) {
+            sql.append(" AND p.category = ?");
+            params.add(category);
+            paramIndex++;
+        }
+
+        sql.append("""
+                GROUP BY sku
+            ) perf ON p.sku = perf.sku
+            """);
+
+        if (category != null) {
+            sql.append(" WHERE p.category = ?");
+            params.add(category);
+        }
+
+        Map<String, Object> result = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
+        
+        return Map.of(
+            "totalProducts", ((Number) result.getOrDefault("total_products", 0)).intValue(),
+            "totalRevenue", ((Number) result.getOrDefault("total_revenue", 0)).doubleValue(),
+            "totalOrders", ((Number) result.getOrDefault("total_orders", 0)).intValue(),
+            "totalUnits", ((Number) result.getOrDefault("total_units", 0)).intValue(),
+            "avgPrice", ((Number) result.getOrDefault("avg_price", 0)).doubleValue()
+        );
+    }
+
+    // =================================================================
+    // ORDERS ANALYTICS - Dashboard with Filtering and Pagination
+    // =================================================================
+
+    public Map<String, Object> getOrdersWithFiltersAndPagination(
+            int page, int limit, String store, String state, String orderid, 
+            String search, String from, String to, User user) {
+        
+        // Build parameterized query using the materialized view
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                orderid,
+                customerid,
+                orderdate,
+                storeid,
+                state_code,
+                state,
+                nitems,
+                order_value,
+                city
+            FROM public.dashboard_recent_orders
             WHERE 1=1
             """);
         
         List<Object> params = new ArrayList<>();
         
-        // Add time period filtering based on materialized view structure
-        if ("all-time".equals(timePeriod)) {
-            // For all-time, get the aggregated row where both year and month are NULL
-            sql.append(" AND year IS NULL AND month IS NULL");
-        } else if ("year".equals(timePeriod) && year != null) {
-            // For year, get the row where year matches and month is NULL
-            sql.append(" AND year = ? AND month IS NULL");
-            params.add(year);
-        } else if ("month".equals(timePeriod) && year != null && month != null) {
-            // For month, get the row where both year and month match
-            sql.append(" AND year = ? AND month = ?");
-            params.add(year);
-            params.add(month);
+        // Apply role-based filters
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                // HQ can see everything - apply optional filters
+                if (store != null && !store.trim().isEmpty()) {
+                    sql.append(" AND storeid = ?");
+                    params.add(store);
+                }
+                if (state != null && !state.trim().isEmpty()) {
+                    sql.append(" AND state_code = ?");
+                    params.add(state);
+                }
+                break;
+                
+            case "STATE_MANAGER":
+                // State manager sees only their state
+                sql.append(" AND state_code = ?");
+                params.add(user.getStateAbbr());
+                
+                if (store != null && !store.trim().isEmpty()) {
+                    sql.append(" AND storeid = ?");
+                    params.add(store);
+                }
+                break;
+                
+            case "STORE_MANAGER":
+                // Store manager sees only their store
+                sql.append(" AND storeid = ?");
+                params.add(user.getStoreId());
+                break;
+                
+            default:
+                throw new AccessDeniedException("Unknown role: " + user.getRole());
         }
         
-        // Note: Role-based filtering not implemented in MV yet
-        // For now, all users see the same data
+        // Apply additional filters
+        if (orderid != null && !orderid.trim().isEmpty()) {
+            try {
+                Integer orderIdInt = Integer.parseInt(orderid);
+                sql.append(" AND orderid = ?");
+                params.add(orderIdInt);
+            } catch (NumberFormatException e) {
+                // Ignore invalid order ID
+            }
+        }
         
-        sql.append(" ORDER BY total_revenue DESC LIMIT 20");
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append(" AND (CAST(customerid AS TEXT) LIKE ? OR CAST(orderid AS TEXT) LIKE ? OR city ILIKE ?)");
+            String searchPattern = "%" + search.trim() + "%";
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
         
-        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        if (from != null && !from.trim().isEmpty()) {
+            sql.append(" AND orderdate >= CAST(? AS TIMESTAMP)");
+            params.add(from);
+        }
+        
+        if (to != null && !to.trim().isEmpty()) {
+            sql.append(" AND orderdate < CAST(? AS TIMESTAMP) + INTERVAL '1 day'");
+            params.add(to);
+        }
+        
+        // Get total count before pagination
+        String countSql = "SELECT COUNT(*) " + sql.toString().substring(sql.indexOf("FROM"));
+        Long totalCount = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
+        
+        // Add ordering and pagination
+        sql.append(" ORDER BY orderdate DESC, orderid DESC");
+        sql.append(" LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(page * limit);
+        
+        // Execute query
+        List<Map<String, Object>> orders = jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        
+        // Calculate pagination metadata
+        int totalPages = (int) Math.ceil((double) totalCount / limit);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("orders", orders);
+        result.put("totalCount", totalCount);
+        result.put("totalPages", totalPages);
+        result.put("currentPage", page);
+        result.put("pageSize", limit);
+        result.put("hasNext", page < totalPages - 1);
+        result.put("hasPrevious", page > 0);
+        
+        return result;
+    }
+
+    /**
+     * Get available states for orders filtering based on user role
+     */
+    public List<Map<String, Object>> getAvailableStatesForOrders(User user) {
+        // Define the specific states to display
+        List<Map<String, Object>> allStates = List.of(
+            Map.of("state_code", "AZ", "state", "Arizona"),
+            Map.of("state_code", "CA", "state", "California"),
+            Map.of("state_code", "NV", "state", "Nevada"),
+            Map.of("state_code", "UT", "state", "Utah")
+        );
+        
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                // HQ can see all states
+                return allStates;
+                
+            case "STATE_MANAGER":
+                // State manager sees only their state (if it's one of the available ones)
+                return allStates.stream()
+                    .filter(state -> user.getStateAbbr().equals(state.get("state_code")))
+                    .toList();
+                
+            case "STORE_MANAGER":
+                // Store manager sees only their store's state (if it's one of the available ones)
+                // First, get the store's state from the database
+                String sql = "SELECT state_abbr FROM stores WHERE storeid = ?";
+                try {
+                    String storeState = jdbcTemplate.queryForObject(sql, String.class, user.getStoreId());
+                    return allStates.stream()
+                        .filter(state -> storeState != null && storeState.equals(state.get("state_code")))
+                        .toList();
+                } catch (Exception e) {
+                    // If store not found or error, return empty list
+                    return new ArrayList<>();
+                }
+                
+            default:
+                throw new AccessDeniedException("Unknown role: " + user.getRole());
+        }
     }
 }

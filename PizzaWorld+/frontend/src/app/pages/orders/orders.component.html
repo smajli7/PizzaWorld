@@ -1,242 +1,283 @@
 <app-sidebar></app-sidebar>
-<div class="app-bg lg:ml-64">
-  <section class="home-section">
-    <!-- Header Section -->
-    <div class="header-section">
-      <h1>Orders Management</h1>
-      <p class="subtitle">Order tracking, filtering, and analysis</p>
-    </div>
 
-    <!-- Orders Chart -->
-    <div class="chart-section" *ngIf="ordersOpts">
-      <div class="chart-card">
-        <h3>Orders Over Time</h3>
-        <apx-chart
-          [series]="ordersOpts.series"
-          [chart]="ordersOpts.chart"
-          [xaxis]="ordersOpts.xaxis"
-          [yaxis]="ordersOpts.yaxis"
-          [stroke]="ordersOpts.stroke"
-          [dataLabels]="ordersOpts.dataLabels"
-          [tooltip]="ordersOpts.tooltip">
-        </apx-chart>
-      </div>
-    </div>
+<!-- Main Orders Container with Orange Gradients -->
+<div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
 
-    <!-- Filters Section -->
-    <div class="filters-section">
-      <div class="filters-card">
-        <div class="filters-header">
-          <h3>🔍 Filters</h3>
-          <button class="clear-filters-btn" (click)="clearFilters()">
-            🗑️ Clear All
-          </button>
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-8 text-white">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-3xl font-bold mb-2">Orders Dashboard</h1>
+            <p class="text-orange-100 text-lg">Order monitoring and analytics • {{ getFilterLabel() }}</p>
+          </div>
+          <div class="mt-4 sm:mt-0 flex gap-3">
+            <button
+              (click)="exportOrders()"
+              [disabled]="exportLoading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!exportLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              <svg *ngIf="exportLoading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Export Orders
+            </button>
+            <button
+              (click)="loadOrders()"
+              [disabled]="loading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!loading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <svg *ngIf="loading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
-        
-        <div class="filters-grid">
-          <!-- Order ID Filter -->
-          <div class="filter-group">
-            <label for="orderId">Order ID:</label>
-            <input 
-              type="text" 
-              id="orderId" 
-              [(ngModel)]="filters.orderId"
-              (input)="onFilterChange()"
-              placeholder="Search by order ID">
-          </div>
+      </div>
 
-          <!-- Customer ID Filter -->
-          <div class="filter-group">
-            <label for="customerId">Customer ID:</label>
-            <input 
-              type="text" 
-              id="customerId" 
-              [(ngModel)]="filters.customerId"
-              (input)="onFilterChange()"
-              placeholder="Search by customer ID">
-          </div>
+      <!-- Filters Section -->
+      <div class="px-6 py-6 bg-gradient-to-r from-orange-25 to-orange-50">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
 
           <!-- Store ID Filter -->
-          <div class="filter-group">
-            <label for="storeId">Store ID:</label>
-            <input 
-              type="text" 
-              id="storeId" 
-              [(ngModel)]="filters.storeId"
-              (input)="onFilterChange()"
-              placeholder="Search by store ID">
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Store ID</label>
+            <input
+              [(ngModel)]="storeFilter"
+              (ngModelChange)="onStoreFilterChange()"
+              [disabled]="loading"
+              type="text"
+              placeholder="e.g. STORE_001"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
           </div>
 
           <!-- State Filter -->
-          <div class="filter-group">
-            <label for="state">State:</label>
-            <input 
-              type="text" 
-              id="state" 
-              [(ngModel)]="filters.state"
-              (input)="onFilterChange()"
-              placeholder="Filter by state">
-          </div>
-
-          <!-- Number of Items Filter -->
-          <div class="filter-group">
-            <label for="nitems">Items Count:</label>
-            <input 
-              type="number" 
-              id="nitems" 
-              [(ngModel)]="filters.nitems"
-              (input)="onFilterChange()"
-              placeholder="Filter by item count">
-          </div>
-
-          <!-- Page Size Selector -->
-          <div class="filter-group">
-            <label for="pageSize">Page Size:</label>
-            <select 
-              id="pageSize" 
-              [(ngModel)]="pageSize"
-              (change)="onPageSizeChange()">
-              <option *ngFor="let size of pageSizeOptions" [value]="size">
-                {{ size }} orders
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">State</label>
+            <select
+              [(ngModel)]="stateFilter"
+              (ngModelChange)="onStateFilterChange()"
+              [disabled]="loading"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+              <option value="">All States</option>
+              <option *ngFor="let state of availableStates" [value]="state.state_code">
+                {{ state.state }}
               </option>
             </select>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Orders Table Section -->
-    <div class="orders-section">
-      <div class="orders-card">
-        <div class="orders-header">
-          <h3>📋 Orders List</h3>
-          <div class="orders-stats">
-            <span class="stat-item">
-              📊 Total: {{ totalCount | number }}
-            </span>
-            <span class="stat-item">
-              📄 Page {{ currentPage + 1 }} of {{ totalPages }}
-            </span>
-            <span class="stat-item">
-              ⏱️ {{ orders.length }} orders loaded
-            </span>
+          <!-- Order ID Filter -->
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Order ID</label>
+            <input
+              [(ngModel)]="orderIdFilter"
+              (ngModelChange)="onOrderIdFilterChange()"
+              [disabled]="loading"
+              type="text"
+              placeholder="e.g. 12345"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+          </div>
+
+          <!-- Search Filter -->
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">Search</label>
+            <input
+              [(ngModel)]="searchFilter"
+              (ngModelChange)="onSearchFilterChange()"
+              [disabled]="loading"
+              type="text"
+              placeholder="Customer, Order, City..."
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+          </div>
+
+          <!-- From Date -->
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">From Date</label>
+            <input
+              [(ngModel)]="fromDateFilter"
+              (change)="onDateFilterChange()"
+              [disabled]="loading"
+              type="date"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
+          </div>
+
+          <!-- To Date -->
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold text-gray-700 mb-1">To Date</label>
+            <input
+              [(ngModel)]="toDateFilter"
+              (change)="onDateFilterChange()"
+              [disabled]="loading"
+              type="date"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
           </div>
         </div>
 
-        <!-- Loading State -->
-        <div class="loading-state" *ngIf="loading">
-          <div class="loading-spinner"></div>
-          <p>Loading orders...</p>
-        </div>
-
-        <!-- Error State -->
-        <div class="error-state" *ngIf="error && !loading">
-          <p class="error-message">❌ {{ error }}</p>
-          <button class="retry-btn" (click)="loadOrders()">
-            🔄 Retry
+        <!-- Clear Filters Button -->
+        <div class="mt-4 flex justify-end">
+          <button
+            (click)="clearFilters()"
+            class="px-6 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium rounded-lg transition-colors">
+            Clear All Filters
           </button>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- Orders Table -->
-        <div class="table-container" *ngIf="!loading && !error">
-          <table class="orders-table">
-            <thead>
-              <tr>
-                <th (click)="onSortChange('orderid')" class="sortable">
-                  Order ID {{ getSortIcon('orderid') }}
-                </th>
-                <th (click)="onSortChange('orderdate')" class="sortable">
-                  Date {{ getSortIcon('orderdate') }}
-                </th>
-                <th>Customer ID</th>
-                <th>Store ID</th>
-                <th>Store Location</th>
-                <th (click)="onSortChange('nitems')" class="sortable">
-                  Items {{ getSortIcon('nitems') }}
-                </th>
-                <th (click)="onSortChange('total')" class="sortable">
-                  Total {{ getSortIcon('total') }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let order of orders" class="order-row">
-                <td class="order-id">{{ order.orderid }}</td>
-                <td class="order-date">{{ formatDate(order.orderdate) }}</td>
-                <td class="customer-id">{{ order.customerid }}</td>
-                <td class="store-id">{{ order.storeid }}</td>
-                <td class="store-location">
-                  <span *ngIf="order.store_city">{{ order.store_city }}</span>
-                  <span *ngIf="order.store_state">, {{ order.store_state }}</span>
-                  <span *ngIf="!order.store_city && !order.store_state">-</span>
-                </td>
-                <td class="items-count">{{ order.nitems }}</td>
-                <td class="order-total">{{ formatCurrency(order.total) }}</td>
-              </tr>
-            </tbody>
-          </table>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+    <span class="ml-3 text-gray-600">Loading orders...</span>
+  </div>
 
-          <!-- Empty State -->
-          <div class="empty-state" *ngIf="orders.length === 0 && !loading">
-            <p>📭 No orders found matching your filters</p>
-            <button class="clear-filters-btn" (click)="clearFilters()">
-              Clear Filters
-            </button>
-          </div>
+  <!-- Error State -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <div>
+        <h3 class="text-red-800 font-medium">Error Loading Orders</h3>
+        <p class="text-red-600 text-sm">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orders Table -->
+  <div *ngIf="!loading && !error" class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
+    <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
+      <div class="flex justify-between items-center">
+        <div>
+          <h3 class="text-xl font-bold text-white">Recent Orders</h3>
+          <p class="text-orange-100">Order tracking • {{ totalCount }} total orders • Page {{ currentPage + 1 }} of {{ totalPages }}</p>
         </div>
+      </div>
+    </div>
 
-        <!-- Pagination -->
-        <div class="pagination-section" *ngIf="totalPages > 1 && !loading">
-          <div class="pagination-info">
-            <span>Showing {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalCount) }} of {{ totalCount }} orders</span>
+    <!-- Table Container -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Store ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr *ngFor="let order of orders" class="hover:bg-orange-50 transition-colors">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              #{{ order.orderid }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ order.customerid }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ formatDate(order.orderdate) }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              {{ order.storeid }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                {{ order.state_code || order.state || 'N/A' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              {{ order.city || 'N/A' }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              {{ order.nitems }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">
+              {{ formatCurrency(order.order_value || order.total) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Empty State -->
+      <div *ngIf="orders.length === 0" class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
+        <p class="mt-1 text-sm text-gray-500">Try adjusting your filters or search criteria.</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+      <div class="flex items-center justify-between">
+        <div class="flex-1 flex justify-between sm:hidden">
+          <button
+            (click)="previousPage()"
+            [disabled]="!hasPrevious"
+            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+            Previous
+          </button>
+          <button
+            (click)="nextPage()"
+            [disabled]="!hasNext"
+            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
+            Next
+          </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-700">
+              Showing <span class="font-medium">{{ currentPage * pageSize + 1 }}</span> to
+              <span class="font-medium">{{ Math.min((currentPage + 1) * pageSize, totalCount) }}</span> of
+              <span class="font-medium">{{ totalCount }}</span> results
+            </p>
           </div>
-          
-          <div class="pagination-controls">
-            <!-- First Page -->
-            <button 
-              class="pagination-btn"
-              [disabled]="!hasPrevious"
-              (click)="goToPage(0)">
-              ⏮️ First
-            </button>
+          <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button
+                (click)="previousPage()"
+                [disabled]="!hasPrevious"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
 
-            <!-- Previous Page -->
-            <button 
-              class="pagination-btn"
-              [disabled]="!hasPrevious"
-              (click)="goToPage(currentPage - 1)">
-              ◀️ Previous
-            </button>
-
-            <!-- Page Numbers -->
-            <div class="page-numbers">
-              <button 
-                *ngFor="let page of getPaginationRange()"
-                class="page-number-btn"
-                [class.active]="page === currentPage"
-                (click)="goToPage(page)">
+              <button
+                *ngFor="let page of getPaginationArray()"
+                (click)="goToPage(page)"
+                [class.bg-orange-50]="page === currentPage"
+                [class.border-orange-500]="page === currentPage"
+                [class.text-orange-600]="page === currentPage"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                 {{ page + 1 }}
               </button>
-            </div>
 
-            <!-- Next Page -->
-            <button 
-              class="pagination-btn"
-              [disabled]="!hasNext"
-              (click)="goToPage(currentPage + 1)">
-              Next ▶️
-            </button>
-
-            <!-- Last Page -->
-            <button 
-              class="pagination-btn"
-              [disabled]="!hasNext"
-              (click)="goToPage(totalPages - 1)">
-              Last ⏭️
-            </button>
+              <button
+                (click)="nextPage()"
+                [disabled]="!hasNext"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+              </button>
+            </nav>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 </div>

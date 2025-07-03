@@ -1084,4 +1084,20 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
         @Param("sortOrder") String sortOrder,
         @Param("limit") int limit,
         @Param("offset") int offset);
+
+    @Query(value = "SELECT sku, product_name as name, category, size, price, launch_date as launch, ingredients FROM products WHERE sku = :sku", nativeQuery = true)
+    Map<String, Object> getProductBySku(@Param("sku") String sku);
+
+    @Query(value = """
+            SELECT
+                TO_CHAR(o.orderdate, 'YYYY-MM') as month,
+                SUM(oi.quantity * p.price) as revenue
+            FROM orders o
+            JOIN order_items oi ON o.orderid = oi.orderid
+            JOIN products p ON oi.sku = p.sku
+            WHERE p.sku = :sku
+            GROUP BY TO_CHAR(o.orderdate, 'YYYY-MM')
+            ORDER BY month
+            """, nativeQuery = true)
+    List<Map<String, Object>> getProductRevenueTrend(@Param("sku") String sku, @Param("timePeriod") String timePeriod);
 }

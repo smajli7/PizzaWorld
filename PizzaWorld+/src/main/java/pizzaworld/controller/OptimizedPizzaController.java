@@ -1003,8 +1003,7 @@ public class OptimizedPizzaController {
 
     @GetMapping("/products")
     public ResponseEntity<List<Map<String, Object>>> getProductsCatalogue(
-            @RequestParam(required = false) String search,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam(required = false) String search) {
         List<Map<String, Object>> products = pizzaService.getProductsCatalogueWithLaunchDate(search);
         return ResponseEntity.ok(products);
     }
@@ -1014,21 +1013,18 @@ public class OptimizedPizzaController {
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String search,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam(required = false) String search) {
         
-        User user = userDetails.getUser();
         return ResponseEntity.ok(pizzaService.getProductsPerformance(year, month, category, search));
     }
 
     @GetMapping("/products/kpis")
     public ResponseEntity<Map<String, Object>> getProductsKpis(
             @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String category,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) String category) {
         
-        User user = userDetails.getUser();
-        return ResponseEntity.ok(pizzaService.getProductsKpis(year, category));
+        return ResponseEntity.ok(pizzaService.getProductsKpis(year, month, category));
     }
 
     @GetMapping("/products/export")
@@ -1252,38 +1248,31 @@ public class OptimizedPizzaController {
             @RequestBody Map<String, Object> requestBody,
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletResponse response) {
-        
         User user = userDetails.getUser();
+        List<Map<String, Object>> result = pizzaService.getProductComparePeriods(user, (String) requestBody.get("sku"),
+                (List<Map<String, Object>>) requestBody.get("periods"));
         
-        String sku = (String) requestBody.get("sku");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> periods = (List<Map<String, Object>>) requestBody.get("periods");
-        
-        try {
-            List<Map<String, Object>> compareData = pizzaService.getProductComparePeriods(user, sku, periods);
-            
-            // Convert comparison data to CSV-friendly format
-            List<String> headers = List.of("SKU", "Period", "Revenue", "Orders", "Units Sold", "Unique Customers", "Avg Order Value");
-            List<List<String>> rows = compareData.stream()
-                .map(data -> List.of(
-                    sku,
-                    String.valueOf(data.get("periodLabel")),
-                    String.valueOf(data.get("revenue")),
-                    String.valueOf(data.get("orders")),
-                    String.valueOf(data.get("units")),
-                    String.valueOf(data.get("customers")),
-                    String.valueOf(data.get("avgOrderValue"))
-                ))
-                .toList();
-            
-            String filename = "product-comparison-" + sku + "-" + periods.size() + "periods.csv";
-            CsvExportUtil.writeCsv(response, headers, rows, filename);
-        } catch (Exception e) {
-            logger.error("Error exporting product compare analytics for sku: " + sku, e);
-            List<String> headers = List.of("Error");
-            List<List<String>> rows = List.of(List.of("Export failed"));
-            CsvExportUtil.writeCsv(response, headers, rows, "error.csv");
+        if (result.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "product-comparison.csv");
+            return;
         }
+
+        List<String> headers = List.copyOf(result.get(0).keySet());
+        List<List<String>> rows = result.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+        
+        CsvExportUtil.writeCsv(response, headers, rows, "product-comparison.csv");
+    }
+
+    @GetMapping("/products/revenue-trend")
+    public ResponseEntity<List<Map<String, Object>>> getProductRevenueTrend(
+            @RequestParam String sku,
+            @RequestParam(defaultValue = "all-time") String timePeriod,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> trend = pizzaService.getProductRevenueTrend(user, sku, timePeriod);
+        return ResponseEntity.ok(trend);
     }
 
     private Map<String, Object> buildProductFilters(String sku, String timePeriod, Integer year, Integer month,
@@ -1405,5 +1394,14 @@ public class OptimizedPizzaController {
             logger.error("Error fetching orders KPIs", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/products/details/{sku}")
+    public ResponseEntity<Map<String, Object>> getProductDetailsBySku(@PathVariable String sku) {
+        Map<String, Object> product = pizzaService.getProductBySku(sku);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(product);
     }
 }

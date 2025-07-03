@@ -88,4 +88,33 @@ public class AuthController {
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
+
+    /* ---------- 4. Create Test User ---------- */
+    @PostMapping("/create-test-user")
+    public ResponseEntity<?> createTestUser() {
+        try {
+            // Check if user already exists
+            User existingUser = userService.find("test");
+            if (existingUser != null) {
+                // Update password for existing user
+                existingUser.setPassword("test");
+                userService.save(existingUser);
+                return ResponseEntity.ok(Map.of("message", "Test user password updated", "username", "test", "password", "test"));
+            }
+            
+            User testUser = new User();
+            testUser.setUsername("test");
+            testUser.setPassword("test");
+            testUser.setRole("HQ_ADMIN");
+            testUser.setStoreId("HQ");
+            testUser.setStateAbbr("ALL");
+            
+            userService.save(testUser);
+            
+            return ResponseEntity.ok(Map.of("message", "Test user created", "username", "test", "password", "test"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to create test user: " + e.getMessage()));
+        }
+    }
 }

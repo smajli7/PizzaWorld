@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { NgApexchartsModule } from 'ng-apexcharts';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Subject, takeUntil } from 'rxjs';
 import {
   ApexAxisChartSeries,
   ApexChart,
@@ -20,6 +21,7 @@ import {
   ApexNonAxisChartSeries,
   ChartComponent
 } from 'ng-apexcharts';
+import { Router } from '@angular/router';
 
 interface Product {
   sku: string;
@@ -93,61 +95,62 @@ interface PieChartOptions {
   templateUrl: './products.component.html',
   styleUrls: ['./products.component.scss']
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
 
-  // Header filters
+  // Filter state
   selectedYear?: number;
   selectedMonth?: number;
-  selectedCategory?: string;
+  selectedCategory: string = '';
   searchTerm: string = '';
-
-  // Custom date range filters
-  useCustomDateRange: boolean = false;
-  startDate?: string;
-  endDate?: string;
+  skuFilter: string = '';
 
   // Available filter options
   availableYears: TimePeriodOption[] = [];
   availableMonths: TimePeriodOption[] = [];
-  availableCategories: string[] = ['Pizza', 'Appetizers', 'Beverages', 'Desserts', 'Specialty'];
+  availableCategories: string[] = ['Vegetarian', 'Specialty', 'Classic'];
 
-  // Tables data
+  // Data
   catalogueProducts: Product[] = [];
   performanceProducts: ProductPerformance[] = [];
-
-  // No pagination - show all data in scrollable tables
-
-  // KPIs
   kpis: ProductKPIs | null = null;
 
   // Charts
   topProductsChart: Partial<ChartOptions> | null = null;
-  revenueTrendChart: Partial<ChartOptions> | null = null;
-  scatterChart: Partial<ChartOptions> | null = null;
-  aovTrendChart: Partial<ChartOptions> | null = null;
   categoryDonutChart: Partial<PieChartOptions> | null = null;
-  heatmapChart: Partial<ChartOptions> | null = null;
+  revenueTrendChart: Partial<ChartOptions> | null = null;
+  performanceScatterChart: Partial<ChartOptions> | null = null;
+  priceDistributionChart: Partial<ChartOptions> | null = null;
+  monthlyPerformanceChart: Partial<ChartOptions> | null = null;
 
-    // UI state
+  // UI state
   loading = false;
   error = false;
   chartsLoading = false;
-
-  // Export loading states
   exportCatalogueLoading = false;
   exportPerformanceLoading = false;
 
-  // Sorting for catalogue products
-  catalogueSortColumn: 'sku' | 'price' = 'sku';
+  // Table sorting
+  tableSortColumn: string = 'total_revenue';
+  tableSortAscending = false;
+  catalogueSortColumn: string = 'sku';
   catalogueSortAscending = true;
 
-  // Color palette
-  colorPalette = ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#06B6D4', '#84CC16'];
+  // Orange color palette for consistency
+  orangePalette = [
+    '#FF6B35', '#FF8C42', '#FFB366', '#FFCC99', '#FFE0CC',
+    '#E55A2B', '#CC4F24', '#B3441C', '#993915', '#802E0E'
+  ];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit(): void {
     this.loadInitialData();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private getAuthHeaders(): HttpHeaders {
@@ -159,28 +162,86 @@ export class ProductsComponent implements OnInit {
     this.loading = true;
     this.error = false;
 
-    // Load time periods for filters
+    // Load available years for filters
     this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/years', { headers: this.getAuthHeaders() })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (years) => {
-          this.availableYears = years;
-          this.loadCatalogueData();
-          this.loadPerformanceData();
-          this.loadKPIs();
-          this.loadCharts();
+          this.availableYears = years || [];
+          this.loadAllData();
         },
         error: (error) => {
           console.error('Error loading years:', error);
-          this.error = true;
-          this.loading = false;
+          // Continue loading data even if years fail
+          this.availableYears = [];
+          this.loadAllData();
         }
       });
   }
 
-  onFiltersChange(): void {
-    this.loadPerformanceData();
+  loadAllData(): void {
+    this.loadCatalogueData();
     this.loadKPIs();
-    this.loadCharts();
+    // Load performance data first, then charts
+    this.loadPerformanceDataAndCharts();
+  }
+
+  loadPerformanceDataAndCharts(): void {
+    let params = new HttpParams();
+
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
+    if (this.selectedCategory) params = params.set('category', this.selectedCategory);
+    if (this.searchTerm) params = params.set('search', this.searchTerm);
+
+    this.chartsLoading = true;
+    this.http.get<ProductPerformance[]>('/api/v2/products/performance', {
+      headers: this.getAuthHeaders(),
+      params
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (data) => {
+        this.performanceProducts = data || [];
+        this.loading = false;
+        // Load charts after performance data is available with current filters
+        this.loadCharts();
+      },
+      error: (error) => {
+        console.error('Error loading performance:', error);
+        this.performanceProducts = [];
+        this.error = false; // Don't show error, show empty data instead
+        this.loading = false;
+        this.chartsLoading = false;
+                 // Still create charts with empty data
+         this.createFallbackTopProductsChart();
+         this.createFallbackCategoryChart();
+      }
+    });
+  }
+
+  // Filter methods
+  applyFilters(): void {
+    this.loading = true;
+    this.error = false;
+    // Load all data with applied filters
+    this.loadPerformanceDataAndCharts();
+    this.loadKPIs();
+    this.loadCatalogueData();
+  }
+
+  clearAllFilters(): void {
+    this.selectedYear = undefined;
+    this.selectedMonth = undefined;
+    this.selectedCategory = '';
+    this.searchTerm = '';
+    this.skuFilter = '';
+    // Reset available months when clearing year filter
+    this.availableMonths = [];
+    // Reload all data without filters
+    this.applyFilters();
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.selectedYear || this.selectedMonth || this.selectedCategory || this.searchTerm || this.skuFilter);
   }
 
   onYearChange(): void {
@@ -188,10 +249,13 @@ export class ProductsComponent implements OnInit {
     if (this.selectedYear) {
       this.loadAvailableMonths();
     }
-    this.onFiltersChange();
   }
 
-  onCatalogueSearchChange(): void {
+  onSearchChange(): void {
+    this.loadCatalogueData();
+  }
+
+  onSkuFilterChange(): void {
     this.loadCatalogueData();
   }
 
@@ -199,68 +263,41 @@ export class ProductsComponent implements OnInit {
     if (!this.selectedYear) return;
 
     const params = new HttpParams().set('year', this.selectedYear.toString());
-    this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months',
-      { headers: this.getAuthHeaders(), params })
-      .subscribe({
-        next: (months) => {
-          this.availableMonths = months;
-        },
-        error: (error) => {
-          console.error('Error loading months:', error);
-        }
-      });
-  }
-
-    loadCatalogueData(): void {
-    let params = new HttpParams();
-
-    if (this.searchTerm) {
-      params = params.set('search', this.searchTerm);
-    }
-
-    // Use the enhanced endpoint that includes launch_date
-    this.http.get<Product[]>('/api/v2/products', {
+    this.http.get<TimePeriodOption[]>('/api/v2/chart/time-periods/months', {
       headers: this.getAuthHeaders(),
       params
-    }).subscribe({
-      next: (data) => {
-        this.catalogueProducts = data;
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (months) => {
+        this.availableMonths = months;
       },
       error: (error) => {
-        console.error('Error loading catalogue:', error);
-        this.error = true;
+        console.error('Error loading months:', error);
       }
     });
   }
 
-  loadPerformanceData(): void {
+  loadCatalogueData(): void {
     let params = new HttpParams();
 
-    // Only add year/month if not using custom date range
-    if (!this.useCustomDateRange) {
-      if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-      if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
-    } else {
-      // Use custom date range
-      if (this.startDate) params = params.set('startDate', this.startDate);
-      if (this.endDate) params = params.set('endDate', this.endDate);
+    if (this.searchTerm || this.skuFilter) {
+      // Combine search terms
+      const searchQuery = [this.searchTerm, this.skuFilter].filter(Boolean).join(' ');
+      params = params.set('search', searchQuery);
     }
 
-    if (this.selectedCategory) params = params.set('category', this.selectedCategory);
-    if (this.searchTerm) params = params.set('search', this.searchTerm);
-
-    this.http.get<ProductPerformance[]>('/api/v2/products/performance', {
+    this.http.get<Product[]>('/api/v2/products', {
       headers: this.getAuthHeaders(),
       params
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
-        this.performanceProducts = data;
-        this.loading = false;
+        this.catalogueProducts = data || [];
+        // Create price distribution chart after catalogue data loads
+        this.createPriceDistributionChart();
       },
       error: (error) => {
-        console.error('Error loading performance:', error);
-        this.error = true;
-        this.loading = false;
+        console.error('Error loading catalogue:', error);
+        this.catalogueProducts = [];
+        // Don't set error to true here, just log it
       }
     });
   }
@@ -268,123 +305,568 @@ export class ProductsComponent implements OnInit {
   loadKPIs(): void {
     let params = new HttpParams();
 
-    if (!this.useCustomDateRange) {
-      if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-    } else {
-      if (this.startDate) params = params.set('startDate', this.startDate);
-      if (this.endDate) params = params.set('endDate', this.endDate);
-    }
-
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
     if (this.selectedCategory) params = params.set('category', this.selectedCategory);
 
     this.http.get<ProductKPIs>('/api/v2/products/kpis', {
       headers: this.getAuthHeaders(),
       params
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.kpis = data;
       },
       error: (error) => {
         console.error('Error loading KPIs:', error);
+        // Provide fallback KPI data
+        this.kpis = {
+          totalRevenue: 0,
+          totalOrders: 0,
+          totalUnits: 0,
+          totalProducts: this.catalogueProducts.length,
+          avgPrice: 0
+        };
       }
     });
   }
 
   loadCharts(): void {
     this.chartsLoading = true;
-
     let params = new HttpParams();
 
-    if (!this.useCustomDateRange) {
-      if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-      if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
-    } else {
-      if (this.startDate) params = params.set('startDate', this.startDate);
-      if (this.endDate) params = params.set('endDate', this.endDate);
-    }
-
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
     if (this.selectedCategory) params = params.set('category', this.selectedCategory);
 
-    // Load top products chart data
-    this.http.get<any>('/api/v2/products/charts/top-products', {
-      headers: this.getAuthHeaders(),
-      params
-    }).subscribe({
-      next: (data) => {
-        this.topProductsChart = {
-          series: [{
-            name: 'Revenue',
-            data: data.revenues
-          }],
-          chart: {
-            type: 'bar',
-            height: 400,
-            toolbar: {
-              show: false
-            }
-          },
-          xaxis: {
-            categories: data.products,
-            labels: {
-              style: {
-                fontSize: '12px'
+    // Use performance data to create top products chart
+    if (this.performanceProducts.length > 0) {
+      // Sort by revenue and take top 10
+      const topProducts = [...this.performanceProducts]
+        .sort((a, b) => b.total_revenue - a.total_revenue)
+        .slice(0, 10);
+
+      const products = topProducts.map(item => `${item.product_name} (${item.size})`);
+      const revenues = topProducts.map(item => Number(item.total_revenue) || 0);
+
+      this.topProductsChart = {
+        series: [{
+          name: 'Revenue',
+          data: revenues
+        }],
+        chart: {
+          type: 'bar',
+          height: 400,
+          toolbar: {
+            show: true,
+            export: {
+              csv: {
+                filename: 'top-products-revenue'
+              },
+              svg: {
+                filename: 'top-products-revenue'
+              },
+              png: {
+                filename: 'top-products-revenue'
               }
             }
           },
-          colors: [this.colorPalette[0]],
-          dataLabels: {
-            enabled: false
+          zoom: {
+            enabled: true,
+            type: 'x',
+            autoScaleYaxis: true
           },
-          plotOptions: {
-            bar: {
-              borderRadius: 4,
-              horizontal: true
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800
+          }
+        },
+        xaxis: {
+          categories: products,
+          labels: {
+            style: { fontSize: '11px', colors: '#666' },
+            formatter: (value: any) => this.formatCurrency(Number(value))
+          }
+        },
+        yaxis: {
+          labels: {
+            style: { fontSize: '11px', colors: '#666' }
+          }
+        },
+        colors: [this.orangePalette[0]],
+        dataLabels: { enabled: false },
+        plotOptions: {
+          bar: {
+            borderRadius: 8,
+            horizontal: true,
+            distributed: false
+          }
+        },
+        tooltip: {
+          y: {
+            formatter: (value) => this.formatCurrency(value)
+          }
+        },
+        grid: {
+          borderColor: '#f1f1f1'
+        }
+      };
+      this.chartsLoading = false;
+    } else {
+      this.createFallbackTopProductsChart();
+      this.chartsLoading = false;
+    }
+
+    // Create category distribution chart from performance data
+    if (this.performanceProducts.length > 0) {
+      this.createCategoryDonutChart();
+    } else {
+      this.createFallbackCategoryChart();
+    }
+
+    // Create other charts from existing data
+    this.createPerformanceScatterChart();
+    this.createMonthlyPerformanceChart();
+  }
+
+  createFallbackTopProductsChart(): void {
+    this.topProductsChart = {
+      series: [{
+        name: 'Revenue',
+        data: [0]
+      }],
+      chart: {
+        type: 'bar',
+        height: 400,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'top-products-revenue'
+            },
+            svg: {
+              filename: 'top-products-revenue'
+            },
+            png: {
+              filename: 'top-products-revenue'
             }
           }
-        };
+        },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        }
+      },
+      xaxis: {
+        categories: ['No Data Available'],
+        labels: {
+          style: { fontSize: '11px', colors: '#666' }
+        }
+      },
+      yaxis: {
+        labels: {
+          style: { fontSize: '11px', colors: '#666' }
+        }
+      },
+      colors: [this.orangePalette[0]],
+      dataLabels: { enabled: false },
+      plotOptions: {
+        bar: {
+          borderRadius: 8,
+          horizontal: true
+        }
+      },
+      grid: {
+        borderColor: '#f1f1f1'
       }
+    };
+  }
+
+  createFallbackCategoryChart(): void {
+    this.categoryDonutChart = {
+      series: [100],
+      chart: {
+        type: 'donut',
+        height: 350,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'category-distribution'
+            },
+            svg: {
+              filename: 'category-distribution'
+            },
+            png: {
+              filename: 'category-distribution'
+            }
+          }
+        }
+      },
+      labels: ['No Data Available'],
+      colors: [this.orangePalette[0]],
+      dataLabels: {
+        enabled: true,
+        formatter: () => 'No Data'
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%'
+          }
+        }
+      },
+      legend: {
+        position: 'bottom',
+        fontSize: '14px'
+      }
+    };
+  }
+
+  createCategoryDonutChart(): void {
+    // Group performance data by category
+    const categoryData = new Map<string, number>();
+
+    this.performanceProducts.forEach(product => {
+      const category = product.category;
+      const revenue = product.total_revenue || 0;
+      categoryData.set(category, (categoryData.get(category) || 0) + revenue);
     });
 
-    // Load category revenue share chart data
-    this.http.get<any>('/api/v2/products/charts/category-share', {
-      headers: this.getAuthHeaders(),
-      params
-    }).subscribe({
-      next: (data) => {
-        this.categoryDonutChart = {
-          series: data.shares,
-          chart: {
-            type: 'donut',
-            height: 350
-          },
-          labels: data.categories,
-          colors: this.colorPalette,
-          dataLabels: {
-            enabled: true
-          },
-          plotOptions: {
-            pie: {
-              donut: {
-                size: '70%'
+    const categories = Array.from(categoryData.keys());
+    const revenues = Array.from(categoryData.values());
+    const total = revenues.reduce((sum, rev) => sum + rev, 0);
+    const percentages = revenues.map(rev => (rev / total) * 100);
+
+    this.categoryDonutChart = {
+      series: percentages,
+      chart: {
+        type: 'donut',
+        height: 350,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'category-distribution'
+            },
+            svg: {
+              filename: 'category-distribution'
+            },
+            png: {
+              filename: 'category-distribution'
+            }
+          }
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      labels: categories,
+      colors: this.orangePalette,
+      dataLabels: {
+        enabled: true,
+        formatter: (val: number) => val.toFixed(1) + '%'
+      },
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '65%',
+            labels: {
+              show: true,
+              total: {
+                show: true,
+                label: 'Total Revenue',
+                formatter: () => this.formatCurrency(total)
               }
             }
-          },
-          legend: {
-            position: 'bottom'
           }
-        };
-        this.chartsLoading = false;
+        }
       },
-      error: (error) => {
-        console.error('Error loading charts:', error);
-        this.chartsLoading = false;
+      legend: {
+        position: 'bottom',
+        fontSize: '14px'
+      }
+    };
+  }
+
+  createPerformanceScatterChart(): void {
+    if (this.performanceProducts.length === 0) return;
+
+    const data = this.performanceProducts.map(product => ({
+      x: product.units_sold,
+      y: product.total_revenue,
+      name: product.product_name
+    }));
+
+    this.performanceScatterChart = {
+      series: [{
+        name: 'Products',
+        data: data
+      }],
+      chart: {
+        type: 'scatter',
+        height: 350,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'product-performance-scatter'
+            },
+            svg: {
+              filename: 'product-performance-scatter'
+            },
+            png: {
+              filename: 'product-performance-scatter'
+            }
+          }
+        },
+        zoom: {
+          enabled: true,
+          type: 'xy',
+          autoScaleYaxis: true
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      xaxis: {
+        title: { text: 'Units Sold' },
+        labels: {
+          style: { colors: '#666' }
+        }
+      },
+      yaxis: {
+        title: { text: 'Total Revenue' },
+        labels: {
+          formatter: (value) => this.formatCurrency(value),
+          style: { colors: '#666' }
+        }
+      },
+      colors: [this.orangePalette[1]],
+      dataLabels: { enabled: false },
+      tooltip: {
+        custom: ({ series, seriesIndex, dataPointIndex, w }) => {
+          const product = this.performanceProducts[dataPointIndex];
+          return `<div class="bg-white p-3 rounded shadow-lg border">
+            <div class="font-semibold text-gray-800">${product.product_name}</div>
+            <div class="text-sm text-gray-600">Units: ${this.formatNumber(product.units_sold)}</div>
+            <div class="text-sm text-gray-600">Revenue: ${this.formatCurrency(product.total_revenue)}</div>
+          </div>`;
+        }
+      },
+      grid: {
+        borderColor: '#f1f1f1'
+      }
+    };
+  }
+
+  createPriceDistributionChart(): void {
+    if (this.catalogueProducts.length === 0) return;
+
+    // Group products by price ranges
+    const priceRanges = [
+      { label: '$0-$10', min: 0, max: 10, count: 0 },
+      { label: '$10-$20', min: 10, max: 20, count: 0 },
+      { label: '$20-$30', min: 20, max: 30, count: 0 },
+      { label: '$30-$40', min: 30, max: 40, count: 0 },
+      { label: '$40+', min: 40, max: Infinity, count: 0 }
+    ];
+
+    this.catalogueProducts.forEach(product => {
+      const range = priceRanges.find(r => product.price >= r.min && product.price < r.max);
+      if (range) range.count++;
+    });
+
+    this.priceDistributionChart = {
+      series: [{
+        name: 'Products',
+        data: priceRanges.map(r => r.count)
+      }],
+      chart: {
+        type: 'bar',
+        height: 300,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'price-distribution'
+            },
+            svg: {
+              filename: 'price-distribution'
+            },
+            png: {
+              filename: 'price-distribution'
+            }
+          }
+        },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      xaxis: {
+        categories: priceRanges.map(r => r.label),
+        labels: {
+          style: { colors: '#666' }
+        }
+      },
+      yaxis: {
+        title: { text: 'Number of Products' },
+        labels: {
+          style: { colors: '#666' }
+        }
+      },
+      colors: [this.orangePalette[2]],
+      dataLabels: { enabled: true },
+      plotOptions: {
+        bar: {
+          borderRadius: 8
+        }
+      },
+      grid: {
+        borderColor: '#f1f1f1'
+      }
+    };
+  }
+
+  createMonthlyPerformanceChart(): void {
+    if (this.performanceProducts.length === 0) return;
+
+    // Group by category for monthly view
+    const categories = [...new Set(this.performanceProducts.map(p => p.category))];
+    const series = categories.map((category, index) => ({
+      name: category,
+      data: [this.performanceProducts
+        .filter(p => p.category === category)
+        .reduce((sum, p) => sum + p.total_revenue, 0)]
+    }));
+
+    this.monthlyPerformanceChart = {
+      series: series,
+      chart: {
+        type: 'area',
+        height: 300,
+        toolbar: {
+          show: true,
+          export: {
+            csv: {
+              filename: 'monthly-performance'
+            },
+            svg: {
+              filename: 'monthly-performance'
+            },
+            png: {
+              filename: 'monthly-performance'
+            }
+          }
+        },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true
+        },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 800
+        }
+      },
+      xaxis: {
+        categories: ['Current Period'],
+        labels: {
+          style: { colors: '#666' }
+        }
+      },
+      yaxis: {
+        title: { text: 'Revenue' },
+        labels: {
+          formatter: (value) => this.formatCurrency(value),
+          style: { colors: '#666' }
+        }
+      },
+      colors: this.orangePalette.slice(0, categories.length),
+      dataLabels: { enabled: false },
+      stroke: {
+        curve: 'smooth',
+        width: 2
+      },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          opacityFrom: 0.7,
+          opacityTo: 0.1
+        }
+      },
+      legend: {
+        position: 'top'
+      },
+      grid: {
+        borderColor: '#f1f1f1'
+      }
+    };
+  }
+
+  // Table sorting
+  sortTable(column: string): void {
+    if (this.tableSortColumn === column) {
+      this.tableSortAscending = !this.tableSortAscending;
+    } else {
+      this.tableSortColumn = column;
+      this.tableSortAscending = false; // Default to descending for numeric columns
+    }
+  }
+
+  toggleSortDirection(): void {
+    this.tableSortAscending = !this.tableSortAscending;
+  }
+
+  sortCatalogue(column: string): void {
+    if (this.catalogueSortColumn === column) {
+      this.catalogueSortAscending = !this.catalogueSortAscending;
+    } else {
+      this.catalogueSortColumn = column;
+      this.catalogueSortAscending = column === 'sku' || column === 'product_name' || column === 'category'; // Ascending for text, descending for numbers
+    }
+  }
+
+  toggleCatalogueSortDirection(): void {
+    this.catalogueSortAscending = !this.catalogueSortAscending;
+  }
+
+  get sortedPerformanceProducts(): ProductPerformance[] {
+    return [...this.performanceProducts].sort((a, b) => {
+      const multiplier = this.tableSortAscending ? 1 : -1;
+
+      switch (this.tableSortColumn) {
+        case 'total_revenue':
+          return multiplier * (a.total_revenue - b.total_revenue);
+        case 'amount_ordered':
+          return multiplier * (a.amount_ordered - b.amount_ordered);
+        case 'units_sold':
+          return multiplier * (a.units_sold - b.units_sold);
+        case 'price':
+          return multiplier * (a.price - b.price);
+        case 'product_name':
+          return multiplier * a.product_name.localeCompare(b.product_name);
+        case 'category':
+          return multiplier * a.category.localeCompare(b.category);
+        default:
+          return 0;
       }
     });
   }
 
-  // No pagination needed - all data shown in scrollable tables
-
-  // Computed property for sorted catalogue products
   get sortedCatalogueProducts(): Product[] {
     return [...this.catalogueProducts].sort((a, b) => {
       const multiplier = this.catalogueSortAscending ? 1 : -1;
@@ -392,32 +874,33 @@ export class ProductsComponent implements OnInit {
       switch (this.catalogueSortColumn) {
         case 'sku':
           return multiplier * a.sku.localeCompare(b.sku);
+        case 'product_name':
+          return multiplier * a.product_name.localeCompare(b.product_name);
         case 'price':
           return multiplier * (a.price - b.price);
+        case 'category':
+          return multiplier * a.category.localeCompare(b.category);
         default:
           return 0;
       }
     });
   }
 
-  // Sort function for catalogue table
-  sortCatalogue(column: 'sku' | 'price'): void {
-    if (this.catalogueSortColumn === column) {
-      this.catalogueSortAscending = !this.catalogueSortAscending;
-    } else {
-      this.catalogueSortColumn = column;
-      this.catalogueSortAscending = true;
-    }
-  }
-
   // Export functions
   exportCatalogue(): void {
     this.exportCatalogueLoading = true;
+    let params = new HttpParams();
+
+    if (this.searchTerm || this.skuFilter) {
+      const searchQuery = [this.searchTerm, this.skuFilter].filter(Boolean).join(' ');
+      params = params.set('search', searchQuery);
+    }
 
     this.http.get('/api/v2/products/export', {
       headers: this.getAuthHeaders(),
+      params,
       responseType: 'blob'
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -436,24 +919,18 @@ export class ProductsComponent implements OnInit {
 
   exportPerformance(): void {
     this.exportPerformanceLoading = true;
-
     let params = new HttpParams();
 
-    if (!this.useCustomDateRange) {
-      if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
-      if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
-    } else {
-      if (this.startDate) params = params.set('startDate', this.startDate);
-      if (this.endDate) params = params.set('endDate', this.endDate);
-    }
-
+    if (this.selectedYear) params = params.set('year', this.selectedYear.toString());
+    if (this.selectedMonth) params = params.set('month', this.selectedMonth.toString());
     if (this.selectedCategory) params = params.set('category', this.selectedCategory);
+    if (this.searchTerm) params = params.set('search', this.searchTerm);
 
     this.http.get('/api/v2/products/performance/export', {
       headers: this.getAuthHeaders(),
       params,
       responseType: 'blob'
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -470,27 +947,20 @@ export class ProductsComponent implements OnInit {
     });
   }
 
+  // Utility functions
   getFilterLabel(): string {
-    if (this.useCustomDateRange) {
-      if (this.startDate && this.endDate) {
-        return `${this.startDate} to ${this.endDate}`;
-      } else if (this.startDate) {
-        return `From ${this.startDate}`;
-      } else if (this.endDate) {
-        return `Until ${this.endDate}`;
+    const parts = [];
+    if (this.selectedYear) {
+      if (this.selectedMonth) {
+        const month = this.availableMonths.find(m => m.month === this.selectedMonth);
+        parts.push(`${month?.month_name_label || this.selectedMonth} ${this.selectedYear}`);
+      } else {
+        parts.push(`${this.selectedYear}`);
       }
-      return 'All Time';
     }
+    if (this.selectedCategory) parts.push(this.selectedCategory);
 
-    if (this.selectedYear && this.selectedMonth) {
-      const month = this.availableMonths.find(m => m.month === this.selectedMonth);
-      return `${month?.month_name_label || this.selectedMonth} ${this.selectedYear}`;
-    } else if (this.selectedYear) {
-      return `${this.selectedYear}`;
-    } else if (this.selectedCategory) {
-      return `${this.selectedCategory} (All Time)`;
-    }
-    return 'All Time';
+    return parts.length > 0 ? parts.join(' • ') : 'All Time';
   }
 
   formatCurrency(value: number): string {
@@ -506,18 +976,22 @@ export class ProductsComponent implements OnInit {
     return new Intl.NumberFormat('en-US').format(value);
   }
 
-  // Toggle between preset filters and custom date range
-  toggleDateRangeMode(): void {
-    this.useCustomDateRange = !this.useCustomDateRange;
-    if (this.useCustomDateRange) {
-      // Clear preset filters when switching to custom range
-      this.selectedYear = undefined;
-      this.selectedMonth = undefined;
-    } else {
-      // Clear custom date range when switching to preset filters
-      this.startDate = undefined;
-      this.endDate = undefined;
-    }
-    this.onFiltersChange();
+  getSortDisplayName(): string {
+    const columnNames: { [key: string]: string } = {
+      'total_revenue': 'Revenue',
+      'amount_ordered': 'Orders',
+      'units_sold': 'Units Sold',
+      'price': 'Price',
+      'product_name': 'Product Name',
+      'category': 'Category'
+    };
+    return columnNames[this.tableSortColumn] || this.tableSortColumn;
   }
+
+  goToProductDetails(sku: string): void {
+    // Use Angular router to navigate to the details page
+    // (Assume router is injected in the constructor)
+    this.router.navigate(['/products/details', sku]);
+  }
+
 }

@@ -10,10 +10,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/login/login.component').then((m) => m.LoginComponent)
   },
-  
+
   {
     path: 'dashboard',
-    canActivate: [AuthGuard],                    
+    canActivate: [AuthGuard],
     loadComponent: () =>
       import('./pages/dashboard/dashboard.component').then(
         (m) => m.DashboardComponent
@@ -68,6 +68,15 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     loadComponent: () =>
       import('./pages/profile/profile.component').then((m) => m.ProfileComponent)
+  },
+
+  {
+    path: 'products/details/:sku',
+    canActivate: [AuthGuard],
+    loadComponent: () =>
+      import('./pages/products/product-details.component').then(
+        (m) => m.ProductDetailsComponent
+      )
   },
 
   { path: '**', redirectTo: 'login' }

@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.bg-gradient-to-br {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 50%, #fef3c7 100%);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.summary-card {
+  box-shadow: 0 2px 8px 0 rgba(255, 107, 53, 0.08);
+}
+
+// Add more custom styles as needed for cards, badges, etc.

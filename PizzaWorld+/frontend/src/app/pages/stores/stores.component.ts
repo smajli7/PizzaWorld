@@ -789,6 +789,10 @@ export class StoresComponent implements OnInit, OnDestroy {
 
   // KPI Methods
   getTotalStores(): number {
+    return this.filteredStores.length;
+  }
+
+  getAllStoresCount(): number {
     return this.storePerformanceData.length;
   }
 
@@ -797,15 +801,15 @@ export class StoresComponent implements OnInit, OnDestroy {
   }
 
   getUniqueStatesCount(): number {
-    return new Set(this.storePerformanceData.map(store => store.state_name)).size;
+    return new Set(this.filteredStores.map(store => store.state_name)).size;
   }
 
   getTotalRevenue(): number {
-    return this.storePerformanceData.reduce((sum, store) => sum + store.total_revenue, 0);
+    return this.filteredStores.reduce((sum, store) => sum + store.total_revenue, 0);
   }
 
   getTotalOrders(): number {
-    return this.storePerformanceData.reduce((sum, store) => sum + store.total_orders, 0);
+    return this.filteredStores.reduce((sum, store) => sum + store.total_orders, 0);
   }
 
   getAverageOrderValue(): number {

@@ -1,6 +1,6 @@
 <app-sidebar></app-sidebar>
 
-<!-- Main Products Container with Orange Gradients -->
+<!-- Main Products Container -->
 <div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
 
   <!-- Header Section -->
@@ -9,10 +9,28 @@
       <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-8 text-white">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 class="text-3xl font-bold mb-2">Products Analytics</h1>
+            <div class="flex items-center mb-2">
+              <svg class="w-8 h-8 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+              </svg>
+              <h1 class="text-3xl font-bold">Products Analytics</h1>
+            </div>
             <p class="text-orange-100 text-lg">Product catalogue and performance insights • {{ getFilterLabel() }}</p>
           </div>
           <div class="mt-4 sm:mt-0 flex gap-3">
+            <button
+              (click)="exportCatalogue()"
+              [disabled]="exportCatalogueLoading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!exportCatalogueLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <svg *ngIf="exportCatalogueLoading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Export Products
+            </button>
             <button
               (click)="loadInitialData()"
               [disabled]="loading"
@@ -24,47 +42,22 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Refresh Data
+              Refresh
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Header Filter Controls -->
+      <!-- Filters Section -->
       <div class="px-6 py-6 bg-gradient-to-r from-orange-25 to-orange-50">
-        <!-- Filter Mode Toggle -->
-        <div class="mb-4">
-          <div class="flex items-center space-x-4">
-            <button
-              (click)="toggleDateRangeMode()"
-              [class.bg-orange-500]="!useCustomDateRange"
-              [class.bg-gray-300]="useCustomDateRange"
-              class="px-4 py-2 rounded-lg font-medium transition-colors">
-              <span [class.text-white]="!useCustomDateRange" [class.text-gray-700]="useCustomDateRange">
-                Preset Filters
-              </span>
-            </button>
-            <button
-              (click)="toggleDateRangeMode()"
-              [class.bg-orange-500]="useCustomDateRange"
-              [class.bg-gray-300]="!useCustomDateRange"
-              class="px-4 py-2 rounded-lg font-medium transition-colors">
-              <span [class.text-white]="useCustomDateRange" [class.text-gray-700]="!useCustomDateRange">
-                Custom Date Range
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Preset Filters -->
-        <div *ngIf="!useCustomDateRange" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-end">
 
           <!-- Year Filter -->
           <div class="flex flex-col">
             <label class="text-sm font-semibold text-gray-700 mb-1">Year</label>
             <select
               [(ngModel)]="selectedYear"
-              (change)="onYearChange()"
+              (ngModelChange)="onYearChange()"
               [disabled]="loading"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
               <option [ngValue]="undefined">All Years</option>
@@ -77,7 +70,6 @@
             <label class="text-sm font-semibold text-gray-700 mb-1">Month</label>
             <select
               [(ngModel)]="selectedMonth"
-              (change)="onFiltersChange()"
               [disabled]="loading || !selectedYear"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
               <option [ngValue]="undefined">All Months</option>
@@ -90,94 +82,51 @@
             <label class="text-sm font-semibold text-gray-700 mb-1">Category</label>
             <select
               [(ngModel)]="selectedCategory"
-              (change)="onFiltersChange()"
               [disabled]="loading"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
-              <option [ngValue]="undefined">All Categories</option>
+              <option value="">All Categories</option>
               <option *ngFor="let category of availableCategories" [value]="category">{{ category }}</option>
             </select>
           </div>
 
-          <!-- Search Box -->
+          <!-- Search Filter -->
           <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Search</label>
+            <label class="text-sm font-semibold text-gray-700 mb-1">Search Products</label>
             <input
               [(ngModel)]="searchTerm"
-              (ngModelChange)="onCatalogueSearchChange()"
+              (keydown.enter)="onSearchChange()"
               [disabled]="loading"
               type="text"
-              placeholder="Search products..."
+              placeholder="Product name, SKU..."
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
           </div>
 
-          <!-- Clear Filters Button -->
+          <!-- SKU Filter -->
           <div class="flex flex-col">
-            <button
-              (click)="selectedYear = undefined; selectedMonth = undefined; selectedCategory = undefined; searchTerm = ''; onFiltersChange(); onCatalogueSearchChange();"
-              class="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium rounded-lg transition-colors">
-              Clear Filters
-            </button>
+            <label class="text-sm font-semibold text-gray-700 mb-1">SKU Filter</label>
+            <input
+              [(ngModel)]="skuFilter"
+              (keydown.enter)="onSkuFilterChange()"
+              [disabled]="loading"
+              type="text"
+              placeholder="e.g. PIZZA001"
+              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
           </div>
         </div>
 
-        <!-- Custom Date Range Filters -->
-        <div *ngIf="useCustomDateRange" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-
-          <!-- Start Date -->
-          <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Start Date</label>
-            <input
-              [(ngModel)]="startDate"
-              (change)="onFiltersChange()"
-              [disabled]="loading"
-              type="date"
-              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
-          </div>
-
-          <!-- End Date -->
-          <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">End Date</label>
-            <input
-              [(ngModel)]="endDate"
-              (change)="onFiltersChange()"
-              [disabled]="loading"
-              type="date"
-              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
-          </div>
-
-          <!-- Category Filter -->
-          <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Category</label>
-            <select
-              [(ngModel)]="selectedCategory"
-              (change)="onFiltersChange()"
-              [disabled]="loading"
-              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
-              <option [ngValue]="undefined">All Categories</option>
-              <option *ngFor="let category of availableCategories" [value]="category">{{ category }}</option>
-            </select>
-          </div>
-
-          <!-- Search Box -->
-          <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Search</label>
-            <input
-              [(ngModel)]="searchTerm"
-              (ngModelChange)="onCatalogueSearchChange()"
-              [disabled]="loading"
-              type="text"
-              placeholder="Search products..."
-              class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
-          </div>
-
-          <!-- Clear Filters Button -->
-          <div class="flex flex-col">
-            <button
-              (click)="startDate = undefined; endDate = undefined; selectedCategory = undefined; searchTerm = ''; onFiltersChange(); onCatalogueSearchChange();"
-              class="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium rounded-lg transition-colors">
-              Clear Filters
-            </button>
-          </div>
+        <!-- Filter Action Buttons -->
+        <div class="mt-4 flex justify-end gap-3">
+          <button
+            (click)="applyFilters()"
+            class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors">
+            Apply Filters
+          </button>
+          <button
+            (click)="clearAllFilters()"
+            [disabled]="!hasActiveFilters()"
+            class="px-6 py-2 bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Clear All Filters
+          </button>
         </div>
       </div>
     </div>
@@ -196,7 +145,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
       <div>
-        <h3 class="text-red-800 font-medium">Error Loading Data</h3>
+        <h3 class="text-red-800 font-medium">Error Loading Products Data</h3>
         <p class="text-red-600 text-sm">Please try refreshing the page or contact support if the problem persists.</p>
       </div>
     </div>
@@ -205,114 +154,159 @@
   <!-- Content -->
   <div *ngIf="!loading && !error">
 
-    <!-- KPI Tiles -->
-    <div *ngIf="kpis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-      <!-- Total Revenue -->
-      <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
-        <div class="p-6">
+      <!-- Top Products Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
           <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Total Revenue</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(kpis.totalRevenue) }}</p>
-            </div>
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Top Revenue Products</h4>
           </div>
+          <div class="text-sm text-gray-500">{{ getFilterLabel() }}</div>
+        </div>
+        <div *ngIf="!chartsLoading && topProductsChart" class="animate-fade-in">
+          <apx-chart
+            [series]="topProductsChart.series || []"
+            [chart]="topProductsChart.chart || {type: 'bar'}"
+            [xaxis]="topProductsChart.xaxis || {}"
+            [yaxis]="topProductsChart.yaxis || {}"
+            [colors]="topProductsChart.colors || []"
+            [dataLabels]="topProductsChart.dataLabels || {enabled: false}"
+            [plotOptions]="topProductsChart.plotOptions || {}"
+            [tooltip]="topProductsChart.tooltip || {}"
+            [grid]="topProductsChart.grid || {}"
+            height="400">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-96">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       </div>
 
-      <!-- Total Orders -->
-      <div class="bg-white rounded-xl shadow-lg border border-blue-100 overflow-hidden">
-        <div class="p-6">
+      <!-- Category Distribution Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
           <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Total Orders</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatNumber(kpis.totalOrders) }}</p>
-            </div>
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Revenue by Category</h4>
           </div>
+          <div class="text-sm text-gray-500">{{ getFilterLabel() }}</div>
+        </div>
+        <div *ngIf="!chartsLoading && categoryDonutChart" class="animate-fade-in">
+          <apx-chart
+            [series]="categoryDonutChart.series || []"
+            [chart]="categoryDonutChart.chart || {type: 'donut'}"
+            [labels]="categoryDonutChart.labels || []"
+            [colors]="categoryDonutChart.colors || []"
+            [dataLabels]="categoryDonutChart.dataLabels || {enabled: true}"
+            [plotOptions]="categoryDonutChart.plotOptions || {}"
+            [legend]="categoryDonutChart.legend || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       </div>
 
-      <!-- Total Units -->
-      <div class="bg-white rounded-xl shadow-lg border border-green-100 overflow-hidden">
-        <div class="p-6">
+      <!-- Performance Scatter Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
           <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Units Sold</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatNumber(kpis.totalUnits) }}</p>
-            </div>
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Revenue vs Units Sold</h4>
           </div>
+          <div class="text-sm text-gray-500">Performance Analysis</div>
+        </div>
+        <div *ngIf="!chartsLoading && performanceScatterChart" class="animate-fade-in">
+          <apx-chart
+            [series]="performanceScatterChart.series || []"
+            [chart]="performanceScatterChart.chart || {type: 'scatter'}"
+            [xaxis]="performanceScatterChart.xaxis || {}"
+            [yaxis]="performanceScatterChart.yaxis || {}"
+            [colors]="performanceScatterChart.colors || []"
+            [dataLabels]="performanceScatterChart.dataLabels || {enabled: false}"
+            [tooltip]="performanceScatterChart.tooltip || {}"
+            [grid]="performanceScatterChart.grid || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       </div>
 
-      <!-- Total Products -->
-      <div class="bg-white rounded-xl shadow-lg border border-purple-100 overflow-hidden">
-        <div class="p-6">
+      <!-- Price Distribution Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
           <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Products</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatNumber(kpis.totalProducts) }}</p>
-            </div>
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Price Distribution</h4>
           </div>
+          <div class="text-sm text-gray-500">Product Count by Price Range</div>
         </div>
-      </div>
-
-      <!-- Average Price -->
-      <div class="bg-white rounded-xl shadow-lg border border-yellow-100 overflow-hidden">
-        <div class="p-6">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-500">Avg Price</p>
-              <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(kpis.avgPrice) }}</p>
-            </div>
-          </div>
+        <div *ngIf="!chartsLoading && priceDistributionChart" class="animate-fade-in">
+          <apx-chart
+            [series]="priceDistributionChart.series || []"
+            [chart]="priceDistributionChart.chart || {type: 'bar'}"
+            [xaxis]="priceDistributionChart.xaxis || {}"
+            [yaxis]="priceDistributionChart.yaxis || {}"
+            [colors]="priceDistributionChart.colors || []"
+            [dataLabels]="priceDistributionChart.dataLabels || {enabled: false}"
+            [plotOptions]="priceDistributionChart.plotOptions || {}"
+            [grid]="priceDistributionChart.grid || {}"
+            height="300">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-72">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
         </div>
       </div>
     </div>
 
-    <!-- All Available Products Table (Catalogue) -->
+    <!-- Product Catalogue Table -->
     <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden mb-8">
       <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-xl font-bold text-white">🟧 All Available Products</h3>
-            <p class="text-orange-100">Complete product catalogue • {{ catalogueProducts.length }} products</p>
+            <div class="flex items-center">
+              <svg class="w-6 h-6 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+              </svg>
+              <h3 class="text-xl font-bold text-white">Product Catalogue</h3>
+            </div>
+            <p class="text-orange-100">Complete product inventory • {{ catalogueProducts.length }} products</p>
           </div>
-          <div>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <label class="text-sm font-medium text-orange-100">Sort by:</label>
+              <select [(ngModel)]="catalogueSortColumn"
+                      (change)="sortCatalogue(catalogueSortColumn)"
+                      class="px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white text-gray-700">
+                <option value="sku">SKU</option>
+                <option value="product_name">Product Name</option>
+                <option value="price">Price</option>
+                <option value="category">Category</option>
+                <option value="launch_date">Launch Date</option>
+              </select>
+              <button (click)="toggleCatalogueSortDirection()"
+                      class="p-2 text-orange-100 hover:text-white border border-orange-300 rounded-lg hover:bg-orange-600/50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        [attr.d]="catalogueSortAscending ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'"></path>
+                </svg>
+              </button>
+            </div>
             <button
               (click)="exportCatalogue()"
               [disabled]="exportCatalogueLoading"
@@ -337,43 +331,83 @@
                 SKU
                 <span *ngIf="catalogueSortColumn === 'sku'" class="ml-1">{{ catalogueSortAscending ? '↑' : '↓' }}</span>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+              <th (click)="sortCatalogue('product_name')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Product Name
+                <span *ngIf="catalogueSortColumn === 'product_name'" class="ml-1">{{ catalogueSortAscending ? '↑' : '↓' }}</span>
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
               <th (click)="sortCatalogue('price')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
                 Price
                 <span *ngIf="catalogueSortColumn === 'price'" class="ml-1">{{ catalogueSortAscending ? '↑' : '↓' }}</span>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+              <th (click)="sortCatalogue('category')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Category
+                <span *ngIf="catalogueSortColumn === 'category'" class="ml-1">{{ catalogueSortAscending ? '↑' : '↓' }}</span>
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Launch Date</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let product of sortedCatalogueProducts" class="hover:bg-orange-50 transition-colors">
+            <tr *ngFor="let product of sortedCatalogueProducts; let i = index"
+                class="hover:bg-orange-50 transition-colors duration-200"
+                [class.animate-slide-in]="i < 10">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ product.sku }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.product_name }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ product.product_name }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.size }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ formatCurrency(product.price) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">{{ formatCurrency(product.price) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
                   {{ product.category }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.launch_date | date:'shortDate' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer" (click)="goToProductDetails(product.sku)">
+                <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Details
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Performance Table -->
-    <div class="bg-white rounded-xl shadow-lg border border-blue-100 overflow-hidden mb-8">
-      <div class="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600">
+    <!-- Performance Analytics Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
+      <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-xl font-bold text-white">Performance Analytics</h3>
-            <p class="text-blue-100">Product performance with revenue and sales data • Filtered by {{ getFilterLabel() }} • {{ performanceProducts.length }} results</p>
+            <div class="flex items-center">
+              <svg class="w-6 h-6 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+              <h3 class="text-xl font-bold text-white">Performance Analytics</h3>
+            </div>
+            <p class="text-orange-100">Product performance with sales data • {{ getFilterLabel() }} • {{ performanceProducts.length }} results • Sorted by {{ getSortDisplayName() }}</p>
           </div>
-          <div>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <label class="text-sm font-medium text-orange-100">Sort by:</label>
+              <select [(ngModel)]="tableSortColumn"
+                      (change)="sortTable(tableSortColumn)"
+                      class="px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white text-gray-700">
+                <option value="total_revenue">Revenue</option>
+                <option value="amount_ordered">Orders</option>
+                <option value="units_sold">Units Sold</option>
+                <option value="price">Price</option>
+                <option value="product_name">Product Name</option>
+                <option value="category">Category</option>
+              </select>
+              <button (click)="tableSortAscending = !tableSortAscending"
+                      class="p-2 text-orange-100 hover:text-white border border-orange-300 rounded-lg hover:bg-orange-600/50 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        [attr.d]="tableSortAscending ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'"></path>
+                </svg>
+              </button>
+            </div>
             <button
               (click)="exportPerformance()"
               [disabled]="exportPerformanceLoading"
@@ -396,77 +430,37 @@
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Launch Date</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units Sold</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let product of performanceProducts" class="hover:bg-blue-50 transition-colors">
+            <tr *ngFor="let product of sortedPerformanceProducts; let i = index"
+                class="hover:bg-orange-50 transition-colors duration-200"
+                [class.animate-slide-in]="i < 10">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ product.sku }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ product.product_name }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.size }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ product.product_name }} ({{ product.size }})</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ formatCurrency(product.price) }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
                   {{ product.category }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.launch_date | date:'shortDate' }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{{ formatCurrency(product.total_revenue) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatNumber(product.amount_ordered) }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatNumber(product.units_sold) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer" (click)="goToProductDetails(product.sku)">
+                <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Details
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-      <!-- Top Products Chart -->
-      <div *ngIf="topProductsChart" class="bg-white rounded-xl shadow-lg border border-purple-100 p-6">
-        <h4 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Products by Revenue</h4>
-        <div *ngIf="!chartsLoading">
-          <apx-chart
-            [series]="topProductsChart.series || []"
-            [chart]="topProductsChart.chart || {type: 'bar'}"
-            [xaxis]="topProductsChart.xaxis || {}"
-            [colors]="topProductsChart.colors || []"
-            [dataLabels]="topProductsChart.dataLabels || {enabled: false}"
-            [plotOptions]="topProductsChart.plotOptions || {}"
-            height="400">
-          </apx-chart>
-        </div>
-      </div>
-
-      <!-- Category Revenue Share -->
-      <div *ngIf="categoryDonutChart" class="bg-white rounded-xl shadow-lg border border-green-100 p-6">
-        <h4 class="text-lg font-semibold text-gray-900 mb-4">Revenue Share by Category</h4>
-        <div *ngIf="!chartsLoading">
-          <apx-chart
-            [series]="categoryDonutChart.series || []"
-            [chart]="categoryDonutChart.chart || {type: 'donut'}"
-            [labels]="categoryDonutChart.labels || []"
-            [colors]="categoryDonutChart.colors || []"
-            [dataLabels]="categoryDonutChart.dataLabels || {enabled: true}"
-            [plotOptions]="categoryDonutChart.plotOptions || {}"
-            [legend]="categoryDonutChart.legend || {}"
-            height="350">
-          </apx-chart>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chart Loading State -->
-    <div *ngIf="chartsLoading" class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-      <span class="ml-3 text-gray-600">Loading charts...</span>
     </div>
 
   </div>

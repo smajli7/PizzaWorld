@@ -56,12 +56,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // JWT = stateless
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/stores/**", "/api/store/**").permitAll() // TEMP: allow store KPIs for debugging
-                        .requestMatchers("/api/sales/test/**").permitAll() // TEMP: allow sales test endpoints for debugging
-                        .requestMatchers("/api/orders/test/**").permitAll() // allow orders test endpoints for debugging
-                        .requestMatchers("/api/kpi/orders-per-day/test").permitAll() // TEMP: allow orders per day test endpoint
-                        .requestMatchers("/api/test").permitAll() // TEMP: allow test endpoint
-                        .requestMatchers("/api/login", "/api/logout", "/api/me", "/error").permitAll()
+                        .requestMatchers("/api/**").permitAll() // TEMP: Allow all API endpoints for testing
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

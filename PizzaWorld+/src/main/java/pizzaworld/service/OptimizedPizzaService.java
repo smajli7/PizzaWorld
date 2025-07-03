@@ -2666,17 +2666,23 @@ public class OptimizedPizzaService {
                    name AS product_name,
                    size,
                    price,
-                   category
+                   category,
+                   launch AS launch_date
             FROM public.products
-            WHERE (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
-                   OR name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
-            ORDER BY category, name
+            WHERE 1=1
             """);
-        
+
         List<Object> params = new ArrayList<>();
-        params.add(search);
-        params.add(search);
-        
+
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append(" AND (sku ILIKE ? OR name ILIKE ?)");
+            String pattern = "%" + search.trim() + "%";
+            params.add(pattern);
+            params.add(pattern);
+        }
+
+        sql.append(" ORDER BY category, name");
+
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
 
@@ -2684,24 +2690,7 @@ public class OptimizedPizzaService {
      * Get catalogue products with launch date (for export and enhanced display)
      */
     public List<Map<String, Object>> getProductsCatalogueWithLaunchDate(String search) {
-        StringBuilder sql = new StringBuilder("""
-            SELECT sku,
-                   name AS product_name,
-                   size,
-                   price,
-                   category,
-                   launch_date
-            FROM public.products
-            WHERE (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
-                   OR name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
-            ORDER BY category, name
-            """);
-        
-        List<Object> params = new ArrayList<>();
-        params.add(search);
-        params.add(search);
-        
-        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+        return getProductsCatalogue(search); // Same as above
     }
 
     /**
@@ -2715,94 +2704,130 @@ public class OptimizedPizzaService {
      */
     public List<Map<String, Object>> getProductsPerformance(Integer year, Integer month, String category, String search) {
         StringBuilder sql = new StringBuilder("""
-            SELECT sku,
-                   MAX(product_name) as product_name,
-                   MAX(size) as size,
-                   MAX(price) as price,
-                   MAX(category) as category,
-                   MAX(launch_date) as launch_date,
-                   SUM(total_revenue) as total_revenue,
-                   SUM(amount_ordered) as amount_ordered,
-                   SUM(units_sold) as units_sold
-            FROM public.product_performance_monthly
-            WHERE year = COALESCE(?, year)
-              AND month = COALESCE(?, month)
-              AND category ILIKE COALESCE(?, category)
-              AND (sku ILIKE CONCAT('%', COALESCE(?, ''), '%') 
-                   OR product_name ILIKE CONCAT('%', COALESCE(?, ''), '%'))
-            GROUP BY sku
-            ORDER BY SUM(total_revenue) DESC
+            SELECT p.sku,
+                   p.name as product_name,
+                   p.size,
+                   p.price,
+                   p.category,
+                   p.launch as launch_date,
+                   COALESCE(SUM(oi.quantity * p.price), 0) as total_revenue,
+                   COALESCE(SUM(oi.quantity), 0) as units_sold
+            FROM products p
+            LEFT JOIN order_items oi ON p.sku = oi.sku
             """);
-        
         List<Object> params = new ArrayList<>();
-        params.add(year);
-        params.add(month);
-        params.add(category);
-        params.add(search);
-        params.add(search);
-        
+        boolean hasOrderFilter = false;
+        if (year != null && month != null) {
+            sql.append(" LEFT JOIN orders o ON oi.orderid = o.orderid");
+            sql.append(" WHERE EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) = ?");
+            params.add(year);
+            params.add(month);
+            hasOrderFilter = true;
+        } else if (year != null) {
+            sql.append(" LEFT JOIN orders o ON oi.orderid = o.orderid");
+            sql.append(" WHERE EXTRACT(YEAR FROM o.orderdate) = ?");
+            params.add(year);
+            hasOrderFilter = true;
+        } else {
+            sql.append(" WHERE 1=1");
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            sql.append(" AND p.category ILIKE ?");
+            params.add("%" + category + "%");
+        }
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append(" AND (p.sku ILIKE ? OR p.name ILIKE ?)");
+            params.add("%" + search + "%");
+            params.add("%" + search + "%");
+        }
+        sql.append(" GROUP BY p.sku, p.name, p.size, p.price, p.category, p.launch ORDER BY total_revenue DESC");
+        return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+    }
+
+    // Revenue by category with filters
+    public List<Map<String, Object>> getRevenueByCategory(Integer year, Integer month, String search) {
+        StringBuilder sql = new StringBuilder("""
+            SELECT p.category,
+                   COALESCE(SUM(oi.quantity * p.price), 0) as total_revenue
+            FROM products p
+            LEFT JOIN order_items oi ON p.sku = oi.sku
+            """);
+        List<Object> params = new ArrayList<>();
+        if (year != null && month != null) {
+            sql.append(" LEFT JOIN orders o ON oi.orderid = o.orderid");
+            sql.append(" WHERE EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) = ?");
+            params.add(year);
+            params.add(month);
+        } else if (year != null) {
+            sql.append(" LEFT JOIN orders o ON oi.orderid = o.orderid");
+            sql.append(" WHERE EXTRACT(YEAR FROM o.orderdate) = ?");
+            params.add(year);
+        } else {
+            sql.append(" WHERE 1=1");
+        }
+        if (search != null && !search.trim().isEmpty()) {
+            sql.append(" AND (p.sku ILIKE ? OR p.name ILIKE ?)");
+            params.add("%" + search + "%");
+            params.add("%" + search + "%");
+        }
+        sql.append(" GROUP BY p.category ORDER BY total_revenue DESC");
         return jdbcTemplate.queryForList(sql.toString(), params.toArray());
     }
 
     /**
      * Get aggregate KPIs for hero tiles
      */
-    public Map<String, Object> getProductsKpis(Integer year, String category) {
-        StringBuilder sql = new StringBuilder();
-        List<Object> params = new ArrayList<>();
-
-        sql.append("""
+    public Map<String, Object> getProductsKpis(Integer year, Integer month, String category) {
+        StringBuilder sql = new StringBuilder("""
             SELECT 
                 COUNT(DISTINCT p.sku) as total_products,
-                SUM(perf.total_revenue) as total_revenue,
-                SUM(perf.amount_ordered) as total_orders,
-                SUM(perf.units_sold) as total_units,
-                AVG(p.price) as avg_price
+                COALESCE(SUM(oi.quantity * p.price), 0) as total_revenue,
+                COALESCE(COUNT(DISTINCT o.orderid), 0) as total_orders,
+                COALESCE(SUM(oi.quantity), 0) as total_units,
+                COALESCE(AVG(p.price), 0) as avg_price
             FROM products p
-            LEFT JOIN (
-                SELECT 
-                    sku,
-                    SUM(oi.quantity * p.price) as total_revenue,
-                    COUNT(DISTINCT oi.orderid) as amount_ordered,
-                    SUM(oi.quantity) as units_sold
-                FROM order_items oi
-                JOIN orders o ON oi.orderid = o.orderid
-                JOIN products p ON oi.sku = p.sku
-                WHERE 1=1
+            LEFT JOIN order_items oi ON p.sku = oi.sku
+            WHERE 1=1
             """);
         
-        int paramIndex = 1;
-        if (year != null) {
+        List<Object> params = new ArrayList<>();
+        
+        // Fix the filtering logic to only include orders from the specified time period
+        if (year != null && month != null) {
+            sql.append(" AND EXTRACT(YEAR FROM o.orderdate) = ? AND EXTRACT(MONTH FROM o.orderdate) = ?");
+            params.add(year);
+            params.add(month);
+        } else if (year != null) {
             sql.append(" AND EXTRACT(YEAR FROM o.orderdate) = ?");
-        params.add(year);
-            paramIndex++;
+            params.add(year);
         }
         
-        if (category != null) {
-            sql.append(" AND p.category = ?");
-        params.add(category);
-            paramIndex++;
-        }
-
-        sql.append("""
-                GROUP BY sku
-            ) perf ON p.sku = perf.sku
-            """);
-
-        if (category != null) {
-            sql.append(" WHERE p.category = ?");
-        params.add(category);
+        if (category != null && !category.trim().isEmpty()) {
+            sql.append(" AND p.category ILIKE ?");
+            params.add("%" + category + "%");
         }
         
-        Map<String, Object> result = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
-        
+        try {
+            Map<String, Object> result = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
+            
             return Map.of(
-            "totalProducts", ((Number) result.getOrDefault("total_products", 0)).intValue(),
-            "totalRevenue", ((Number) result.getOrDefault("total_revenue", 0)).doubleValue(),
-            "totalOrders", ((Number) result.getOrDefault("total_orders", 0)).intValue(),
-            "totalUnits", ((Number) result.getOrDefault("total_units", 0)).intValue(),
-            "avgPrice", ((Number) result.getOrDefault("avg_price", 0)).doubleValue()
-        );
+                "totalProducts", ((Number) result.getOrDefault("total_products", 0)).intValue(),
+                "totalRevenue", ((Number) result.getOrDefault("total_revenue", 0)).doubleValue(),
+                "totalOrders", ((Number) result.getOrDefault("total_orders", 0)).intValue(),
+                "totalUnits", ((Number) result.getOrDefault("total_units", 0)).intValue(),
+                "avgPrice", ((Number) result.getOrDefault("avg_price", 0)).doubleValue()
+            );
+        } catch (Exception e) {
+            logger.error("Error getting products KPIs: ", e);
+            // Return fallback data
+            return Map.of(
+                "totalProducts", 0,
+                "totalRevenue", 0.0,
+                "totalOrders", 0,
+                "totalUnits", 0,
+                "avgPrice", 0.0
+            );
+        }
     }
 
     // =================================================================
@@ -3141,5 +3166,19 @@ public class OptimizedPizzaService {
         logger.info("Orders KPIs loaded in {} ms: {}", (endTime - startTime), kpis);
         
         return kpis;
+    }
+
+    public Map<String, Object> getProductBySku(String sku) {
+        String sql = "SELECT sku, name, price, category, size, ingredients, launch FROM products WHERE sku = ?";
+        try {
+            return jdbcTemplate.queryForMap(sql, sku);
+        } catch (Exception e) {
+            logger.error("Error fetching product by SKU: " + sku, e);
+            return null;
+        }
+    }
+
+    public List<Map<String, Object>> getProductRevenueTrend(User user, String sku, String timePeriod) {
+        return repo.getProductRevenueTrend(sku, timePeriod);
     }
 }

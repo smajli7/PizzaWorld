@@ -125,17 +125,36 @@
     <div class="mt-8 p-4 bg-white/5 rounded-lg border border-white/10">
       <h3 class="text-white font-semibold text-sm mb-3">Quick Stats</h3>
       <div class="space-y-2">
+        <!-- Active Stores -->
         <div class="flex justify-between text-xs">
           <span class="text-orange-200">Active Stores</span>
-          <span class="text-white font-medium">32</span>
+          <span class="text-white font-medium" *ngIf="!quickStatsLoading && !quickStatsError">{{ formatCompactNumber(quickStats.totalStores) }}</span>
+          <span class="text-orange-300 font-medium" *ngIf="quickStatsLoading">Loading...</span>
+          <span class="text-red-300 font-medium" *ngIf="quickStatsError">Error</span>
         </div>
+
+        <!-- Total Orders -->
         <div class="flex justify-between text-xs">
-          <span class="text-orange-200">Today's Orders</span>
-          <span class="text-white font-medium">247</span>
+          <span class="text-orange-200">Total Orders</span>
+          <span class="text-white font-medium" *ngIf="!quickStatsLoading && !quickStatsError">{{ formatCompactNumber(quickStats.totalOrders) }}</span>
+          <span class="text-orange-300 font-medium" *ngIf="quickStatsLoading">Loading...</span>
+          <span class="text-red-300 font-medium" *ngIf="quickStatsError">Error</span>
         </div>
+
+        <!-- Revenue -->
         <div class="flex justify-between text-xs">
           <span class="text-orange-200">Revenue</span>
-          <span class="text-white font-medium">€12.4K</span>
+          <span class="text-white font-medium" *ngIf="!quickStatsLoading && !quickStatsError">{{ formatCompactCurrency(quickStats.totalRevenue) }}</span>
+          <span class="text-orange-300 font-medium" *ngIf="quickStatsLoading">Loading...</span>
+          <span class="text-red-300 font-medium" *ngIf="quickStatsError">Error</span>
+        </div>
+
+        <!-- Total Customers -->
+        <div class="flex justify-between text-xs">
+          <span class="text-orange-200">Total Customers</span>
+          <span class="text-white font-medium" *ngIf="!quickStatsLoading && !quickStatsError">{{ formatCompactNumber(quickStats.totalCustomers) }}</span>
+          <span class="text-orange-300 font-medium" *ngIf="quickStatsLoading">Loading...</span>
+          <span class="text-red-300 font-medium" *ngIf="quickStatsError">Error</span>
         </div>
       </div>
     </div>

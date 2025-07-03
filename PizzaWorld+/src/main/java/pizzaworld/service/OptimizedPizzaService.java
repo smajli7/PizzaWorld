@@ -2770,17 +2770,17 @@ public class OptimizedPizzaService {
                 JOIN products p ON oi.sku = p.sku
                 WHERE 1=1
             """);
-
+        
         int paramIndex = 1;
         if (year != null) {
             sql.append(" AND EXTRACT(YEAR FROM o.orderdate) = ?");
-            params.add(year);
+        params.add(year);
             paramIndex++;
         }
         
         if (category != null) {
             sql.append(" AND p.category = ?");
-            params.add(category);
+        params.add(category);
             paramIndex++;
         }
 
@@ -2791,12 +2791,12 @@ public class OptimizedPizzaService {
 
         if (category != null) {
             sql.append(" WHERE p.category = ?");
-            params.add(category);
+        params.add(category);
         }
-
+        
         Map<String, Object> result = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
         
-        return Map.of(
+            return Map.of(
             "totalProducts", ((Number) result.getOrDefault("total_products", 0)).intValue(),
             "totalRevenue", ((Number) result.getOrDefault("total_revenue", 0)).doubleValue(),
             "totalOrders", ((Number) result.getOrDefault("total_orders", 0)).intValue(),
@@ -2878,11 +2878,28 @@ public class OptimizedPizzaService {
         }
         
         if (search != null && !search.trim().isEmpty()) {
-            sql.append(" AND (CAST(customerid AS TEXT) LIKE ? OR CAST(orderid AS TEXT) LIKE ? OR city ILIKE ?)");
+            // Enhanced search to support both state abbreviations (AZ, CA, NV, UT) and full state names (Arizona, California, Nevada, Utah)
+            sql.append(" AND (CAST(customerid AS TEXT) LIKE ? OR CAST(orderid AS TEXT) LIKE ? OR city ILIKE ? OR storeid ILIKE ? OR state_code ILIKE ? OR ");
+            sql.append("(state_code = 'AZ' AND ? ILIKE '%arizona%') OR ");
+            sql.append("(state_code = 'CA' AND ? ILIKE '%california%') OR ");
+            sql.append("(state_code = 'NV' AND ? ILIKE '%nevada%') OR ");
+            sql.append("(state_code = 'UT' AND ? ILIKE '%utah%'))");
+            
             String searchPattern = "%" + search.trim() + "%";
+            String searchLower = search.trim().toLowerCase();
+            
+            // Add parameters for basic searches
             params.add(searchPattern);
             params.add(searchPattern);
             params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            
+            // Add parameters for full state name searches
+            params.add(searchLower);
+            params.add(searchLower);
+            params.add(searchLower);
+            params.add(searchLower);
         }
         
         if (from != null && !from.trim().isEmpty()) {
@@ -2999,5 +3016,130 @@ public class OptimizedPizzaService {
             default:
                 throw new AccessDeniedException("Unknown role: " + user.getRole());
         }
+    }
+
+    /**
+     * Get KPIs for orders page based on the same filters used for orders table
+     */
+    @Cacheable(value = "ordersKPIs", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #store + '_' + #state + '_' + #orderid + '_' + #search + '_' + #from + '_' + #to")
+    public Map<String, Object> getOrdersKPIs(
+            String store, String state, String orderid, 
+            String search, String from, String to, User user) {
+        
+        logger.info("Loading orders KPIs for user role: {} with filters - store: {}, state: {}, orderid: {}, search: {}, from: {}, to: {}", 
+                   user.getRole(), store, state, orderid, search, from, to);
+        
+        long startTime = System.currentTimeMillis();
+        
+        // Build parameterized query using the same logic as getOrdersWithFiltersAndPagination
+        StringBuilder sql = new StringBuilder("""
+            SELECT 
+                COUNT(*) as total_orders,
+                COALESCE(SUM(order_value), 0) as total_revenue,
+                COUNT(DISTINCT customerid) as total_customers,
+                COUNT(DISTINCT storeid) as total_stores
+            FROM public.dashboard_recent_orders
+            WHERE 1=1
+            """);
+        
+        List<Object> params = new ArrayList<>();
+        
+        // Apply role-based filters (same logic as orders method)
+        switch (user.getRole()) {
+            case "HQ_ADMIN":
+                // HQ can see everything - apply optional filters
+                if (store != null && !store.trim().isEmpty()) {
+                    sql.append(" AND storeid = ?");
+                    params.add(store);
+                }
+                if (state != null && !state.trim().isEmpty()) {
+                    sql.append(" AND state_code = ?");
+                    params.add(state);
+                }
+                break;
+                
+            case "STATE_MANAGER":
+                // State manager sees only their state
+                sql.append(" AND state_code = ?");
+                params.add(user.getStateAbbr());
+                
+                if (store != null && !store.trim().isEmpty()) {
+                    sql.append(" AND storeid = ?");
+                    params.add(store);
+                }
+                break;
+                
+            case "STORE_MANAGER":
+                // Store manager sees only their store
+                sql.append(" AND storeid = ?");
+                params.add(user.getStoreId());
+                break;
+                
+            default:
+                throw new AccessDeniedException("Unknown role: " + user.getRole());
+        }
+        
+        // Apply additional filters (same as orders method)
+        if (orderid != null && !orderid.trim().isEmpty()) {
+            try {
+                Integer orderIdInt = Integer.parseInt(orderid);
+                sql.append(" AND orderid = ?");
+                params.add(orderIdInt);
+            } catch (NumberFormatException e) {
+                // Ignore invalid order ID
+            }
+        }
+        
+        if (search != null && !search.trim().isEmpty()) {
+            // Enhanced search to support both state abbreviations (AZ, CA, NV, UT) and full state names (Arizona, California, Nevada, Utah)
+            sql.append(" AND (CAST(customerid AS TEXT) LIKE ? OR CAST(orderid AS TEXT) LIKE ? OR city ILIKE ? OR storeid ILIKE ? OR state_code ILIKE ? OR ");
+            sql.append("(state_code = 'AZ' AND ? ILIKE '%arizona%') OR ");
+            sql.append("(state_code = 'CA' AND ? ILIKE '%california%') OR ");
+            sql.append("(state_code = 'NV' AND ? ILIKE '%nevada%') OR ");
+            sql.append("(state_code = 'UT' AND ? ILIKE '%utah%'))");
+            
+            String searchPattern = "%" + search.trim() + "%";
+            String searchLower = search.trim().toLowerCase();
+            
+            // Add parameters for basic searches
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            params.add(searchPattern);
+            
+            // Add parameters for full state name searches
+            params.add(searchLower);
+            params.add(searchLower);
+            params.add(searchLower);
+            params.add(searchLower);
+        }
+        
+        if (from != null && !from.trim().isEmpty()) {
+            sql.append(" AND orderdate >= CAST(? AS TIMESTAMP)");
+            params.add(from);
+        }
+        
+        if (to != null && !to.trim().isEmpty()) {
+            sql.append(" AND orderdate < CAST(? AS TIMESTAMP) + INTERVAL '1 day'");
+            params.add(to);
+        }
+        
+        logger.debug("Executing KPI query: {} with params: {}", sql.toString(), params);
+        
+        // Execute query - this will use the customer index for efficient customer counting
+        Map<String, Object> result = jdbcTemplate.queryForMap(sql.toString(), params.toArray());
+        
+        // Handle null values and convert to appropriate types
+        Map<String, Object> kpis = new HashMap<>();
+        kpis.put("totalOrders", ((Number) result.getOrDefault("total_orders", 0)).longValue());
+        kpis.put("totalRevenue", ((Number) result.getOrDefault("total_revenue", 0.0)).doubleValue());
+        kpis.put("totalCustomers", ((Number) result.getOrDefault("total_customers", 0)).longValue());
+        kpis.put("totalStores", ((Number) result.getOrDefault("total_stores", 0)).longValue());
+        
+        long endTime = System.currentTimeMillis();
+        logger.info("Orders KPIs loaded in {} ms: {}", (endTime - startTime), kpis);
+        
+        return kpis;
     }
 }

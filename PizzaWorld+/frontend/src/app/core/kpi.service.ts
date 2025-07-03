@@ -104,6 +104,14 @@ export interface OrderFilters {
   to?: string;
 }
 
+/** Orders KPIs interface */
+export interface OrdersKPIs {
+  totalOrders: number;
+  totalRevenue: number;
+  totalCustomers: number;
+  totalStores: number;
+}
+
 /** Global Store KPIs interface - matches kpis_global_store materialized view */
 export interface GlobalStoreKpi {
   state: string;
@@ -1049,14 +1057,47 @@ export class KpiService {
 
   /** Get available states for orders filtering based on user role */
   getAvailableStatesForOrders(): Observable<{state_code: string, state: string}[]> {
-    const token = localStorage.getItem('authToken');
-    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : undefined;
-
+    const headers = this.getAuthHeaders();
     return this.http.get<{state_code: string, state: string}[]>('/api/v2/orders/available-states', { headers })
       .pipe(
         catchError(error => {
-          console.error('❌ Available states loading failed:', error);
+          console.error('Error fetching available states for orders:', error);
           return of([]);
+        })
+      );
+  }
+
+  /**
+   * Get KPIs for orders page based on the same filters used for orders table
+   */
+  getOrdersKPIs(
+    store?: string,
+    state?: string,
+    orderid?: string,
+    search?: string,
+    from?: string,
+    to?: string
+  ): Observable<OrdersKPIs> {
+    const headers = this.getAuthHeaders();
+    let params = new HttpParams();
+
+    if (store) params = params.set('store', store);
+    if (state) params = params.set('state', state);
+    if (orderid) params = params.set('orderid', orderid);
+    if (search) params = params.set('search', search);
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+
+    return this.http.get<OrdersKPIs>('/api/v2/orders/kpis', { headers, params })
+      .pipe(
+        catchError(error => {
+          console.error('Error fetching orders KPIs:', error);
+          return of({
+            totalOrders: 0,
+            totalRevenue: 0,
+            totalCustomers: 0,
+            totalStores: 0
+          });
         })
       );
   }

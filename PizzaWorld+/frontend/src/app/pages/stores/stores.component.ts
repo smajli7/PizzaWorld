@@ -88,6 +88,7 @@ export class StoresComponent implements OnInit, OnDestroy {
   searchTerm = '';
   selectedStateFilter = '';
   performanceFilter = '';
+  storeIdFilter = '';
   states: { label: string, value: string }[] = [];
 
   // Analytics
@@ -666,15 +667,28 @@ export class StoresComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.selectedStateFilter = '';
     this.performanceFilter = '';
+    this.storeIdFilter = '';
+    this.applyFilters();
+  }
+
+  onStoreIdFilterChange(): void {
     this.applyFilters();
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.selectedStateFilter || this.performanceFilter);
+    return !!(this.searchTerm || this.selectedStateFilter || this.performanceFilter || this.storeIdFilter);
   }
 
   private applyFilters(): void {
     let filtered = [...this.storePerformanceData];
+
+    // Store ID filter
+    if (this.storeIdFilter) {
+      const storeIdLower = this.storeIdFilter.toLowerCase();
+      filtered = filtered.filter(store =>
+        store.storeid?.toLowerCase().includes(storeIdLower)
+      );
+    }
 
     // Search filter
     if (this.searchTerm) {
@@ -727,6 +741,19 @@ export class StoresComponent implements OnInit, OnDestroy {
   private applyTableSort(): void {
     // This will be handled by getTableSortedData()
     this.cdr.detectChanges();
+  }
+
+  getSortDisplayName(): string {
+    switch (this.tableSortColumn) {
+      case 'total_revenue': return 'Revenue';
+      case 'total_orders': return 'Orders';
+      case 'avg_order_value': return 'Avg Order Value';
+      case 'unique_customers': return 'Customers';
+      case 'storeid': return 'Store ID';
+      case 'city': return 'City';
+      case 'state_name': return 'State';
+      default: return 'Revenue';
+    }
   }
 
   getTableSortedData(): StorePerformanceData[] {

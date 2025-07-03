@@ -1385,4 +1385,25 @@ public class OptimizedPizzaController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @GetMapping("/orders/kpis")
+    public ResponseEntity<Map<String, Object>> getOrdersKPIs(
+            @RequestParam(required = false) String store,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String orderid,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        try {
+            User user = userDetails.getUser();
+            Map<String, Object> kpis = pizzaService.getOrdersKPIs(
+                store, state, orderid, search, from, to, user);
+            return ResponseEntity.ok(kpis);
+        } catch (Exception e) {
+            logger.error("Error fetching orders KPIs", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }

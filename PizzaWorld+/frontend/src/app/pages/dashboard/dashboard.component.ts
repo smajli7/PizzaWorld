@@ -63,6 +63,9 @@ export class DashboardComponent implements OnInit {
   availableYears: TimePeriodOption[] = [];
   availableMonths: TimePeriodOption[] = [];
 
+  // Actual unique customer count (not summed from stores)
+  actualUniqueCustomers: number = 0;
+
   // Filter state
   selectedTimePeriod: 'all-time' | 'year' | 'month' | 'custom' = 'all-time';
   selectedYear?: number;
@@ -207,7 +210,6 @@ export class DashboardComponent implements OnInit {
       params = params.delete('timePeriod');
     }
 
-
     this.http.get<StoreRevenueData[]>(apiUrl, {
       headers: this.getAuthHeaders(),
       params
@@ -217,11 +219,51 @@ export class DashboardComponent implements OnInit {
         this.applyFilters();
         this.buildCharts();
         this.loading = false;
+        // Load the actual unique customer count
+        this.loadUniqueCustomerCount();
       },
       error: (error) => {
         console.error('Dashboard data loading failed:', error);
         this.error = true;
         this.loading = false;
+      }
+    });
+  }
+
+  loadUniqueCustomerCount(): void {
+    // Use the same endpoint as orders page to get accurate unique customer count
+    // Apply the same time period filtering as the dashboard
+    let params = new HttpParams();
+
+    // Build date range parameters based on selected time period
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      const fromDate = `${this.selectedYear}-01-01`;
+      const toDate = `${this.selectedYear}-12-31`;
+      params = params.set('from', fromDate).set('to', toDate);
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      const fromDate = `${this.selectedYear}-${this.selectedMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.selectedYear, this.selectedMonth, 0).getDate();
+      const toDate = `${this.selectedYear}-${this.selectedMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+    // For 'all-time', no date filters are added
+
+    this.http.get<any>('/api/v2/orders/kpis', {
+      headers: this.getAuthHeaders(),
+      params
+    }).subscribe({
+      next: (kpiData) => {
+        this.actualUniqueCustomers = kpiData.totalCustomers || 0;
+      },
+      error: (error) => {
+        console.error('Failed to load unique customer count:', error);
+        // Keep the fallback calculation if the API fails
+        this.actualUniqueCustomers = 0;
       }
     });
   }
@@ -761,6 +803,13 @@ export class DashboardComponent implements OnInit {
   }
 
   getTotalCustomers(): number {
+    // Use the actual unique customer count from the backend if available
+    // This prevents double-counting customers who ordered from multiple stores
+    if (this.actualUniqueCustomers > 0) {
+      return this.actualUniqueCustomers;
+    }
+
+    // Fallback to summing store customers (may double-count, but better than nothing)
     return this.filteredStoreData.reduce((sum, store) => sum + this.getCustomers(store), 0);
   }
 
@@ -863,13 +912,18 @@ export class DashboardComponent implements OnInit {
   }
 
   loadHourlyPerformanceData(): void {
-    // Use dashboard time filtering for consistency
+    // Apply time period filtering for consistency with dashboard
     let params = new HttpParams();
-    if (this.selectedYear && this.selectedTimePeriod !== 'all-time') {
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
       params = params.set('year', this.selectedYear.toString());
-    }
-    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
       params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
     }
 
     this.http.get<any[]>('/api/v2/analytics/hourly-performance', {
@@ -885,8 +939,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadProductPerformanceData(): void {
+    // Apply time period filtering for consistency with dashboard
+    let params = new HttpParams();
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
+      params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+
     this.http.get<any[]>('/api/v2/analytics/product-performance', {
-      headers: this.getAuthHeaders()
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.productPerformanceData = data;
@@ -897,8 +966,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadCategoryPerformanceData(): void {
+    // Apply time period filtering for consistency with dashboard
+    let params = new HttpParams();
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
+      params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+
     this.http.get<any[]>('/api/v2/analytics/category-performance', {
-      headers: this.getAuthHeaders()
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.categoryPerformanceData = data;
@@ -909,8 +993,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadCustomerAcquisitionData(): void {
+    // Apply time period filtering for consistency with dashboard
+    let params = new HttpParams();
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
+      params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+
     this.http.get<any[]>('/api/v2/analytics/customer-acquisition', {
-      headers: this.getAuthHeaders()
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.customerAcquisitionData = data;
@@ -921,8 +1020,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadDailyTrendsData(): void {
+    // Apply time period filtering for consistency with dashboard
+    let params = new HttpParams();
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
+      params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+
     this.http.get<any[]>('/api/v2/analytics/daily-trends', {
-      headers: this.getAuthHeaders()
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.dailyTrendsData = data;
@@ -933,8 +1047,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadMonthlyTrendsData(): void {
+    // Apply time period filtering for consistency with dashboard
+    let params = new HttpParams();
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
+      params = params.set('year', this.selectedYear.toString());
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
+      params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
+    }
+
     this.http.get<any[]>('/api/v2/analytics/monthly-trends', {
-      headers: this.getAuthHeaders()
+      headers: this.getAuthHeaders(),
+      params
     }).subscribe({
       next: (data) => {
         this.monthlyTrendsData = data;
@@ -944,18 +1073,19 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-
-
-
-
   loadPeakHoursData(): void {
-    // Use dashboard time filtering for consistency (same as hourly performance)
+    // Apply time period filtering for consistency with dashboard
     let params = new HttpParams();
-    if (this.selectedYear && this.selectedTimePeriod !== 'all-time') {
+    if (this.selectedTimePeriod === 'year' && this.selectedYear) {
       params = params.set('year', this.selectedYear.toString());
-    }
-    if (this.selectedMonth && this.selectedTimePeriod === 'month') {
+    } else if (this.selectedTimePeriod === 'month' && this.selectedYear && this.selectedMonth) {
+      params = params.set('year', this.selectedYear.toString());
       params = params.set('month', this.selectedMonth.toString());
+    } else if (this.selectedTimePeriod === 'custom' && this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
+      const fromDate = `${this.customStartYear}-${this.customStartMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(this.customEndYear, this.customEndMonth, 0).getDate();
+      const toDate = `${this.customEndYear}-${this.customEndMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      params = params.set('from', fromDate).set('to', toDate);
     }
 
     this.http.get<any[]>('/api/v2/analytics/peak-hours', {
@@ -1287,10 +1417,6 @@ export class DashboardComponent implements OnInit {
       grid: { borderColor: '#e5e7eb' }
     };
   }
-
-
-
-
 
   // Removed seasonal chart - doesn't provide real business value
 }

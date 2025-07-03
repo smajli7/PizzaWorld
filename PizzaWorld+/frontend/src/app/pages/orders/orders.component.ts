@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
-import { KpiService, OrderInfo, PaginatedOrdersResponse } from '../../core/kpi.service';
+import { KpiService, OrderInfo, PaginatedOrdersResponse, OrdersKPIs } from '../../core/kpi.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
@@ -51,9 +51,18 @@ export class OrdersComponent implements OnInit, OnDestroy {
   loading = false;
   error = false;
   exportLoading = false;
+  kpisLoading = false;
 
   // Available states for dropdown
   availableStates: {state_code: string, state: string}[] = [];
+
+  // KPI data
+  ordersKPIs: OrdersKPIs = {
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalCustomers: 0,
+    totalStores: 0
+  };
 
   // Math reference for template
   Math = Math;
@@ -73,13 +82,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(() => {
       this.currentPage = 0;
-      this.loadOrders();
+      this.loadData();
     });
   }
 
   ngOnInit(): void {
     this.loadAvailableStates();
-    this.loadOrders();
+    this.loadData();
   }
 
   loadAvailableStates(): void {
@@ -96,6 +105,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  loadData(): void {
+    // Load orders and KPIs in parallel for better performance
+    this.loadOrders();
+    this.loadKPIs();
   }
 
   loadOrders(): void {
@@ -135,17 +150,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
   // Filter methods
   onStoreFilterChange(): void {
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   onStateFilterChange(): void {
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   onOrderIdFilterChange(): void {
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   onSearchFilterChange(): void {
@@ -154,7 +169,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   onDateFilterChange(): void {
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   // Sorting methods
@@ -174,7 +189,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.sortOrder = 'desc';
     }
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   getSortIcon(field: string): string {
@@ -191,6 +206,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return 'text-gray-500 hover:text-orange-500';
   }
 
+  applyFilters(): void {
+    this.currentPage = 0;
+    this.loadData();
+  }
+
   clearFilters(): void {
     this.storeFilter = '';
     this.stateFilter = '';
@@ -198,29 +218,31 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.searchFilter = '';
     this.fromDateFilter = '';
     this.toDateFilter = '';
+    this.sortBy = 'orderdate';
+    this.sortOrder = 'desc';
     this.currentPage = 0;
-    this.loadOrders();
+    this.loadData();
   }
 
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 0 && page < this.totalPages) {
       this.currentPage = page;
-      this.loadOrders();
+      this.loadData();
     }
   }
 
   nextPage(): void {
     if (this.hasNext) {
       this.currentPage++;
-      this.loadOrders();
+      this.loadData();
     }
   }
 
   previousPage(): void {
     if (this.hasPrevious) {
       this.currentPage--;
-      this.loadOrders();
+      this.loadData();
     }
   }
 
@@ -260,6 +282,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
+  formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-US').format(value);
+  }
+
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -288,5 +314,27 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const start = Math.max(0, this.currentPage - Math.floor(maxVisible / 2));
     const end = Math.min(this.totalPages, start + maxVisible);
     return Array.from({ length: end - start }, (_, i) => start + i);
+  }
+
+  loadKPIs(): void {
+    this.kpisLoading = true;
+
+    this.kpiService.getOrdersKPIs(
+      this.storeFilter || undefined,
+      this.stateFilter || undefined,
+      this.orderIdFilter || undefined,
+      this.searchFilter || undefined,
+      this.fromDateFilter || undefined,
+      this.toDateFilter || undefined
+    ).subscribe({
+      next: (kpis: OrdersKPIs) => {
+        this.ordersKPIs = kpis;
+        this.kpisLoading = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading orders KPIs:', error);
+        this.kpisLoading = false;
+      }
+    });
   }
 }

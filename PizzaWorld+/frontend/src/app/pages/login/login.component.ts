@@ -9,6 +9,7 @@ import {
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -23,7 +24,7 @@ import { PreloadService } from '../../core/preload.service';
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
-  imports: [CommonModule, ReactiveFormsModule, LoadingPopupComponent]
+  imports: [CommonModule, ReactiveFormsModule, RouterModule, LoadingPopupComponent]
 })
 export class LoginComponent implements OnInit {
   form!: FormGroup;

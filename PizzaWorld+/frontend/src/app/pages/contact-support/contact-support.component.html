@@ -1,0 +1,148 @@
+<!-- Contact Support Page -->
+<div class="contact-container">
+  <!-- Animated Background -->
+  <div class="animated-bg">
+    <div class="gradient-circle gradient-1"></div>
+    <div class="gradient-circle gradient-2"></div>
+    <div class="gradient-circle gradient-3"></div>
+  </div>
+
+  <!-- Floating Pizza Elements -->
+  <div class="floating-elements">
+    <div class="pizza-element pizza-1">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-2">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-3">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+  </div>
+
+  <!-- Contact Card -->
+  <div class="contact-card">
+    <!-- Header Section -->
+    <div class="header-section">
+      <h1 class="page-title">Contact Support</h1>
+      <p class="subtitle">We're here to help with your account</p>
+    </div>
+
+    <!-- Contact Form -->
+    <form [formGroup]="contactForm" (ngSubmit)="sendEmail()" class="contact-form">
+      <!-- Name Field -->
+      <div class="form-group">
+        <label class="form-label">Your Name</label>
+        <div class="input-wrapper">
+          <i class="input-icon bx bxs-user"></i>
+          <input
+            type="text"
+            formControlName="name"
+            placeholder="Enter your full name"
+            class="form-input"
+            [class.error]="contactForm.get('name')?.touched && contactForm.get('name')?.invalid"
+          />
+        </div>
+        <span class="error-message" *ngIf="contactForm.get('name')?.touched && contactForm.get('name')?.invalid">
+          Name is required
+        </span>
+      </div>
+
+      <!-- Email Field -->
+      <div class="form-group">
+        <label class="form-label">Your Email</label>
+        <div class="input-wrapper">
+          <i class="input-icon bx bxs-envelope"></i>
+          <input
+            type="email"
+            formControlName="email"
+            placeholder="Enter your email address"
+            class="form-input"
+            [class.error]="contactForm.get('email')?.touched && contactForm.get('email')?.invalid"
+          />
+        </div>
+        <span class="error-message" *ngIf="contactForm.get('email')?.touched && contactForm.get('email')?.errors?.['required']">
+          Email is required
+        </span>
+        <span class="error-message" *ngIf="contactForm.get('email')?.touched && contactForm.get('email')?.errors?.['email']">
+          Please enter a valid email address
+        </span>
+      </div>
+
+      <!-- Subject Field -->
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <div class="input-wrapper">
+          <i class="input-icon bx bxs-info-circle"></i>
+          <input
+            type="text"
+            formControlName="subject"
+            placeholder="e.g., Password Reset Request"
+            class="form-input"
+            [class.error]="contactForm.get('subject')?.touched && contactForm.get('subject')?.invalid"
+          />
+        </div>
+        <span class="error-message" *ngIf="contactForm.get('subject')?.touched && contactForm.get('subject')?.invalid">
+          Subject is required
+        </span>
+      </div>
+
+      <!-- Message Field -->
+      <div class="form-group">
+        <label class="form-label">Your Message</label>
+        <div class="textarea-wrapper">
+          <textarea
+            formControlName="message"
+            placeholder="Please describe your issue in detail..."
+            class="form-textarea"
+            rows="5"
+            [class.error]="contactForm.get('message')?.touched && contactForm.get('message')?.invalid"
+          ></textarea>
+        </div>
+        <span class="error-message" *ngIf="contactForm.get('message')?.touched && contactForm.get('message')?.invalid">
+          Message is required
+        </span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="button-group">
+        <button
+          type="button"
+          class="back-btn"
+          routerLink="/login"
+        >
+          <i class="bx bx-arrow-back"></i>
+          Back to Login
+        </button>
+        <button
+          type="submit"
+          class="submit-btn"
+          [disabled]="contactForm.invalid || sending"
+          [class.loading]="sending"
+        >
+          <span *ngIf="!sending">Send Email</span>
+          <span *ngIf="sending" class="loading-spinner">
+            <i class="bx bx-loader-alt bx-spin"></i>
+          </span>
+        </button>
+      </div>
+
+      <!-- Alert Messages -->
+      <div class="alert-container">
+        <div *ngIf="successMessage" class="alert alert-success">
+          <i class="bx bxs-check-circle"></i>
+          {{ successMessage }}
+        </div>
+        <div *ngIf="errorMessage" class="alert alert-error">
+          <i class="bx bxs-error-circle"></i>
+          {{ errorMessage }}
+        </div>
+      </div>
+    </form>
+
+    <!-- Footer -->
+    <div class="contact-footer">
+      <p>© 2025 Data provided by external sources. All rights reserved.</p>
+    </div>
+  </div>
+</div>

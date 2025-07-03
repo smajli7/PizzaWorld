@@ -11,46 +11,130 @@
   [progress]="loadingProgress">
 </app-loading-popup>
 
-<!-- Hintergrund-Layer: animierte Pizza-Slices -->
-<ul class="bg-pizzas" aria-hidden="true">
-  <li></li><li></li><li></li><li></li><li></li>
-  <li></li><li></li><li></li><li></li><li></li>
-</ul>
-
-<!-- Login-Card -->
-<div class="wrapper">
-  <div class="logo-container">
-    <img class="form-logo" src="assets/images/pizzaworldlogo.png" alt="PizzaWorld Logo" />
+<!-- Modern Login Page -->
+<div class="login-container">
+  <!-- Animated Background -->
+  <div class="animated-bg">
+    <div class="gradient-circle gradient-1"></div>
+    <div class="gradient-circle gradient-2"></div>
+    <div class="gradient-circle gradient-3"></div>
   </div>
 
+  <!-- Floating Pizza Elements -->
+  <div class="floating-elements">
+    <div class="pizza-element pizza-1">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-2">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-3">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-4">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+    <div class="pizza-element pizza-5">
+      <img src="assets/images/pizza-slice.svg" alt="">
+    </div>
+  </div>
 
+  <!-- Logo Outside Card -->
+  <div class="logo-outside">
+    <img class="logo" src="assets/images/pizzaworldlogo.png" alt="PizzaWorld Logo" />
+  </div>
 
-  <form [formGroup]="form" (ngSubmit)="login()" novalidate>
-    <!-- Benutzername -->
-    <div class="input-box">
-      <input type="text" formControlName="username" placeholder="Username" />
-      <i class="bx bxs-user"></i>
+  <!-- Login Card -->
+  <div class="login-card">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+      <h1 class="welcome-text">Welcome</h1>
+      <p class="subtitle">Sign in to access your dashboard</p>
     </div>
 
-    <!-- Passwort -->
-    <div class="input-box">
-      <input
-        [type]="showPassword ? 'text' : 'password'"
-        formControlName="password"
-        placeholder="Passwort"
-        autocomplete="current-password"
-      />
-      <i
-        class="bx"
-        [ngClass]="showPassword ? 'bxs-show' : 'bx-low-vision'"
-        (click)="togglePassword()"
-      ></i>
+    <!-- Login Form -->
+    <form [formGroup]="form" (ngSubmit)="login()" class="login-form">
+      <!-- Username Field -->
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <div class="input-wrapper">
+          <i class="input-icon bx bxs-user"></i>
+          <input
+            type="text"
+            formControlName="username"
+            placeholder="Enter your username"
+            class="form-input"
+            [class.error]="form.get('username')?.touched && form.get('username')?.invalid"
+          />
+        </div>
+        <span class="error-message" *ngIf="form.get('username')?.touched && form.get('username')?.invalid">
+          Username is required
+        </span>
+      </div>
+
+      <!-- Password Field -->
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-wrapper">
+          <i class="input-icon bx bxs-lock-alt"></i>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            class="form-input"
+            [class.error]="form.get('password')?.touched && form.get('password')?.invalid"
+          />
+          <i
+            class="toggle-password bx"
+            [ngClass]="showPassword ? 'bx-show' : 'bx-hide'"
+            (click)="togglePassword()"
+          ></i>
+        </div>
+        <span class="error-message" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
+          Password is required
+        </span>
+      </div>
+
+      <!-- Remember Me & Forgot Password -->
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox" class="remember-checkbox" />
+          <span class="checkmark"></span>
+          <span class="remember-text">Remember me</span>
+        </label>
+        <a routerLink="/contact-support" class="forgot-password">Forgot password?</a>
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="submit-btn"
+        [disabled]="form.invalid"
+        [class.loading]="showLoadingPopup"
+      >
+        <span *ngIf="!showLoadingPopup">Sign In</span>
+        <span *ngIf="showLoadingPopup" class="loading-spinner">
+          <i class="bx bx-loader-alt bx-spin"></i>
+        </span>
+      </button>
+
+      <!-- Alert Messages -->
+      <div class="alert-container">
+        <div *ngIf="successMsg" class="alert alert-success">
+          <i class="bx bxs-check-circle"></i>
+          {{ successMsg }}
+        </div>
+        <div *ngIf="errorMsg" class="alert alert-error">
+          <i class="bx bxs-error-circle"></i>
+          {{ errorMsg }}
+        </div>
+      </div>
+    </form>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p>© 2025 Data provided by external sources. All rights reserved.</p>
     </div>
-
-    <button class="btn" type="submit" [disabled]="form.invalid">Login</button>
-
-    <!-- Rückmeldungen -->
-    <div *ngIf="successMsg" class="alert alert-success">{{ successMsg }}</div>
-    <div *ngIf="errorMsg"   class="alert alert-danger">{{ errorMsg }}</div>
-  </form>
+  </div>
 </div>

@@ -12,6 +12,14 @@ export const routes: Routes = [
   },
 
   {
+    path: 'contact-support',
+    loadComponent: () =>
+      import('./pages/contact-support/contact-support.component').then(
+        (m) => m.ContactSupportComponent
+      )
+  },
+
+  {
     path: 'dashboard',
     canActivate: [AuthGuard],
     loadComponent: () =>

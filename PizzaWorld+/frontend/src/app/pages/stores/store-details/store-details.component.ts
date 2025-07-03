@@ -415,7 +415,7 @@ export class StoreDetailsComponent implements OnInit {
       },
       xaxis: { categories: dates },
       yaxis: [ { title: { text: 'Revenue ($)' } }, { opposite: true, title: { text: 'Orders' } } ],
-      colors: ['#ff6b35', '#3b82f6'],
+      colors: ['#ff6b35', '#ff8c42'],
       stroke: { width: [0, 2] },
       fill: { type: ['gradient', 'solid'] },
       title: { text: '', style: { fontSize: '16px' } },
@@ -457,7 +457,7 @@ export class StoreDetailsComponent implements OnInit {
         }
       },
       labels: categories,
-      colors: ['#FF6B35', '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'],
+      colors: ['#FF6B35', '#FF8C42', '#FFB366', '#FFCC99', '#FFE0CC'],
       plotOptions: {
         pie: {
           donut: {
@@ -502,7 +502,7 @@ export class StoreDetailsComponent implements OnInit {
         { title: { text: 'New Customers' } },
         { opposite: true, title: { text: 'Revenue ($)' } }
       ],
-      colors: ['#14B8A6', '#F97316'],
+      colors: ['#FF6B35', '#FF8C42'],
       fill: { type: ['solid', 'gradient'] },
       title: { text: '', style: { fontSize: '16px' } },
       tooltip: { shared: true },
@@ -531,7 +531,7 @@ export class StoreDetailsComponent implements OnInit {
       plotOptions: {
         bar: { horizontal: false, columnWidth: '60%' }
       },
-      colors: ['#6366F1', '#EF4444'],
+      colors: ['#FF6B35', '#FF8C42'],
       title: { text: '', style: { fontSize: '16px' } },
       tooltip: { shared: true },
       legend: { position: 'top' }
@@ -556,7 +556,7 @@ export class StoreDetailsComponent implements OnInit {
           }
         }
       },
-      colors: data.efficiency_score >= 80 ? ['#10B981'] : data.efficiency_score >= 60 ? ['#F59E0B'] : ['#EF4444'],
+      colors: data.efficiency_score >= 80 ? ['#FF6B35'] : data.efficiency_score >= 60 ? ['#FF8C42'] : ['#FFB366'],
       title: { text: '', style: { fontSize: '16px' } },
       labels: ['Efficiency Score']
     };
@@ -583,7 +583,7 @@ export class StoreDetailsComponent implements OnInit {
       series: [{ name: 'Avg Revenue', data: avgRevenues }],
       chart: { type: 'radar', height: 400, toolbar: { show: false } },
       xaxis: { categories: days },
-      colors: ['#EC4899'],
+      colors: ['#FF6B35'],
       title: { text: '', style: { fontSize: '16px' } },
       tooltip: {
         y: { formatter: (val: number) => '$' + val.toLocaleString() }
@@ -876,7 +876,7 @@ export class StoreDetailsComponent implements OnInit {
             value: this.formatCurrency(actualTotals.totalRevenue || 0),
             subtitle: `${data.period?.label || 'Custom Range'}`,
             icon: 'pi pi-dollar',
-            color: 'bg-gradient-to-r from-purple-500 to-purple-600',
+            color: 'bg-gradient-to-r from-orange-500 to-orange-600',
             textColor: 'text-white'
           },
           {
@@ -884,7 +884,7 @@ export class StoreDetailsComponent implements OnInit {
             value: this.formatNumber(actualTotals.totalOrders || 0),
             subtitle: `${data.period?.label || 'Custom Range'}`,
             icon: 'pi pi-shopping-cart',
-            color: 'bg-gradient-to-r from-purple-400 to-purple-500',
+            color: 'bg-gradient-to-r from-orange-400 to-orange-500',
             textColor: 'text-white'
           },
           {
@@ -892,7 +892,7 @@ export class StoreDetailsComponent implements OnInit {
             value: this.formatCurrency(avgOrderValue),
             subtitle: `${data.period?.label || 'Custom Range'}`,
             icon: 'pi pi-chart-line',
-            color: 'bg-gradient-to-r from-purple-600 to-purple-700',
+            color: 'bg-gradient-to-r from-orange-600 to-orange-700',
             textColor: 'text-white'
           },
           {
@@ -900,7 +900,7 @@ export class StoreDetailsComponent implements OnInit {
             value: this.formatNumber(actualTotals.totalCustomers || 0),
             subtitle: `${data.period?.label || 'Custom Range'}`,
             icon: 'pi pi-users',
-            color: 'bg-gradient-to-r from-purple-300 to-purple-400',
+            color: 'bg-gradient-to-r from-orange-300 to-orange-400',
             textColor: 'text-white'
           }
         ];

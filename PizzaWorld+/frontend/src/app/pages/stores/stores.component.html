@@ -49,13 +49,13 @@
 
           <!-- Store ID Filter -->
           <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Store ID <span class="text-xs text-gray-500">(Press Enter)</span></label>
+            <label class="text-sm font-semibold text-gray-700 mb-1">Store ID</label>
             <input
               [(ngModel)]="storeIdFilter"
               (keydown.enter)="onStoreIdFilterChange()"
               [disabled]="loading"
               type="text"
-              placeholder="e.g. STORE_001"
+              placeholder="e.g. S302800"
               class="px-4 py-2 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-700 font-medium disabled:opacity-50">
           </div>
 
@@ -74,7 +74,7 @@
 
           <!-- Search Filter -->
           <div class="flex flex-col">
-            <label class="text-sm font-semibold text-gray-700 mb-1">Search <span class="text-xs text-gray-500">(Press Enter)</span></label>
+            <label class="text-sm font-semibold text-gray-700 mb-1">Search</label>
             <input
               [(ngModel)]="searchTerm"
               (keydown.enter)="onSearchChange()"
@@ -100,8 +100,13 @@
           </div>
         </div>
 
-        <!-- Clear Filters Button -->
-        <div class="mt-4 flex justify-end">
+        <!-- Filter Action Buttons -->
+        <div class="mt-4 flex justify-end gap-3">
+          <button
+            (click)="applyFilters()"
+            class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors">
+            Apply Filters
+          </button>
           <button
             (click)="clearAllFilters()"
             [disabled]="!hasActiveFilters()"

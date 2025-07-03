@@ -5,6 +5,43 @@
   background-color: #fffbf7;
 }
 
+/* Fix for overlapping elements */
+.dashboard-container {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure proper spacing and prevent overlaps */
+.filter-controls {
+  overflow: visible;
+  min-height: fit-content;
+}
+
+/* Fix select dropdown z-index issues */
+select {
+  position: relative;
+  z-index: 20;
+  min-width: 140px; /* Ensure minimum width for selects */
+}
+
+/* Ensure charts don't overlap */
+.chart-container {
+  position: relative;
+  z-index: 15;
+  overflow: hidden;
+}
+
+/* Prevent text overflow in filter controls */
+.filter-controls .flex.flex-col {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* Ensure proper spacing between filter rows */
+.filter-controls .space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
 /* Chart container styling */
 .apexcharts-canvas {
   font-family: inherit !important;
@@ -79,14 +116,62 @@ tbody tr {
     grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: 1rem;
   }
-  
+
   .grid-cols-1.lg\\:grid-cols-2 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: 1rem;
   }
-  
+
   .h-96 {
     height: 18rem;
+  }
+
+      /* Fix filter controls on mobile */
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-2.sm\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  /* Ensure proper spacing on mobile */
+  .dashboard-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: 0;
+  }
+}
+
+/* Tablet breakpoint */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    margin-left: 0;
+  }
+
+  /* Improve filter layout on tablets */
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Medium tablet breakpoint */
+@media (max-width: 900px) {
+  /* Ensure filters don't overlap on smaller tablets */
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
 
@@ -95,7 +180,7 @@ tbody tr {
   .bg-gradient-to-br {
     background: white !important;
   }
-  
+
   .shadow-lg, .shadow-xl {
     box-shadow: none !important;
     border: 1px solid #e5e7eb !important;
@@ -107,11 +192,11 @@ tbody tr {
   .text-gray-600 {
     color: #374151 !important;
   }
-  
+
   .text-gray-500 {
     color: #6b7280 !important;
   }
-  
+
   .border-orange-100 {
     border-color: #fb923c !important;
   }
@@ -122,7 +207,7 @@ tbody tr {
   .animate-spin {
     animation: none;
   }
-  
+
   .transition-all,
   .transition-colors {
     transition: none !important;

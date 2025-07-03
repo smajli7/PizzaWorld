@@ -679,7 +679,7 @@ export class StoresComponent implements OnInit, OnDestroy {
     return !!(this.searchTerm || this.selectedStateFilter || this.performanceFilter || this.storeIdFilter);
   }
 
-  private applyFilters(): void {
+  applyFilters(): void {
     let filtered = [...this.storePerformanceData];
 
     // Store ID filter

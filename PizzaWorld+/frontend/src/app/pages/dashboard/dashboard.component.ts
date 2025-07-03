@@ -309,6 +309,9 @@ export class DashboardComponent implements OnInit {
   }
 
   onCustomRangeChange(): void {
+    // Always trigger change detection for presets when any custom field changes
+    // This ensures presets update immediately when start/end years change
+
     if (this.customStartYear && this.customStartMonth && this.customEndYear && this.customEndMonth) {
       // Validate that start is before end
       const startDate = new Date(this.customStartYear, this.customStartMonth - 1);
@@ -328,11 +331,21 @@ export class DashboardComponent implements OnInit {
   }
 
   setCustomRange(startYear: number, startMonth: number, endYear: number, endMonth: number): void {
+    // Set the time period to custom when using presets
+    this.selectedTimePeriod = 'custom';
+
     this.customStartYear = startYear;
     this.customStartMonth = startMonth;
     this.customEndYear = endYear;
     this.customEndMonth = endMonth;
-    this.onCustomRangeChange();
+
+    // Always load dashboard data when using presets (all values are set)
+    this.loadDashboardData();
+
+    // Load analytics data if analytics section is open
+    if (this.showAnalytics) {
+      this.loadAnalyticsData();
+    }
   }
 
   applyFilters(): void {
@@ -342,7 +355,9 @@ export class DashboardComponent implements OnInit {
         store.state_name?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         store.state_abbr.toLowerCase().includes(this.searchTerm.toLowerCase());
 
-      const matchesState = !this.selectedState || store.state_abbr === this.selectedState;
+      // Extract abbreviation from selected state (e.g., "Arizona (AZ)" -> "AZ")
+      const selectedAbbr = this.selectedState ? this.selectedState.match(/\(([^)]+)\)$/)?.[1] || this.selectedState : '';
+      const matchesState = !this.selectedState || store.state_abbr === selectedAbbr;
 
       const revenue = this.getRevenue(store);
       const matchesRevenue = (!this.minRevenue || revenue >= this.minRevenue) &&
@@ -845,7 +860,14 @@ export class DashboardComponent implements OnInit {
   getTimePeriodLabel(): string {
     switch (this.selectedTimePeriod) {
       case 'all-time':
-        return 'All Time (2021-2023)';
+        // Dynamically generate the date range based on available years
+        if (this.availableYears && this.availableYears.length > 0) {
+          const years = this.availableYears.map(y => y.year).sort((a, b) => a - b);
+          const minYear = years[0];
+          const maxYear = years[years.length - 1];
+          return `All Time (${minYear}-${maxYear})`;
+        }
+        return 'All Time';
       case 'year':
         return this.selectedYear ? `Year ${this.selectedYear}` : 'Yearly';
       case 'month':
@@ -866,9 +888,126 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  getUniqueStates(): string[] {
+    getUniqueStates(): string[] {
+    const stateMapping: { [key: string]: string } = {
+      'AZ': 'Arizona (AZ)',
+      'CA': 'California (CA)',
+      'NV': 'Nevada (NV)',
+      'UT': 'Utah (UT)'
+    };
+
     const states = [...new Set(this.storeRevenueData.map(store => store.state_abbr))];
-    return states.sort();
+    return states.map(abbr => stateMapping[abbr] || abbr).sort();
+  }
+
+    get availablePresets(): { label: string, startYear: number, startMonth: number, endYear: number, endMonth: number }[] {
+    if (!this.availableYears || this.availableYears.length === 0) {
+      return [];
+    }
+
+    const presets: { label: string, startYear: number, startMonth: number, endYear: number, endMonth: number }[] = [];
+    const years = this.availableYears.map(y => y.year).sort((a, b) => b - a); // Sort descending (newest first)
+
+    // Helper function to add Q1-Q4 and H1-H2 presets for a given year
+    const addCompletePresetsForYear = (year: number) => {
+      // Q1 (Jan-Mar)
+      presets.push({
+        label: `Q1 ${year}`,
+        startYear: year,
+        startMonth: 1,
+        endYear: year,
+        endMonth: 3
+      });
+
+      // Q2 (Apr-Jun)
+      presets.push({
+        label: `Q2 ${year}`,
+        startYear: year,
+        startMonth: 4,
+        endYear: year,
+        endMonth: 6
+      });
+
+      // Q3 (Jul-Sep)
+      presets.push({
+        label: `Q3 ${year}`,
+        startYear: year,
+        startMonth: 7,
+        endYear: year,
+        endMonth: 9
+      });
+
+      // Q4 (Oct-Dec)
+      presets.push({
+        label: `Q4 ${year}`,
+        startYear: year,
+        startMonth: 10,
+        endYear: year,
+        endMonth: 12
+      });
+
+      // H1 (Jan-Jun)
+      presets.push({
+        label: `H1 ${year}`,
+        startYear: year,
+        startMonth: 1,
+        endYear: year,
+        endMonth: 6
+      });
+
+      // H2 (Jul-Dec)
+      presets.push({
+        label: `H2 ${year}`,
+        startYear: year,
+        startMonth: 7,
+        endYear: year,
+        endMonth: 12
+      });
+    };
+
+    // If we're in year or month mode and have a selected year, focus presets on that year
+    if ((this.selectedTimePeriod === 'year' || this.selectedTimePeriod === 'month') && this.selectedYear) {
+      addCompletePresetsForYear(this.selectedYear);
+    } else if (this.selectedTimePeriod === 'custom') {
+      // For custom mode, show presets for all years between start and end year (inclusive)
+      const customYears: number[] = [];
+
+      if (this.customStartYear && this.customEndYear &&
+          this.customStartYear > 0 && this.customEndYear > 0) {
+        // Get all years between start and end (inclusive)
+        const minYear = Math.min(this.customStartYear, this.customEndYear);
+        const maxYear = Math.max(this.customStartYear, this.customEndYear);
+
+        for (let year = minYear; year <= maxYear; year++) {
+          customYears.push(year);
+        }
+      } else if (this.customStartYear && this.customStartYear > 0) {
+        // Only start year selected
+        customYears.push(this.customStartYear);
+      } else if (this.customEndYear && this.customEndYear > 0) {
+        // Only end year selected
+        customYears.push(this.customEndYear);
+      } else if (years.length > 0) {
+        // No years selected yet, show presets for most recent year
+        customYears.push(years[0]);
+      }
+
+      // Sort years (smallest first as requested)
+      customYears.sort((a, b) => a - b);
+
+      // Create Q1-Q4 and H1-H2 presets for each year in range
+      for (const year of customYears) {
+        addCompletePresetsForYear(year);
+      }
+    } else {
+      // For all-time mode, show Q1-Q4 and H1-H2 presets for all available years
+      for (const year of years) {
+        addCompletePresetsForYear(year);
+      }
+    }
+
+    // Return all presets (no artificial limit)
+    return presets;
   }
 
   onFilterChange(): void {

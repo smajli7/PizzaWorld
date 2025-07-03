@@ -1,6 +1,223 @@
-// Store Details Component Styles
-.home-section {
+// Store Details Component Styles - AGGRESSIVE OVERLAP FIX
+
+// CRITICAL: Override global .home-section styles that cause conflicts
+:host {
+  display: block;
+  position: relative;
+  z-index: 10;
+  width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+
+  // Override any global margin/padding from .home-section
+  margin-left: 0 !important;
+  padding: 0 !important;
+}
+
+// CRITICAL: Force proper sidebar spacing
+.min-h-screen {
+  position: relative;
+  z-index: 10;
+  width: 100vw; // Full viewport width
+  min-height: 100vh;
+  margin-left: 0 !important; // Override any global styles
+
+  // DESKTOP: Always leave space for sidebar (280px = 17.5rem)
+  @media (min-width: 1024px) {
+    padding-left: 17.5rem !important; // Match global --sidebar-w: 280px
+    width: 100vw !important;
+    margin-left: 0 !important;
+  }
+
+  // MOBILE: Full width, no sidebar space
+  @media (max-width: 1023px) {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    width: 100vw !important;
+  }
+}
+
+// Force container to respect sidebar space
+.bg-gradient-to-br {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Fix header section overlapping
+.bg-white.rounded-2xl {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Fix filter controls layout
+.flex-wrap {
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .flex-col {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .w-full {
+      width: 100% !important;
+    }
+  }
+
+  // Specific fix for custom range month selects
+  .flex-col select {
+    min-width: 160px;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+}
+
+// Fix button groups
+.flex.flex-wrap.gap-2 {
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 0.5rem;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+// Grid system fixes
+.grid {
+  width: 100%;
+  box-sizing: border-box;
+
+  &.grid-cols-1 {
+    @media (max-width: 640px) {
+      gap: 1rem;
+    }
+  }
+
+  &.sm\\:grid-cols-2 {
+    @media (max-width: 639px) {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  &.lg\\:grid-cols-4 {
+    @media (max-width: 1023px) {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    @media (max-width: 639px) {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  &.xl\\:grid-cols-2 {
+    @media (max-width: 1279px) {
+      grid-template-columns: 1fr !important;
+    }
+  }
+}
+
+// Charts responsive behavior
+apx-chart {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+}
+
+// Table fixes
+.overflow-x-auto {
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+
+  table {
+    width: 100%;
+    min-width: 600px;
+
+    @media (max-width: 768px) {
+      min-width: 500px;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// KPI cards - disable problematic animations on mobile
+.transform {
+  @media (max-width: 768px) {
+    transform: none !important;
+
+    &:hover {
+      transform: none !important;
+    }
+  }
+}
+
+// Button improvements
+button {
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    min-height: 2.5rem;
+  }
+}
+
+// Select dropdowns
+select {
+  box-sizing: border-box;
+  min-width: 140px; // Increased from 120px to accommodate "December"
+
+  @media (max-width: 640px) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+// Specific fix for month dropdowns that need more space
+select[ng-reflect-name*="Month"],
+select[ng-reflect-model*="Month"] {
+  min-width: 160px; // Extra space for longer month names like "December"
+
+  @media (max-width: 640px) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+// Input fields
+input {
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+}
+
+// Loading states
+.animate-spin {
+  flex-shrink: 0;
+}
+
+// Force all containers to respect boundaries
+* {
+  box-sizing: border-box;
+}
+
+// Emergency override for any remaining overlaps
+@media (min-width: 1024px) {
+  .min-h-screen > * {
+    max-width: calc(100vw - 16rem);
+  }
 }
 

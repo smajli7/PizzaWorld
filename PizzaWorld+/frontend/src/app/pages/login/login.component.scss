@@ -73,15 +73,27 @@
    }
    @keyframes fadeCard { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
 
-   /* Logo */
+      /* Logo */
    .logo-container {
      display: flex;
      justify-content: center;
      align-items: center;
      text-align: center;
      margin-bottom: 30px;
+     height: 120px; /* Fixed container height */
+     overflow: hidden; /* Prevent container from growing */
+     padding: 0 20px; /* Equal padding on left and right */
    }
-   .form-logo      { height: 80px; transition: transform .3s; }
+      .form-logo      {
+     max-height: 350px;
+     max-width: calc(100% - 40px); /* Account for padding */
+     height: auto;
+     width: auto;
+     object-fit: contain;
+     transition: transform .3s;
+     display: block;
+     margin: 0 auto; /* Ensure perfect centering */
+   }
    .form-logo:hover{ transform: scale(1.05); }
 
    /* Inputs */

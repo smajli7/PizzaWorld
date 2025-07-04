@@ -93,7 +93,12 @@ interface Store {
   storeid: string;
   city: string;
   state: string;
-  state_abbr: string;
+  state_abbr?: string;
+}
+
+interface State {
+  state_code: string;
+  state: string;
 }
 
 interface GeographicDistribution {
@@ -170,15 +175,38 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   currentUser: CurrentUser | null = null;
 
+  // Filter state
+  selectedStates: string[] = [];
+  selectedStores: string[] = [];
+
+  // Available filter options
+  availableStores: Store[] = [];
+  availableStates: State[] = [];
+
+  // Dropdown state
+  showStateDropdown: boolean = false;
+  showStoreDropdown: boolean = false;
+
   constructor(private http: HttpClient, private auth: AuthService) {}
 
   ngOnInit(): void {
     this.auth.currentUser$.subscribe(user => {
       this.currentUser = user;
+      this.loadAvailableStores();
+      this.loadAvailableStates();
       this.loadCustomerSummary();
       this.loadCustomerLifetimeValue();
       this.loadCustomerRetention();
       this.loadCustomerAcquisition();
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        this.showStateDropdown = false;
+        this.showStoreDropdown = false;
+      }
     });
   }
 
@@ -190,13 +218,24 @@ export class CustomerAnalyticsComponent implements OnInit {
   loadCustomerSummary(): void {
     this.loading = true;
     let url = '/api/v2/analytics/customer-lifetime-value/summary';
-    const params: any = {};
+    const params = new URLSearchParams();
+
+    // Role-based filtering
     if (this.currentUser?.role === 'STATE_MANAGER') {
-      params.state = this.currentUser.stateAbbr;
+      params.append('state', this.currentUser.stateAbbr);
     } else if (this.currentUser?.role === 'STORE_MANAGER') {
-      params.storeId = this.currentUser.storeId;
+      params.append('storeId', this.currentUser.storeId);
     }
-    const query = new URLSearchParams(params).toString();
+
+    // Additional filters for HQ_ADMIN and STATE_MANAGER
+    if (this.selectedStates.length > 0) {
+      this.selectedStates.forEach(state => params.append('states', state));
+    }
+    if (this.selectedStores.length > 0) {
+      this.selectedStores.forEach(store => params.append('storeIds', store));
+    }
+
+    const query = params.toString();
     if (query) url += `?${query}`;
     this.http.get<CustomerSummary>(url, {
       headers: this.getAuthHeaders()
@@ -216,13 +255,25 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   loadCustomerLifetimeValue(): void {
     this.loading = true;
-    const params: any = { limit: this.clvLimit.toString() };
+    const params = new URLSearchParams();
+    params.append('limit', this.clvLimit.toString());
+
+    // Role-based filtering
     if (this.currentUser?.role === 'STATE_MANAGER') {
-      params.state = this.currentUser.stateAbbr;
+      params.append('state', this.currentUser.stateAbbr);
     } else if (this.currentUser?.role === 'STORE_MANAGER') {
-      params.storeId = this.currentUser.storeId;
+      params.append('storeId', this.currentUser.storeId);
     }
-    const query = new URLSearchParams(params).toString();
+
+    // Additional filters for HQ_ADMIN and STATE_MANAGER
+    if (this.selectedStates.length > 0) {
+      this.selectedStates.forEach(state => params.append('states', state));
+    }
+    if (this.selectedStores.length > 0) {
+      this.selectedStores.forEach(store => params.append('storeIds', store));
+    }
+
+    const query = params.toString();
     this.http.get<CustomerLifetimeValue[]>(`/api/v2/analytics/customer-lifetime-value?${query}`, {
       headers: this.getAuthHeaders()
     }).subscribe({
@@ -242,13 +293,25 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   loadCustomerRetention(): void {
     this.loading = true;
-    const params: any = { limit: this.retentionLimit.toString() };
+    const params = new URLSearchParams();
+    params.append('limit', this.retentionLimit.toString());
+
+    // Role-based filtering
     if (this.currentUser?.role === 'STATE_MANAGER') {
-      params.state = this.currentUser.stateAbbr;
+      params.append('state', this.currentUser.stateAbbr);
     } else if (this.currentUser?.role === 'STORE_MANAGER') {
-      params.storeId = this.currentUser.storeId;
+      params.append('storeId', this.currentUser.storeId);
     }
-    const query = new URLSearchParams(params).toString();
+
+    // Additional filters for HQ_ADMIN and STATE_MANAGER
+    if (this.selectedStates.length > 0) {
+      this.selectedStates.forEach(state => params.append('states', state));
+    }
+    if (this.selectedStores.length > 0) {
+      this.selectedStores.forEach(store => params.append('storeIds', store));
+    }
+
+    const query = params.toString();
     this.http.get<CustomerRetention[]>(`/api/v2/analytics/customer-retention?${query}`, {
       headers: this.getAuthHeaders()
     }).subscribe({
@@ -268,13 +331,24 @@ export class CustomerAnalyticsComponent implements OnInit {
   loadCustomerAcquisition(): void {
     this.loading = true;
     let url = '/api/v2/analytics/customer-acquisition';
-    const params: any = {};
+    const params = new URLSearchParams();
+
+    // Role-based filtering
     if (this.currentUser?.role === 'STATE_MANAGER') {
-      params.state = this.currentUser.stateAbbr;
+      params.append('state', this.currentUser.stateAbbr);
     } else if (this.currentUser?.role === 'STORE_MANAGER') {
-      params.storeId = this.currentUser.storeId;
+      params.append('storeId', this.currentUser.storeId);
     }
-    const query = new URLSearchParams(params).toString();
+
+    // Additional filters for HQ_ADMIN and STATE_MANAGER
+    if (this.selectedStates.length > 0) {
+      this.selectedStates.forEach(state => params.append('states', state));
+    }
+    if (this.selectedStores.length > 0) {
+      this.selectedStores.forEach(store => params.append('storeIds', store));
+    }
+
+    const query = params.toString();
     if (query) url += `?${query}`;
     this.http.get<CustomerAcquisition[]>(url, {
       headers: this.getAuthHeaders()
@@ -290,6 +364,33 @@ export class CustomerAnalyticsComponent implements OnInit {
         this.loading = false;
       }
     });
+  }
+
+  loadAvailableStores(): void {
+    if (this.currentUser?.role === 'HQ_ADMIN' || this.currentUser?.role === 'STATE_MANAGER') {
+      this.http.get<Store[]>('/api/v2/stores', { headers: this.getAuthHeaders() })
+        .subscribe({
+          next: (stores) => {
+            this.availableStores = stores || [];
+          },
+          error: (error) => {
+            console.error('Error loading stores:', error);
+            this.availableStores = [];
+          }
+        });
+    }
+  }
+
+  loadAvailableStates(): void {
+    if (this.currentUser?.role === 'HQ_ADMIN' || this.currentUser?.role === 'STATE_MANAGER') {
+      // Hardcoded list of available states
+      this.availableStates = [
+        { state_code: 'AZ', state: 'Arizona' },
+        { state_code: 'CA', state: 'California' },
+        { state_code: 'NV', state: 'Nevada' },
+        { state_code: 'UT', state: 'Utah' }
+      ];
+    }
   }
 
   // Sorting methods
@@ -372,27 +473,117 @@ export class CustomerAnalyticsComponent implements OnInit {
     return 'bg-gray-100 text-gray-600';
   }
 
+  // Dropdown methods
+  toggleStateDropdown(): void {
+    this.showStateDropdown = !this.showStateDropdown;
+    if (this.showStateDropdown) {
+      this.showStoreDropdown = false;
+    }
+  }
+
+  toggleStoreDropdown(): void {
+    this.showStoreDropdown = !this.showStoreDropdown;
+    if (this.showStoreDropdown) {
+      this.showStateDropdown = false;
+    }
+  }
+
+  toggleStateSelection(stateCode: string): void {
+    const index = this.selectedStates.indexOf(stateCode);
+    if (index === -1) {
+      this.selectedStates.push(stateCode);
+    } else {
+      this.selectedStates.splice(index, 1);
+    }
+  }
+
+  toggleStoreSelection(storeId: string): void {
+    const index = this.selectedStores.indexOf(storeId);
+    if (index === -1) {
+      this.selectedStores.push(storeId);
+    } else {
+      this.selectedStores.splice(index, 1);
+    }
+  }
+
+  getSelectedStatesText(): string {
+    if (this.selectedStates.length === 0) {
+      return 'All States';
+    } else if (this.selectedStates.length === 1) {
+      const state = this.availableStates.find(s => s.state_code === this.selectedStates[0]);
+      return state ? state.state : this.selectedStates[0];
+    } else {
+      return `${this.selectedStates.length} States Selected`;
+    }
+  }
+
+  getSelectedStoresText(): string {
+    if (this.selectedStores.length === 0) {
+      return 'All Stores';
+    } else if (this.selectedStores.length === 1) {
+      const store = this.availableStores.find(s => s.storeid === this.selectedStores[0]);
+      return store ? `${store.city}, ${store.state}` : this.selectedStores[0];
+    } else {
+      return `${this.selectedStores.length} Stores Selected`;
+    }
+  }
+
   // Filter methods
   onSegmentChange(): void {
     this.applyFilters();
   }
 
   applyFilters(): void {
-    // No filters anymore, just reload data
+    this.loading = true;
+    this.error = false;
+    // Reload all data with applied filters
+    this.loadCustomerSummary();
     this.loadCustomerLifetimeValue();
+    this.loadCustomerRetention();
+    this.loadCustomerAcquisition();
   }
 
   clearAllFilters(): void {
-    // No filters to clear anymore
+    this.selectedStates = [];
+    this.selectedStores = [];
+    // Reload all data without filters
+    this.applyFilters();
   }
 
   hasActiveFilters(): boolean {
-    return false;
+    return this.selectedStates.length > 0 || this.selectedStores.length > 0;
   }
 
   // Data helper methods
   getFilterLabel(): string {
-    return 'All Customers';
+    const filters = [];
+
+    if (this.currentUser?.role === 'STATE_MANAGER') {
+      filters.push(`State: ${this.currentUser.stateAbbr}`);
+    } else if (this.currentUser?.role === 'STORE_MANAGER') {
+      filters.push(`Store: ${this.currentUser.storeId}`);
+    } else {
+      // HQ_ADMIN filters
+      if (this.selectedStates.length > 0) {
+        if (this.selectedStates.length === 1) {
+          const state = this.availableStates.find(s => s.state_code === this.selectedStates[0]);
+          filters.push(`State: ${state?.state || this.selectedStates[0]}`);
+        } else {
+          filters.push(`${this.selectedStates.length} States`);
+        }
+      }
+
+      if (this.selectedStores.length > 0) {
+        if (this.selectedStores.length === 1) {
+          const store = this.availableStores.find(s => s.storeid === this.selectedStores[0]);
+          filters.push(`Store: ${store?.city || this.selectedStores[0]}`);
+        } else {
+          filters.push(`${this.selectedStores.length} Stores`);
+        }
+      }
+    }
+
+    return filters.length > 0 ? filters.join(' • ') : 'All Customers';
   }
 
   getTotalCustomers(): number {
@@ -755,7 +946,7 @@ export class CustomerAnalyticsComponent implements OnInit {
       dataLabels: {
         enabled: true,
         formatter: function (val: number) {
-          return val.toLocaleString();
+          return val.toFixed(2) + '%';
         }
       },
       legend: {

@@ -330,7 +330,7 @@ ng generate component component-name
 The application includes comprehensive demo data:
 - **4 US States**: Arizona, California, Nevada, Utah
 - **52 Stores**: Distributed across states
-- **100,000+ Orders**: 3 years of historical data (2022-2024)
+- **100,000+ Orders**: 3 years of historical data (2021-2023
 - **25 Products**: Various pizza types and sizes
 - **Performance Metrics**: Pre-calculated analytics
 

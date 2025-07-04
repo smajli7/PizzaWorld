@@ -3181,4 +3181,150 @@ public class OptimizedPizzaService {
     public List<Map<String, Object>> getProductRevenueTrend(User user, String sku, String timePeriod) {
         return repo.getProductRevenueTrend(sku, timePeriod);
     }
+
+    // =================================================================
+    // CUSTOMER LIFETIME VALUE ANALYTICS - Role-based
+    // =================================================================
+
+    @Cacheable(value = "customerLifetimeValue", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #limit")
+    public List<Map<String, Object>> getCustomerLifetimeValue(User user, Integer limit) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getCustomerLifetimeValueHQ(limit);
+            case "STATE_MANAGER" -> repo.getCustomerLifetimeValueState(user.getStateAbbr(), limit);
+            case "STORE_MANAGER" -> repo.getCustomerLifetimeValueStore(user.getStoreId(), limit);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "customerLifetimeValueSummary", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public Map<String, Object> getCustomerLifetimeValueSummary(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getCustomerLifetimeValueSummaryHQ();
+            case "STATE_MANAGER" -> repo.getCustomerLifetimeValueSummaryState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getCustomerLifetimeValueSummaryStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // =================================================================
+    // CUSTOMER RETENTION ANALYTICS - Role-based
+    // =================================================================
+
+    @Cacheable(value = "customerRetentionAnalysis", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #limit")
+    public List<Map<String, Object>> getCustomerRetentionAnalysis(User user, Integer limit) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getCustomerRetentionAnalysisHQ(limit);
+            case "STATE_MANAGER" -> repo.getCustomerRetentionAnalysisState(user.getStateAbbr(), limit);
+            case "STORE_MANAGER" -> repo.getCustomerRetentionAnalysisStore(user.getStoreId(), limit);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // =================================================================
+    // STORE CAPACITY ANALYTICS - Role-based
+    // =================================================================
+
+    @Cacheable(value = "storeCapacityAnalysis", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getStoreCapacityAnalysis(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityAnalysisHQ();
+            case "STATE_MANAGER" -> repo.getStoreCapacityAnalysisState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStoreCapacityAnalysisStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeCapacitySummary", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public Map<String, Object> getStoreCapacitySummary(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacitySummaryHQ();
+            case "STATE_MANAGER" -> repo.getStoreCapacitySummaryState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStoreCapacitySummaryStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "peakHoursAnalysis", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getPeakHoursAnalysis(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getPeakHoursAnalysisHQ();
+            case "STATE_MANAGER" -> repo.getPeakHoursAnalysisState(user.getStateAbbr());
+            case "STORE_MANAGER" -> new ArrayList<>(); // Store managers don't need peak hours analysis
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    // =================================================================
+    // STORE CAPACITY V3 - Enhanced capacity analysis with delivery metrics
+    // =================================================================
+
+    @Cacheable(value = "storeCapacityV3Summary", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getStoreCapacityV3Summary(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3SummaryHQ();
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3SummaryState(user.getStateAbbr());
+            case "STORE_MANAGER" -> {
+                Map<String, Object> storeData = repo.getStoreCapacityV3SummaryStore(user.getStoreId());
+                yield storeData != null ? List.of(storeData) : List.of();
+            }
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeCapacityV3Metrics", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getStoreCapacityV3Metrics(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3MetricsHQ(year, month);
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3MetricsState(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getStoreCapacityV3MetricsStore(user.getStoreId(), year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeCapacityV3PeakHours", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public List<Map<String, Object>> getStoreCapacityV3PeakHours(User user) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3PeakHoursHQ();
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3PeakHoursState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStoreCapacityV3PeakHoursStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeCapacityV3CustomerDistance", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr")
+    public Map<String, Object> getStoreCapacityV3CustomerDistance(User user) {
+        List<Map<String, Object>> distances = switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3CustomerDistanceHQ();
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3CustomerDistanceState(user.getStateAbbr());
+            case "STORE_MANAGER" -> repo.getStoreCapacityV3CustomerDistanceStore(user.getStoreId());
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+
+        // Aggregate distance data
+        Map<String, Object> result = new HashMap<>();
+        result.put("distances", distances);
+        result.put("total_customers", distances.size());
+        return result;
+    }
+
+    @Cacheable(value = "storeCapacityV3DeliveryMetrics", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getStoreCapacityV3DeliveryMetrics(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3DeliveryMetricsHQ(year, month);
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3DeliveryMetricsState(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getStoreCapacityV3DeliveryMetricsStore(user.getStoreId(), year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
+    @Cacheable(value = "storeCapacityV3UtilizationChart", key = "#user.role + '_' + #user.storeId + '_' + #user.stateAbbr + '_' + #year + '_' + #month")
+    public List<Map<String, Object>> getStoreCapacityV3UtilizationChart(User user, Integer year, Integer month) {
+        return switch (user.getRole()) {
+            case "HQ_ADMIN" -> repo.getStoreCapacityV3UtilizationChartHQ(year, month);
+            case "STATE_MANAGER" -> repo.getStoreCapacityV3UtilizationChartState(user.getStateAbbr(), year, month);
+            case "STORE_MANAGER" -> repo.getStoreCapacityV3UtilizationChartStore(user.getStoreId(), year, month);
+            default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
+        };
+    }
+
 }

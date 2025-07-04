@@ -588,13 +588,13 @@ export class DashboardComponent implements OnInit {
       yaxis: {
         title: { text: 'Revenue (€)', style: { color: '#6b7280' } },
         labels: {
-          formatter: (val: number) => `€${this.formatNumber(val)}`,
+          formatter: (val: number) => `$${this.formatNumber(val)}`,
           style: { colors: '#6b7280' }
         }
       },
       grid: { borderColor: '#e5e7eb', strokeDashArray: 3 },
       tooltip: {
-        y: { formatter: (val: number) => `€${this.formatNumber(val)}` }
+        y: { formatter: (val: number) => `$${this.formatNumber(val)}` }
       }
     };
   }
@@ -836,21 +836,11 @@ export class DashboardComponent implements OnInit {
 
   // Utility methods
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+    return '$' + this.formatNumber(value);
   }
 
   formatCurrencyWithDecimals(value: number): string {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
+    return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   formatNumber(value: number): string {
@@ -1151,7 +1141,8 @@ export class DashboardComponent implements OnInit {
       params
     }).subscribe({
       next: (data) => {
-        this.customerAcquisitionData = data;
+        // Reverse the data to show chronological order (oldest to newest)
+        this.customerAcquisitionData = data.reverse();
         this.buildCustomerAcquisitionChart();
       },
       error: (error) => console.error('Failed to load customer acquisition:', error)
@@ -1294,7 +1285,7 @@ export class DashboardComponent implements OnInit {
       yaxis: [
         {
           title: { text: 'Revenue (€)' },
-          labels: { formatter: (val: number) => `€${this.formatNumber(val)}` }
+          labels: { formatter: (val: number) => `$${this.formatNumber(val)}` }
         },
         {
           opposite: true,
@@ -1402,7 +1393,7 @@ export class DashboardComponent implements OnInit {
               total: {
                 show: true,
                 label: 'Total Revenue',
-                formatter: () => `€${this.formatNumber(revenue.reduce((a, b) => a + b, 0))}`
+                formatter: () => `$${this.formatNumber(revenue.reduce((a, b) => a + b, 0))}`
               }
             }
           }
@@ -1414,7 +1405,7 @@ export class DashboardComponent implements OnInit {
       },
       tooltip: {
         y: {
-          formatter: (val: number) => `€${this.formatNumber(val)}`
+          formatter: (val: number) => `$${this.formatNumber(val)}`
         }
       }
     };
@@ -1426,7 +1417,21 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    const months = this.customerAcquisitionData.map(d => d.month_name || `${d.year}-${d.month}`);
+    // Format month labels properly
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = this.customerAcquisitionData.map(d => {
+      // Check if we have year and month fields separately
+      if (d.year && d.month) {
+        const monthIndex = parseInt(d.month.toString()) - 1;
+        return `${monthNames[monthIndex]} ${d.year}`;
+      }
+      // Use month_name if available
+      if (d.month_name && d.year) {
+        return `${d.month_name.trim()} ${d.year}`;
+      }
+      // Fallback
+      return d.month_name || `${d.year}-${d.month}`;
+    });
     const newCustomers = this.customerAcquisitionData.map(d => Number(d.new_customers) || 0);
     const revenue = this.customerAcquisitionData.map(d => Number(d.revenue_from_new_customers) || 0);
 
@@ -1452,7 +1457,12 @@ export class DashboardComponent implements OnInit {
       colors: ['#06b6d4', '#f59e0b'],
       xaxis: {
         categories: months,
-        title: { text: 'Month' }
+        title: { text: 'Month' },
+        labels: {
+          rotate: -45,
+          rotateAlways: false,
+          hideOverlappingLabels: true
+        }
       },
       yaxis: [
         {
@@ -1464,7 +1474,7 @@ export class DashboardComponent implements OnInit {
           title: { text: 'Revenue (€)' },
           seriesName: 'Revenue from New Customers',
           labels: {
-            formatter: (val: number) => `€${this.formatNumber(val)}`
+            formatter: (val: number) => `$${this.formatNumber(val)}`
           }
         }
       ]
@@ -1503,7 +1513,7 @@ export class DashboardComponent implements OnInit {
         {
           title: { text: 'Revenue (€)' },
           labels: {
-            formatter: (val: number) => `€${this.formatNumber(val)}`
+            formatter: (val: number) => `$${this.formatNumber(val)}`
           }
         },
         {
@@ -1550,7 +1560,7 @@ export class DashboardComponent implements OnInit {
       yaxis: {
         title: { text: 'Revenue (€)' },
         labels: {
-          formatter: (val: number) => `€${this.formatNumber(val)}`
+          formatter: (val: number) => `$${this.formatNumber(val)}`
         }
       },
       grid: { borderColor: '#e5e7eb' }

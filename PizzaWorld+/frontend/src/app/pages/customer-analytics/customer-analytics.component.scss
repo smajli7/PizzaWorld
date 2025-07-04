@@ -1,0 +1,242 @@
+/* Customer Analytics Component - Orange Theme with Tailwind CSS */
+
+/* Custom Orange Gradients */
+.bg-orange-25 {
+  background-color: #fffbf7;
+}
+
+/* Fix for overlapping elements */
+.customer-analytics-container {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure proper spacing and prevent overlaps */
+.filter-controls {
+  overflow: visible;
+  min-height: fit-content;
+}
+
+/* Fix select dropdown z-index issues */
+select {
+  position: relative;
+  z-index: 20;
+  min-width: 140px; /* Ensure minimum width for selects */
+}
+
+/* Ensure charts don't overlap */
+.chart-container {
+  position: relative;
+  z-index: 15;
+  overflow: hidden;
+}
+
+/* Prevent text overflow in filter controls */
+.filter-controls .flex.flex-col {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* Ensure proper spacing between filter rows */
+.filter-controls .space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+/* Chart container styling */
+.apexcharts-canvas {
+  font-family: inherit !important;
+}
+
+/* Custom scrollbar for table */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #fb923c;
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
+/* Chart height consistency */
+.h-96 {
+  height: 24rem;
+}
+
+/* Smooth transitions for interactive elements */
+select, button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles for better accessibility */
+select:focus, button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.3);
+}
+
+/* Loading spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects for table rows */
+tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Custom ApexCharts tooltip styling */
+.apexcharts-tooltip {
+  background: white !important;
+  border: 1px solid #fed7aa !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.apexcharts-tooltip-title {
+  background: #fb923c !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+/* Segment badge styling */
+.segment-badge {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.segment-badge.high {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.segment-badge.medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.segment-badge.low {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Responsive design adjustments */
+@media (max-width: 768px) {
+  .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .grid-cols-1.lg\\:grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .h-96 {
+    height: 18rem;
+  }
+
+  /* Fix filter controls on mobile */
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-2.sm\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  /* Ensure proper spacing on mobile */
+  .customer-analytics-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: 0;
+  }
+}
+
+/* Tablet breakpoint */
+@media (max-width: 1024px) {
+  .customer-analytics-container {
+    margin-left: 0;
+  }
+
+  /* Improve filter layout on tablets */
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Medium tablet breakpoint */
+@media (max-width: 900px) {
+  /* Ensure filters don't overlap on smaller tablets */
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .filter-controls .grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+/* Print styles */
+@media print {
+  .bg-gradient-to-br {
+    background: white !important;
+  }
+
+  .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .text-gray-600 {
+    color: #374151 !important;
+  }
+
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  .border-orange-100 {
+    border-color: #fed7aa !important;
+  }
+}
+
+/* Animation for fade-in effects */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}

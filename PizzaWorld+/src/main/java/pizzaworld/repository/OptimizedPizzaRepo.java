@@ -1100,4 +1100,378 @@ public interface OptimizedPizzaRepo extends JpaRepository<User, Long> {
             ORDER BY month
             """, nativeQuery = true)
     List<Map<String, Object>> getProductRevenueTrend(@Param("sku") String sku, @Param("timePeriod") String timePeriod);
+
+    // =================================================================
+    // CUSTOMER LIFETIME VALUE ANALYSIS - Using New Materialized Views
+    // =================================================================
+
+    @Query(value = """
+        SELECT customerid, total_orders, total_spent, avg_order_value, 
+               first_order_date, last_order_date, customer_lifespan_days,
+               stores_visited, daily_value, clv_per_order, customer_segment
+        FROM customer_lifetime_value
+        ORDER BY total_spent DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerLifetimeValueHQ(@Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT clv.customerid, clv.total_orders, clv.total_spent, clv.avg_order_value,
+               clv.first_order_date, clv.last_order_date, clv.customer_lifespan_days,
+               clv.stores_visited, clv.daily_value, clv.clv_per_order, clv.customer_segment
+        FROM customer_lifetime_value clv
+        JOIN orders o ON clv.customerid = o.customerid
+        JOIN stores s ON o.storeid = s.storeid
+        WHERE s.state_abbr = :state
+        GROUP BY clv.customerid, clv.total_orders, clv.total_spent, clv.avg_order_value,
+                 clv.first_order_date, clv.last_order_date, clv.customer_lifespan_days,
+                 clv.stores_visited, clv.daily_value, clv.clv_per_order, clv.customer_segment
+        ORDER BY clv.total_spent DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerLifetimeValueState(@Param("state") String state, @Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT clv.customerid, clv.total_orders, clv.total_spent, clv.avg_order_value,
+               clv.first_order_date, clv.last_order_date, clv.customer_lifespan_days,
+               clv.stores_visited, clv.daily_value, clv.clv_per_order, clv.customer_segment
+        FROM customer_lifetime_value clv
+        JOIN orders o ON clv.customerid = o.customerid
+        WHERE o.storeid = :storeId
+        GROUP BY clv.customerid, clv.total_orders, clv.total_spent, clv.avg_order_value,
+                 clv.first_order_date, clv.last_order_date, clv.customer_lifespan_days,
+                 clv.stores_visited, clv.daily_value, clv.clv_per_order, clv.customer_segment
+        ORDER BY clv.total_spent DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerLifetimeValueStore(@Param("storeId") String storeId, @Param("limit") Integer limit);
+
+    // Customer Lifetime Value Summary Statistics
+    @Query(value = """
+        SELECT 
+            COUNT(*) as total_customers,
+            AVG(total_spent) as avg_customer_value,
+            AVG(total_orders) as avg_orders_per_customer,
+            AVG(customer_lifespan_days) as avg_customer_lifespan,
+            COUNT(CASE WHEN customer_segment = 'VIP' THEN 1 END) as vip_customers,
+            COUNT(CASE WHEN customer_segment = 'Regular' THEN 1 END) as regular_customers,
+            COUNT(CASE WHEN customer_segment = 'Occasional' THEN 1 END) as occasional_customers,
+            COUNT(CASE WHEN customer_segment = 'One-time' THEN 1 END) as one_time_customers
+        FROM customer_lifetime_value
+        """, nativeQuery = true)
+    Map<String, Object> getCustomerLifetimeValueSummaryHQ();
+
+    @Query(value = """
+        SELECT 
+            COUNT(*) as total_customers,
+            AVG(clv.total_spent) as avg_customer_value,
+            AVG(clv.total_orders) as avg_orders_per_customer,
+            AVG(clv.customer_lifespan_days) as avg_customer_lifespan,
+            COUNT(CASE WHEN clv.customer_segment = 'VIP' THEN 1 END) as vip_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'Regular' THEN 1 END) as regular_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'Occasional' THEN 1 END) as occasional_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'One-time' THEN 1 END) as one_time_customers
+        FROM customer_lifetime_value clv
+        JOIN orders o ON clv.customerid = o.customerid
+        JOIN stores s ON o.storeid = s.storeid
+        WHERE s.state_abbr = :state
+        """, nativeQuery = true)
+    Map<String, Object> getCustomerLifetimeValueSummaryState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT 
+            COUNT(*) as total_customers,
+            AVG(clv.total_spent) as avg_customer_value,
+            AVG(clv.total_orders) as avg_orders_per_customer,
+            AVG(clv.customer_lifespan_days) as avg_customer_lifespan,
+            COUNT(CASE WHEN clv.customer_segment = 'VIP' THEN 1 END) as vip_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'Regular' THEN 1 END) as regular_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'Occasional' THEN 1 END) as occasional_customers,
+            COUNT(CASE WHEN clv.customer_segment = 'One-time' THEN 1 END) as one_time_customers
+        FROM customer_lifetime_value clv
+        JOIN orders o ON clv.customerid = o.customerid
+        WHERE o.storeid = :storeId
+        """, nativeQuery = true)
+    Map<String, Object> getCustomerLifetimeValueSummaryStore(@Param("storeId") String storeId);
+
+    // =================================================================
+    // CUSTOMER RETENTION ANALYSIS - Using New Materialized Views
+    // =================================================================
+
+    @Query(value = """
+        SELECT cohort_month, cohort_size, retained_1m, retained_3m, retained_6m, retained_12m,
+               ROUND((retained_1m * 100.0 / cohort_size), 2) as retention_rate_1m,
+               ROUND((retained_3m * 100.0 / cohort_size), 2) as retention_rate_3m,
+               ROUND((retained_6m * 100.0 / cohort_size), 2) as retention_rate_6m,
+               ROUND((retained_12m * 100.0 / cohort_size), 2) as retention_rate_12m
+        FROM customer_retention_analysis
+        ORDER BY cohort_month DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerRetentionAnalysisHQ(@Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT cra.cohort_month, cra.cohort_size, cra.retained_1m, cra.retained_3m, cra.retained_6m, cra.retained_12m,
+               ROUND((cra.retained_1m * 100.0 / cra.cohort_size), 2) as retention_rate_1m,
+               ROUND((cra.retained_3m * 100.0 / cra.cohort_size), 2) as retention_rate_3m,
+               ROUND((cra.retained_6m * 100.0 / cra.cohort_size), 2) as retention_rate_6m,
+               ROUND((cra.retained_12m * 100.0 / cra.cohort_size), 2) as retention_rate_12m
+        FROM customer_retention_analysis cra
+        JOIN orders o ON cra.customerid = o.customerid
+        JOIN stores s ON o.storeid = s.storeid
+        WHERE s.state_abbr = :state
+        GROUP BY cra.cohort_month, cra.cohort_size, cra.retained_1m, cra.retained_3m, cra.retained_6m, cra.retained_12m
+        ORDER BY cra.cohort_month DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerRetentionAnalysisState(@Param("state") String state, @Param("limit") Integer limit);
+
+    @Query(value = """
+        SELECT cra.cohort_month, cra.cohort_size, cra.retained_1m, cra.retained_3m, cra.retained_6m, cra.retained_12m,
+               ROUND((cra.retained_1m * 100.0 / cra.cohort_size), 2) as retention_rate_1m,
+               ROUND((cra.retained_3m * 100.0 / cra.cohort_size), 2) as retention_rate_3m,
+               ROUND((cra.retained_6m * 100.0 / cra.cohort_size), 2) as retention_rate_6m,
+               ROUND((cra.retained_12m * 100.0 / cra.cohort_size), 2) as retention_rate_12m
+        FROM customer_retention_analysis cra
+        JOIN orders o ON cra.customerid = o.customerid
+        WHERE o.storeid = :storeId
+        GROUP BY cra.cohort_month, cra.cohort_size, cra.retained_1m, cra.retained_3m, cra.retained_6m, cra.retained_12m
+        ORDER BY cra.cohort_month DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Map<String, Object>> getCustomerRetentionAnalysisStore(@Param("storeId") String storeId, @Param("limit") Integer limit);
+
+    // =================================================================
+    // STORE CAPACITY ANALYSIS - Using New Materialized Views
+    // =================================================================
+
+    @Query(value = """
+        SELECT storeid, state_code, hour_of_day, actual_orders, peak_capacity, utilization_percentage, capacity_status
+        FROM store_capacity_analysis
+        ORDER BY storeid, hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityAnalysisHQ();
+
+    @Query(value = """
+        SELECT storeid, state_code, hour_of_day, actual_orders, peak_capacity, utilization_percentage, capacity_status
+        FROM store_capacity_analysis
+        WHERE state_code = :state
+        ORDER BY storeid, hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityAnalysisState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT storeid, state_code, hour_of_day, actual_orders, peak_capacity, utilization_percentage, capacity_status
+        FROM store_capacity_analysis
+        WHERE storeid = :storeId
+        ORDER BY hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityAnalysisStore(@Param("storeId") String storeId);
+
+    // Store Capacity Summary Statistics
+    @Query(value = """
+        SELECT 
+            COUNT(DISTINCT storeid) as total_stores,
+            AVG(utilization_percentage) as avg_utilization,
+            COUNT(CASE WHEN capacity_status = 'Overloaded' THEN 1 END) as overloaded_hours,
+            COUNT(CASE WHEN capacity_status = 'High' THEN 1 END) as high_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Medium' THEN 1 END) as medium_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Low' THEN 1 END) as low_utilization_hours
+        FROM store_capacity_analysis
+        """, nativeQuery = true)
+    Map<String, Object> getStoreCapacitySummaryHQ();
+
+    @Query(value = """
+        SELECT 
+            COUNT(DISTINCT storeid) as total_stores,
+            AVG(utilization_percentage) as avg_utilization,
+            COUNT(CASE WHEN capacity_status = 'Overloaded' THEN 1 END) as overloaded_hours,
+            COUNT(CASE WHEN capacity_status = 'High' THEN 1 END) as high_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Medium' THEN 1 END) as medium_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Low' THEN 1 END) as low_utilization_hours
+        FROM store_capacity_analysis
+        WHERE state_code = :state
+        """, nativeQuery = true)
+    Map<String, Object> getStoreCapacitySummaryState(@Param("state") String state);
+
+    @Query(value = """
+        SELECT 
+            COUNT(DISTINCT storeid) as total_stores,
+            AVG(utilization_percentage) as avg_utilization,
+            COUNT(CASE WHEN capacity_status = 'Overloaded' THEN 1 END) as overloaded_hours,
+            COUNT(CASE WHEN capacity_status = 'High' THEN 1 END) as high_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Medium' THEN 1 END) as medium_utilization_hours,
+            COUNT(CASE WHEN capacity_status = 'Low' THEN 1 END) as low_utilization_hours
+        FROM store_capacity_analysis
+        WHERE storeid = :storeId
+        """, nativeQuery = true)
+    Map<String, Object> getStoreCapacitySummaryStore(@Param("storeId") String storeId);
+
+    // Peak Hours Analysis
+    @Query(value = """
+        SELECT hour_of_day, 
+               COUNT(*) as stores_at_peak,
+               AVG(utilization_percentage) as avg_utilization,
+               COUNT(CASE WHEN capacity_status = 'Overloaded' THEN 1 END) as overloaded_stores
+        FROM store_capacity_analysis
+        WHERE hour_rank = 1
+        GROUP BY hour_of_day
+        ORDER BY stores_at_peak DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getPeakHoursAnalysisHQ();
+
+    @Query(value = """
+        SELECT hour_of_day, 
+               COUNT(*) as stores_at_peak,
+               AVG(utilization_percentage) as avg_utilization,
+               COUNT(CASE WHEN capacity_status = 'Overloaded' THEN 1 END) as overloaded_stores
+        FROM store_capacity_analysis
+        WHERE state_code = :state AND hour_rank = 1
+        GROUP BY hour_of_day
+        ORDER BY stores_at_peak DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getPeakHoursAnalysisState(@Param("state") String state);
+
+    // =================================================================
+    // STORE CAPACITY V3 - Enhanced capacity analysis with delivery metrics
+    // =================================================================
+
+    // Store Capacity V3 Summary
+    @Query(value = "SELECT * FROM store_capacity_summary_v3 ORDER BY avg_utilization DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3SummaryHQ();
+
+    @Query(value = "SELECT * FROM store_capacity_summary_v3 WHERE state_abbr = :state ORDER BY avg_utilization DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3SummaryState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM store_capacity_summary_v3 WHERE storeid = :storeId", nativeQuery = true)
+    Map<String, Object> getStoreCapacityV3SummaryStore(@Param("storeId") String storeId);
+
+    // Store Capacity V3 Metrics
+    @Query(value = """
+        SELECT * FROM store_capacity_metrics_v3 
+        WHERE (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        ORDER BY storeid, year, month, hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3MetricsHQ(@Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT scm.* FROM store_capacity_metrics_v3 scm
+        JOIN stores s ON scm.storeid = s.storeid
+        WHERE s.state_abbr = :state
+          AND (:year IS NULL OR scm.year = :year)
+          AND (:month IS NULL OR scm.month = :month)
+        ORDER BY scm.storeid, scm.year, scm.month, scm.hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3MetricsState(@Param("state") String state, @Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT * FROM store_capacity_metrics_v3 
+        WHERE storeid = :storeId
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        ORDER BY year, month, hour_of_day
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3MetricsStore(@Param("storeId") String storeId, @Param("year") Integer year, @Param("month") Integer month);
+
+    // Store Capacity V3 Peak Hours
+    @Query(value = "SELECT * FROM store_peak_hours_v3 ORDER BY storeid, avg_orders DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3PeakHoursHQ();
+
+    @Query(value = """
+        SELECT sph.* FROM store_peak_hours_v3 sph
+        JOIN stores s ON sph.storeid = s.storeid
+        WHERE s.state_abbr = :state
+        ORDER BY sph.storeid, sph.avg_orders DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3PeakHoursState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM store_peak_hours_v3 WHERE storeid = :storeId ORDER BY avg_orders DESC", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3PeakHoursStore(@Param("storeId") String storeId);
+
+    // Store Capacity V3 Customer Distance
+    @Query(value = "SELECT * FROM customer_distance_analysis_v3 ORDER BY storeid, distance_category", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3CustomerDistanceHQ();
+
+    @Query(value = """
+        SELECT cda.* FROM customer_distance_analysis_v3 cda
+        JOIN stores s ON cda.storeid = s.storeid
+        WHERE s.state_abbr = :state
+        ORDER BY cda.storeid, cda.distance_category
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3CustomerDistanceState(@Param("state") String state);
+
+    @Query(value = "SELECT * FROM customer_distance_analysis_v3 WHERE storeid = :storeId ORDER BY distance_category", nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3CustomerDistanceStore(@Param("storeId") String storeId);
+
+    // Store Capacity V3 Delivery Metrics
+    @Query(value = """
+        SELECT * FROM delivery_metrics_v3 
+        WHERE (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        ORDER BY storeid, year, month, delivery_date
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3DeliveryMetricsHQ(@Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT dm.* FROM delivery_metrics_v3 dm
+        JOIN stores s ON dm.storeid = s.storeid
+        WHERE s.state_abbr = :state
+          AND (:year IS NULL OR dm.year = :year)
+          AND (:month IS NULL OR dm.month = :month)
+        ORDER BY dm.storeid, dm.year, dm.month, dm.delivery_date
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3DeliveryMetricsState(@Param("state") String state, @Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT * FROM delivery_metrics_v3 
+        WHERE storeid = :storeId
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        ORDER BY year, month, delivery_date
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3DeliveryMetricsStore(@Param("storeId") String storeId, @Param("year") Integer year, @Param("month") Integer month);
+
+    // Store Capacity V3 Utilization Chart
+    @Query(value = """
+        SELECT storeid, city, state_abbr,
+               AVG(utilization_percentage) as avg_utilization,
+               MAX(utilization_percentage) as peak_utilization,
+               COUNT(CASE WHEN utilization_status = 'Over Capacity' THEN 1 END) as over_capacity_hours
+        FROM store_capacity_metrics_v3
+        WHERE (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY storeid, city, state_abbr
+        ORDER BY avg_utilization DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3UtilizationChartHQ(@Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT scm.storeid, scm.city, scm.state_abbr,
+               AVG(scm.utilization_percentage) as avg_utilization,
+               MAX(scm.utilization_percentage) as peak_utilization,
+               COUNT(CASE WHEN scm.utilization_status = 'Over Capacity' THEN 1 END) as over_capacity_hours
+        FROM store_capacity_metrics_v3 scm
+        JOIN stores s ON scm.storeid = s.storeid
+        WHERE s.state_abbr = :state
+          AND (:year IS NULL OR scm.year = :year)
+          AND (:month IS NULL OR scm.month = :month)
+        GROUP BY scm.storeid, scm.city, scm.state_abbr
+        ORDER BY avg_utilization DESC
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3UtilizationChartState(@Param("state") String state, @Param("year") Integer year, @Param("month") Integer month);
+
+    @Query(value = """
+        SELECT storeid, city, state_abbr,
+               AVG(utilization_percentage) as avg_utilization,
+               MAX(utilization_percentage) as peak_utilization,
+               COUNT(CASE WHEN utilization_status = 'Over Capacity' THEN 1 END) as over_capacity_hours
+        FROM store_capacity_metrics_v3
+        WHERE storeid = :storeId
+          AND (:year IS NULL OR year = :year)
+          AND (:month IS NULL OR month = :month)
+        GROUP BY storeid, city, state_abbr
+        """, nativeQuery = true)
+    List<Map<String, Object>> getStoreCapacityV3UtilizationChartStore(@Param("storeId") String storeId, @Param("year") Integer year, @Param("month") Integer month);
+
 }

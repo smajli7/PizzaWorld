@@ -1,0 +1,450 @@
+<app-sidebar></app-sidebar>
+
+<!-- Main Customer Analytics Container with Orange Gradients -->
+<div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
+
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-8 text-white">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div class="flex items-center mb-2">
+              <svg class="w-8 h-8 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+              <h1 class="text-3xl font-bold">Customer Analytics</h1>
+            </div>
+            <p class="text-orange-100 text-lg">Customer lifetime value and retention insights • {{ getFilterLabel() }}</p>
+          </div>
+          <div class="mt-4 sm:mt-0 flex gap-3">
+            <button
+              (click)="exportData()"
+              [disabled]="exportLoading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!exportLoading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <svg *ngIf="exportLoading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Export Data
+            </button>
+            <button
+              (click)="refreshData()"
+              [disabled]="loading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!loading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <svg *ngIf="loading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+    <span class="ml-3 text-gray-600">Loading customer analytics...</span>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <div>
+        <h3 class="text-red-800 font-medium">Error Loading Customer Analytics</h3>
+        <p class="text-red-600 text-sm">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Customers -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 text-white">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Customers</p>
+              <p class="text-2xl font-bold text-gray-900">{{ getTotalCustomers() }}</p>
+              <p class="text-sm text-gray-500">Active customers</p>
+            </div>
+          </div>
+          <!-- Info Icon -->
+          <div class="relative group">
+            <svg class="w-5 h-5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+              Total number of unique customers who have placed at least one order. This metric shows the overall customer base size and growth potential.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average CLV -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Average CLV</p>
+              <p class="text-2xl font-bold text-gray-900">${{ getAverageCLV().toFixed(2) }}</p>
+              <p class="text-sm text-gray-500">Lifetime value</p>
+            </div>
+          </div>
+          <!-- Info Icon -->
+          <div class="relative group">
+            <svg class="w-5 h-5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+              Customer Lifetime Value (CLV) represents the total revenue a customer generates over their entire relationship with the business. Higher CLV indicates better customer profitability and retention.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All-Time Retention Rate -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-gradient-to-r from-orange-300 to-orange-400 text-white">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">All-Time Retention</p>
+              <p class="text-2xl font-bold text-gray-900">{{ getAllTimeRetentionRate().toFixed(1) }}%</p>
+              <p class="text-sm text-gray-500">Repeat customers</p>
+            </div>
+          </div>
+          <!-- Info Icon -->
+          <div class="relative group">
+            <svg class="w-5 h-5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+              Percentage of customers who have placed multiple orders. This metric shows customer loyalty and the effectiveness of retention strategies over the entire customer lifecycle.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repeat Customers -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="p-3 rounded-full bg-gradient-to-r from-orange-600 to-orange-700 text-white">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Repeat Customers</p>
+              <p class="text-2xl font-bold text-gray-900">{{ getRepeatCustomers() }}</p>
+              <p class="text-sm text-gray-500">Multiple orders</p>
+            </div>
+          </div>
+          <!-- Info Icon -->
+          <div class="relative group">
+            <svg class="w-5 h-5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+              Number of customers who have placed 2 or more orders. These customers are more valuable as they have demonstrated loyalty and are more likely to continue purchasing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Segments Infographic -->
+    <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h4 class="text-lg font-semibold text-gray-900">Customer Segment Definitions</h4>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- VIP Segment -->
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4">
+          <div class="flex items-center mb-2">
+            <div class="p-2 rounded-full bg-yellow-500 text-white mr-3">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+              </svg>
+            </div>
+            <h5 class="font-semibold text-yellow-800">VIP Customers</h5>
+          </div>
+          <p class="text-sm text-yellow-700">Customers with total spend > $500 or 10+ orders. Our most valuable customers who receive premium service and exclusive offers.</p>
+        </div>
+
+        <!-- Regular Segment -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+          <div class="flex items-center mb-2">
+            <div class="p-2 rounded-full bg-blue-500 text-white mr-3">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+            <h5 class="font-semibold text-blue-800">Regular Customers</h5>
+          </div>
+            <p class="text-sm text-blue-700">Customers with total spend $100-$500 or 3-9 orders. Loyal customers who order regularly and respond well to promotions.</p>
+        </div>
+
+        <!-- Occasional Segment -->
+        <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+          <div class="flex items-center mb-2">
+            <div class="p-2 rounded-full bg-green-500 text-white mr-3">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <h5 class="font-semibold text-green-800">Occasional Customers</h5>
+          </div>
+          <p class="text-sm text-green-700">Customers with total spend $50-$100 or 2-3 orders. Customers with potential for growth through targeted marketing.</p>
+        </div>
+
+        <!-- One-time Segment -->
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center mb-2">
+            <div class="p-2 rounded-full bg-gray-500 text-white mr-3">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
+              </svg>
+            </div>
+            <h5 class="font-semibold text-gray-800">One-time Customers</h5>
+          </div>
+          <p class="text-sm text-gray-700">Customers with only 1 order or total spend < $50. High potential for re-engagement through win-back campaigns.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+      <!-- Customer Acquisition Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Customer Acquisition Trend</h4>
+          </div>
+          <div class="text-sm text-gray-500">{{ getFilterLabel() }}</div>
+        </div>
+        <div *ngIf="!chartsLoading && acquisitionChart" class="animate-fade-in">
+          <apx-chart
+            [series]="acquisitionChart.series"
+            [chart]="acquisitionChart.chart"
+            [xaxis]="acquisitionChart.xaxis"
+            [yaxis]="acquisitionChart.yaxis"
+            [colors]="acquisitionChart.colors"
+            [dataLabels]="acquisitionChart.dataLabels"
+            [plotOptions]="acquisitionChart.plotOptions"
+            [tooltip]="acquisitionChart.tooltip"
+            [grid]="acquisitionChart.grid"
+            height="400">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-96">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+
+      <!-- Customer Segments Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path>
+            </svg>
+            <h4 class="text-lg font-semibold text-gray-900">Customer Segments Distribution</h4>
+          </div>
+          <div class="text-sm text-gray-500">{{ getFilterLabel() }}</div>
+        </div>
+        <div *ngIf="!chartsLoading && segmentsChart" class="animate-fade-in">
+          <apx-chart
+            [series]="segmentsChart.series"
+            [chart]="segmentsChart.chart"
+            [labels]="segmentsChart.labels"
+            [colors]="segmentsChart.colors"
+            [dataLabels]="segmentsChart.dataLabels"
+            [plotOptions]="segmentsChart.plotOptions"
+            [tooltip]="segmentsChart.tooltip"
+            [legend]="segmentsChart.legend"
+            height="400">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-96">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Tables -->
+    <div class="grid grid-cols-1 gap-6">
+
+      <!-- Customer Lifetime Value Table -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-gray-900">Customer Performance Ranking</h4>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-gray-700">Sort by:</label>
+              <select
+                [(ngModel)]="sortBy"
+                (ngModelChange)="onSortChange()"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+                <option value="total_spent">Total Spent</option>
+                <option value="total_orders">Order Count</option>
+                <option value="avg_order_value">Avg Order Value</option>
+                <option value="customer_lifespan_days">Customer Lifespan</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium text-gray-700">Order:</label>
+              <select
+                [(ngModel)]="sortOrder"
+                (ngModelChange)="onSortChange()"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm">
+                <option value="desc">Best First</option>
+                <option value="asc">Worst First</option>
+              </select>
+            </div>
+            <div class="text-sm text-gray-500">{{ getFilterLabel() }}</div>
+          </div>
+        </div>
+        <div class="overflow-visible">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Order Value</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative">
+                  <div class="flex items-center">
+                    <span>Lifespan (Days)</span>
+                    <div class="relative group ml-1">
+                      <svg class="w-5 h-5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[100] normal-case tracking-normal font-normal">
+                        Customer lifespan represents the number of days between a customer's first order and their most recent order. This metric helps identify how long customers remain active with your business.
+                      </div>
+                    </div>
+                  </div>
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Segment</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let customer of paginatedCustomers; let i = index" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold"
+                        [class]="getRankClass(getRankNumber(i))">
+                    {{ getRankNumber(i) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ customer.customerid }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(customer.total_spent) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.total_orders }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(customer.avg_order_value) }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.customer_lifespan_days }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="getSegmentBadgeClass(customer.customer_segment)" class="px-2 py-1 text-xs font-medium rounded-full flex items-center">
+                    <svg *ngIf="customer.customer_segment.toLowerCase() === 'vip'" class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z"/>
+                    </svg>
+                    {{ customer.customer_segment }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="mt-6 flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> to
+            <span class="font-medium">{{ Math.min(currentPage * pageSize, sortedCustomers.length) }}</span> of
+            <span class="font-medium">{{ sortedCustomers.length }}</span> customers
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              (click)="goToPage(1)"
+              [disabled]="currentPage === 1"
+              class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              First
+            </button>
+            <button
+              (click)="previousPage()"
+              [disabled]="currentPage === 1"
+              class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              Previous
+            </button>
+
+            <!-- Page Numbers -->
+            <div class="flex items-center gap-1">
+              <button
+                *ngFor="let page of getPageNumbers()"
+                (click)="goToPage(page)"
+                [class]="page === currentPage ? 'bg-orange-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                class="px-3 py-1 text-sm border border-gray-300 rounded-md">
+                {{ page }}
+              </button>
+            </div>
+
+            <button
+              (click)="nextPage()"
+              [disabled]="currentPage === totalPages"
+              class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              Next
+            </button>
+            <button
+              (click)="goToPage(totalPages)"
+              [disabled]="currentPage === totalPages"
+              class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              Last
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

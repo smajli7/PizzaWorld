@@ -1,0 +1,205 @@
+// Delivery Metrics Component Styles
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Table hover effects
+.hover\:bg-orange-50:hover {
+  background-color: rgb(255 247 237);
+}
+
+// Sticky header improvements
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+// Chart container improvements
+.chart-container {
+  position: relative;
+  overflow: hidden;
+}
+
+// Loading state improvements
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+// Responsive table improvements
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .table-responsive th,
+  .table-responsive td {
+    padding: 0.5rem;
+  }
+}
+
+// Custom scrollbar for tables
+.max-h-\[32rem\]::-webkit-scrollbar {
+  width: 8px;
+}
+
+.max-h-\[32rem\]::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.max-h-\[32rem\]::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.max-h-\[32rem\]::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+// Sort indicator improvements
+.sort-indicator {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+// Badge improvements
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// KPI card improvements
+.kpi-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+// Filter section improvements
+.filter-section {
+  background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+}
+
+// Button improvements
+.btn-filter {
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-filter:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-filter:hover:before {
+  left: 100%;
+}
+
+// Chart title improvements
+.chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+// Error state improvements
+.error-state {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+}
+
+// Loading state improvements
+.loading-state {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+// Table header improvements
+.table-header {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-bottom: 2px solid #e5e7eb;
+}
+
+// Utility class for text truncation
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+// Custom focus styles
+.custom-focus:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #f97316;
+  ring-offset: 2px;
+  border-color: #f97316;
+}
+
+// Animation for data updates
+.data-update {
+  animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

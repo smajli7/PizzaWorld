@@ -1404,4 +1404,213 @@ public class OptimizedPizzaController {
         }
         return ResponseEntity.ok(product);
     }
+
+    // =================================================================
+    // CUSTOMER LIFETIME VALUE ANALYTICS - New Endpoints
+    // =================================================================
+
+    @GetMapping("/analytics/customer-lifetime-value")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getCustomerLifetimeValue(
+            @RequestParam(defaultValue = "100") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getCustomerLifetimeValue(user, limit));
+    }
+
+    @GetMapping("/analytics/customer-lifetime-value/summary")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getCustomerLifetimeValueSummary(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getCustomerLifetimeValueSummary(user));
+    }
+
+    @GetMapping("/analytics/customer-lifetime-value/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportCustomerLifetimeValue(
+            @RequestParam(defaultValue = "1000") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getCustomerLifetimeValue(user, limit);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "customer-lifetime-value.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "customer-lifetime-value.csv");
+    }
+
+    // =================================================================
+    // CUSTOMER RETENTION ANALYTICS - New Endpoints
+    // =================================================================
+
+    @GetMapping("/analytics/customer-retention")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getCustomerRetentionAnalysis(
+            @RequestParam(defaultValue = "24") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getCustomerRetentionAnalysis(user, limit));
+    }
+
+    @GetMapping("/analytics/customer-retention/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportCustomerRetentionAnalysis(
+            @RequestParam(defaultValue = "48") Integer limit,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getCustomerRetentionAnalysis(user, limit);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "customer-retention-analysis.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "customer-retention-analysis.csv");
+    }
+
+    // =================================================================
+    // STORE CAPACITY ANALYTICS - New Endpoints
+    // =================================================================
+
+    @GetMapping("/analytics/store-capacity")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityAnalysis(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityAnalysis(user));
+    }
+
+    @GetMapping("/analytics/store-capacity/summary")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getStoreCapacitySummary(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacitySummary(user));
+    }
+
+    @GetMapping("/analytics/store-capacity/peak-hours")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getPeakHoursAnalysis(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getPeakHoursAnalysis(user));
+    }
+
+    @GetMapping("/analytics/store-capacity/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportStoreCapacityAnalysis(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getStoreCapacityAnalysis(user);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-capacity-analysis.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "store-capacity-analysis.csv");
+    }
+
+    // =================================================================
+    // STORE CAPACITY V3 - Enhanced capacity analysis with delivery metrics
+    // =================================================================
+
+    @GetMapping("/analytics/store-capacity-v3/summary")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityV3Summary(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3Summary(user));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/metrics")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityV3Metrics(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3Metrics(user, year, month));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/peak-hours")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityV3PeakHours(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3PeakHours(user));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/customer-distance")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<Map<String, Object>> getStoreCapacityV3CustomerDistance(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3CustomerDistance(user));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/delivery-metrics")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityV3DeliveryMetrics(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3DeliveryMetrics(user, year, month));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/utilization-chart")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getStoreCapacityV3UtilizationChart(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        User user = userDetails.getUser();
+        return ResponseEntity.ok(pizzaService.getStoreCapacityV3UtilizationChart(user, year, month));
+    }
+
+    @GetMapping("/analytics/store-capacity-v3/export")
+    @PreAuthorize("hasAuthority('HQ_ADMIN') or hasAuthority('STATE_MANAGER') or hasAuthority('STORE_MANAGER')")
+    public void exportStoreCapacityV3Analysis(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            HttpServletResponse response) {
+        User user = userDetails.getUser();
+        List<Map<String, Object>> data = pizzaService.getStoreCapacityV3Summary(user);
+        
+        if (data.isEmpty()) {
+            CsvExportUtil.writeCsv(response, List.of("No Data"), List.of(), "store-capacity-v3.csv");
+            return;
+        }
+
+        List<String> headers = List.copyOf(data.get(0).keySet());
+        List<List<String>> rows = data.stream()
+                .map(row -> headers.stream().map(h -> String.valueOf(row.get(h))).toList())
+                .toList();
+
+        CsvExportUtil.writeCsv(response, headers, rows, "store-capacity-v3.csv");
+    }
+
 }

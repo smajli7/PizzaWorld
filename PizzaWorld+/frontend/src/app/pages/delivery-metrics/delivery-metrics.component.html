@@ -1,0 +1,604 @@
+<app-sidebar></app-sidebar>
+
+<!-- Main Container -->
+<div class="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100 px-4 py-6 sm:px-6 lg:px-8 lg:ml-64">
+
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-8 text-white">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div class="flex items-center mb-2">
+              <svg class="w-8 h-8 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z M8 12l2 2 4-4"></path>
+              </svg>
+              <h1 class="text-3xl font-bold">Delivery Metrics</h1>
+            </div>
+            <p class="text-orange-100 text-lg">Comprehensive delivery performance analytics and insights</p>
+          </div>
+          <div class="mt-4 sm:mt-0 flex gap-3">
+            <button
+              (click)="exportData()"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              Export Data
+            </button>
+            <button
+              (click)="loadAllData()"
+              [disabled]="loading"
+              class="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50">
+              <svg *ngIf="!loading" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <svg *ngIf="loading" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+    <span class="ml-3 text-gray-600">Loading delivery metrics data...</span>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <div>
+        <h3 class="text-red-800 font-medium">Error Loading Data</h3>
+        <p class="text-red-600 text-sm">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error">
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+
+      <!-- Total Stores -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 transform hover:scale-105 transition-transform duration-200 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <div class="p-3 bg-orange-100 rounded-lg">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+          <div class="text-gray-400 hover:text-gray-600 cursor-help">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-600">Total Stores</h3>
+          <p class="text-2xl font-bold text-gray-900">{{ totalStores }}</p>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+          Total number of stores in the system with delivery capacity metrics
+        </div>
+      </div>
+
+      <!-- Total Deliveries -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 transform hover:scale-105 transition-transform duration-200 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <div class="p-3 bg-blue-100 rounded-lg">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+            </svg>
+          </div>
+          <div class="text-gray-400 hover:text-gray-600 cursor-help">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-600">Total Deliveries</h3>
+          <p class="text-2xl font-bold text-gray-900">{{ formatNumber(totalDeliveries) }}</p>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+          Sum of all delivery counts across all stores and time periods
+        </div>
+      </div>
+
+      <!-- Total Delivery Cost -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 transform hover:scale-105 transition-transform duration-200 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <div class="p-3 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="text-gray-400 hover:text-gray-600 cursor-help">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-600">Delivery Cost</h3>
+          <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(totalDeliveryCost) }}</p>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+          <div class="text-center">
+            <div class="font-semibold mb-1">Total Delivery Cost</div>
+            <div class="text-xs leading-relaxed">
+              <strong>Formula:</strong> Total Miles Driven × $0.65/mile<br/>
+              <strong>Rate:</strong> $0.65 per mile (includes fuel, vehicle wear, insurance)<br/>
+              <strong>Distance:</strong> Round-trip to customer and back to store
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Miles -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 transform hover:scale-105 transition-transform duration-200 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <div class="p-3 bg-purple-100 rounded-lg">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+            </svg>
+          </div>
+          <div class="text-gray-400 hover:text-gray-600 cursor-help">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-600">Miles Driven</h3>
+          <p class="text-2xl font-bold text-gray-900">{{ formatNumber(totalMilesDriven).replace('.', ',') }} mi</p>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+          Total cumulative miles driven for all deliveries across all stores
+        </div>
+      </div>
+
+
+
+      <!-- Avg Utilization -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6 transform hover:scale-105 transition-transform duration-200 relative group">
+        <div class="flex items-center justify-between mb-2">
+          <div class="p-3 bg-yellow-100 rounded-lg">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+          <div class="text-gray-400 hover:text-gray-600 cursor-help">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-600">Avg Utilization</h3>
+          <p class="text-2xl font-bold text-gray-900">{{ avgUtilization.toFixed(1) }}%</p>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-sm">
+          <div class="text-center">
+            <div class="font-semibold mb-1">Average Store Utilization</div>
+            <div class="text-xs leading-relaxed">
+              <strong>Formula:</strong> (Actual Orders / Store Capacity) × 100<br/>
+              <strong>Store Capacity:</strong> 90th percentile of historical hourly orders<br/>
+              <strong>Purpose:</strong> Measures efficiency vs. proven peak performance<br/>
+              Averaged across all stores in the system.
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+            <!-- Utilization Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-gray-900">Store Utilization Analysis</h4>
+        </div>
+        <div *ngIf="!chartsLoading && utilizationChart" class="animate-fade-in">
+          <apx-chart
+            [series]="utilizationChart.series || []"
+            [chart]="utilizationChart.chart || {type: 'bar'}"
+            [xaxis]="utilizationChart.xaxis || {}"
+            [yaxis]="utilizationChart.yaxis || {}"
+            [colors]="utilizationChart.colors || []"
+            [dataLabels]="utilizationChart.dataLabels || {enabled: false}"
+            [plotOptions]="utilizationChart.plotOptions || {}"
+            [title]="utilizationChart.title || {}"
+            [legend]="utilizationChart.legend || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+
+      <!-- Delivery Trends Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-gray-900">Delivery Trends</h4>
+        </div>
+        <div *ngIf="!chartsLoading && deliveryTrendsChart" class="animate-fade-in">
+          <apx-chart
+            [series]="deliveryTrendsChart.series || []"
+            [chart]="deliveryTrendsChart.chart || {type: 'line'}"
+            [xaxis]="deliveryTrendsChart.xaxis || {}"
+            [yaxis]="deliveryTrendsChart.yaxis || {}"
+            [colors]="deliveryTrendsChart.colors || []"
+            [dataLabels]="deliveryTrendsChart.dataLabels || {enabled: false}"
+            [stroke]="deliveryTrendsChart.stroke || {}"
+            [title]="deliveryTrendsChart.title || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+
+      <!-- Customer Distance Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-gray-900">Customer Distance Distribution</h4>
+        </div>
+        <div *ngIf="!chartsLoading && customerDistanceChart" class="animate-fade-in">
+          <apx-chart
+            [series]="customerDistanceChart.series || []"
+            [chart]="customerDistanceChart.chart || {type: 'donut'}"
+            [labels]="customerDistanceChart.labels || []"
+            [colors]="customerDistanceChart.colors || []"
+            [dataLabels]="customerDistanceChart.dataLabels || {enabled: true}"
+            [plotOptions]="customerDistanceChart.plotOptions || {}"
+            [title]="customerDistanceChart.title || {}"
+            [legend]="customerDistanceChart.legend || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+
+      <!-- Cost Analysis Chart -->
+      <div class="bg-white rounded-xl shadow-lg border border-orange-100 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-semibold text-gray-900">Delivery Cost Analysis</h4>
+        </div>
+        <div *ngIf="!chartsLoading && costAnalysisChart" class="animate-fade-in">
+          <apx-chart
+            [series]="costAnalysisChart.series || []"
+            [chart]="costAnalysisChart.chart || {type: 'bar'}"
+            [xaxis]="costAnalysisChart.xaxis || {}"
+            [yaxis]="costAnalysisChart.yaxis || {}"
+            [colors]="costAnalysisChart.colors || []"
+            [dataLabels]="costAnalysisChart.dataLabels || {enabled: false}"
+            [plotOptions]="costAnalysisChart.plotOptions || {}"
+            [title]="costAnalysisChart.title || {}"
+            height="350">
+          </apx-chart>
+        </div>
+        <div *ngIf="chartsLoading" class="flex justify-center items-center h-80">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Store Summary Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden mb-8">
+      <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="flex items-center">
+              <svg class="w-6 h-6 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+              </svg>
+              <h3 class="text-xl font-bold text-white">Store Performance Summary</h3>
+            </div>
+            <p class="text-orange-100">Comprehensive store metrics and delivery performance</p>
+          </div>
+        </div>
+      </div>
+      <div class="max-h-[32rem] overflow-y-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th (click)="sortSummaryTable('storeid')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Store ID
+                <span *ngIf="summarySort.column === 'storeid'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortSummaryTable('city')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Location
+                <span *ngIf="summarySort.column === 'city'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortSummaryTable('avg_utilization')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 relative group">
+                <div class="flex items-center">
+                  Avg Utilization
+                  <span *ngIf="summarySort.column === 'avg_utilization'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+                  <svg class="w-3 h-3 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                                 <!-- Tooltip -->
+                 <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 max-w-sm">
+                   <div class="text-center">
+                     <div class="font-semibold mb-1">Average Utilization</div>
+                     <div class="text-xs leading-relaxed">
+                       <strong>Formula:</strong> (Actual Daily Orders / Store Capacity) × 100<br/>
+                       <strong>Store Capacity:</strong> 90th percentile of historical hourly orders<br/>
+                       Shows efficiency vs. proven peak performance
+                     </div>
+                   </div>
+                 </div>
+              </th>
+              <th (click)="sortSummaryTable('total_customers')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Total Customers
+                <span *ngIf="summarySort.column === 'total_customers'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortSummaryTable('avg_customer_distance')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Avg Distance
+                <span *ngIf="summarySort.column === 'avg_customer_distance'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortSummaryTable('avg_daily_miles')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Daily Miles
+                <span *ngIf="summarySort.column === 'avg_daily_miles'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortSummaryTable('total_delivery_cost')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Delivery Cost
+                <span *ngIf="summarySort.column === 'total_delivery_cost'" class="ml-1">{{ summarySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let store of sortedSummaryData" class="hover:bg-orange-50 transition-colors duration-200">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ store.storeid }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ store.city }}, {{ store.state_abbr }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span [class]="getUtilizationBadgeClass(store.avg_utilization)"
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  {{ store.avg_utilization.toFixed(1) }}%
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatNumber(store.total_customers) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ store.avg_customer_distance.toFixed(1) }} mi</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ store.avg_daily_miles.toFixed(1) }} mi</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">{{ formatCurrency(store.total_delivery_cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Delivery Metrics Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden mb-8">
+      <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="flex items-center">
+              <svg class="w-6 h-6 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              </svg>
+              <h3 class="text-xl font-bold text-white">Daily Delivery Metrics</h3>
+            </div>
+            <p class="text-orange-100">Detailed daily delivery performance data</p>
+          </div>
+        </div>
+      </div>
+      <div class="max-h-[32rem] overflow-y-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th (click)="sortDeliveryTable('storeid')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Store ID
+                <span *ngIf="deliverySort.column === 'storeid'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortDeliveryTable('delivery_date')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Date
+                <span *ngIf="deliverySort.column === 'delivery_date'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortDeliveryTable('delivery_count')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Deliveries
+                <span *ngIf="deliverySort.column === 'delivery_count'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortDeliveryTable('total_miles_driven')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Miles Driven
+                <span *ngIf="deliverySort.column === 'total_miles_driven'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+
+              <th (click)="sortDeliveryTable('avg_delivery_distance')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Avg Distance
+                <span *ngIf="deliverySort.column === 'avg_delivery_distance'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortDeliveryTable('estimated_delivery_cost')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Cost
+                <span *ngIf="deliverySort.column === 'estimated_delivery_cost'" class="ml-1">{{ deliverySort.ascending ? '↑' : '↓' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let metric of paginatedDeliveryData" class="hover:bg-orange-50 transition-colors duration-200">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ metric.storeid }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.delivery_date | date:'shortDate' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatNumber(metric.delivery_count) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.total_miles_driven.toFixed(1) }} mi</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ metric.avg_delivery_distance.toFixed(1) }} mi</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-orange-600">{{ formatCurrency(metric.estimated_delivery_cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+        <div class="flex-1 flex justify-between sm:hidden">
+          <button
+            (click)="prevDeliveryPage()"
+            [disabled]="deliveryCurrentPage === 1"
+            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Previous
+          </button>
+          <button
+            (click)="nextDeliveryPage()"
+            [disabled]="deliveryCurrentPage === deliveryTotalPages"
+            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            Next
+          </button>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-gray-700">
+              Showing
+              <span class="font-medium">{{ (deliveryCurrentPage - 1) * deliveryItemsPerPage + 1 }}</span>
+              to
+              <span class="font-medium">{{ Math.min(deliveryCurrentPage * deliveryItemsPerPage, deliveryTotalItems) }}</span>
+              of
+              <span class="font-medium">{{ deliveryTotalItems }}</span>
+              results
+            </p>
+          </div>
+          <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button
+                (click)="prevDeliveryPage()"
+                [disabled]="deliveryCurrentPage === 1"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Previous</span>
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+
+              <button
+                *ngFor="let page of deliveryPageNumbers"
+                (click)="goToDeliveryPage(page)"
+                [class]="page === deliveryCurrentPage ?
+                  'relative inline-flex items-center px-4 py-2 border border-orange-500 bg-orange-50 text-sm font-medium text-orange-600' :
+                  'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50'">
+                {{ page }}
+              </button>
+
+              <button
+                (click)="nextDeliveryPage()"
+                [disabled]="deliveryCurrentPage === deliveryTotalPages"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span class="sr-only">Next</span>
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Peak Hours Table -->
+    <div class="bg-white rounded-xl shadow-lg border border-orange-100 overflow-hidden">
+      <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="flex items-center">
+              <svg class="w-6 h-6 mr-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <h3 class="text-xl font-bold text-white">Peak Hours Analysis</h3>
+            </div>
+            <p class="text-orange-100">Store performance during peak operating hours</p>
+          </div>
+        </div>
+      </div>
+      <div class="max-h-[32rem] overflow-y-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50 sticky top-0">
+            <tr>
+              <th (click)="sortPeakHoursTable('storeid')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Store ID
+                <span *ngIf="peakHoursSort.column === 'storeid'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortPeakHoursTable('hour_of_day')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Hour
+                <span *ngIf="peakHoursSort.column === 'hour_of_day'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortPeakHoursTable('avg_orders')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Avg Orders
+                <span *ngIf="peakHoursSort.column === 'avg_orders'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortPeakHoursTable('avg_revenue')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Avg Revenue
+                <span *ngIf="peakHoursSort.column === 'avg_revenue'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+              </th>
+              <th (click)="sortPeakHoursTable('avg_utilization')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 relative group">
+                <div class="flex items-center">
+                  Utilization
+                  <span *ngIf="peakHoursSort.column === 'avg_utilization'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+                  <svg class="w-3 h-3 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+                                 <!-- Tooltip -->
+                 <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20 max-w-sm">
+                   <div class="text-center">
+                     <div class="font-semibold mb-1">Peak Hour Utilization</div>
+                     <div class="text-xs leading-relaxed">
+                       <strong>Formula:</strong> (Hourly Orders / Store Capacity) × 100<br/>
+                       <strong>Store Capacity:</strong> 90th percentile of historical hourly orders<br/>
+                       Shows capacity usage during this specific hour<br/>
+                       Peak utilization = highest hourly percentage achieved
+                     </div>
+                   </div>
+                 </div>
+              </th>
+              <th (click)="sortPeakHoursTable('traffic_category')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                Traffic Category
+                <span *ngIf="peakHoursSort.column === 'traffic_category'" class="ml-1">{{ peakHoursSort.ascending ? '↑' : '↓' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let peak of sortedPeakHoursData" class="hover:bg-orange-50 transition-colors duration-200">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ peak.storeid }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ peak.hour_of_day.toString().padStart(2, '0') }}:00</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ peak.avg_orders.toFixed(1) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatCurrency(peak.avg_revenue) }}</td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span [class]="getUtilizationBadgeClass(peak.avg_utilization)"
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full">
+                  {{ peak.avg_utilization.toFixed(1) }}%
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                  {{ peak.traffic_category }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -70,6 +70,23 @@ export const routes: Routes = [
     )
 },
 
+{
+  path: 'customer-analytics',
+  canActivate: [AuthGuard],
+  loadComponent: () =>
+    import('./pages/customer-analytics/customer-analytics.component').then(
+      (m) => m.CustomerAnalyticsComponent
+    )
+},
+
+{
+  path: 'delivery-metrics',
+  canActivate: [AuthGuard],
+  loadComponent: () =>
+    import('./pages/delivery-metrics/delivery-metrics.component').then(
+      (m) => m.DeliveryMetricsComponent
+    )
+},
 
   {
     path: 'profile',

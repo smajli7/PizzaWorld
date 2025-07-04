@@ -5,7 +5,7 @@ A comprehensive business intelligence dashboard system for PizzaWorld with Sprin
 **Developed for the Programming Lab module in the Business Information Systems bachelor's program.**
 
 Contact: 
-**pizzaworldplus@proton.me**
+pizzaworldplus@proton.me
 
 ## Local Setup for Evaluation
 

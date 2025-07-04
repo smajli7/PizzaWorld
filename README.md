@@ -1,154 +1,371 @@
-# 🍕 PizzaWorld Dashboard
+# PizzaWorld Dashboard
 
-Ein vollständiges Dashboard-System für PizzaWorld mit Angular Frontend und Spring Boot Backend.
+A comprehensive business intelligence dashboard system for PizzaWorld with Spring Boot backend and Angular frontend.
 
-## 🚀 Schnellstart
+**Developed for the Programming Lab module in the Business Information Systems bachelor's program.**
 
-### Windows
+Contact: pizzaworldplus@gmail.com
+
+## ► Local Setup for Evaluation
+
+### System Requirements
+- Java 17 or higher (OpenJDK or Oracle JDK)
+- Node.js 18 or higher 
+- npm 9 or higher (included with Node.js)
+- Modern web browser (Chrome, Firefox, Safari, or Edge)
+- Operating System: Windows 10+, macOS 10.15+, or Linux
+
+Note: PostgreSQL installation is not required - the application uses a pre-configured cloud database.
+
+### Security Implementation
+
+This application demonstrates production-grade security practices:
+- No hardcoded credentials in source code
+- All sensitive data loaded from environment variables
+- Application will not start without proper security configuration
+- Start scripts (`start.sh` / `start.bat`) handle secure environment setup
+- JWT-based authentication with role-based access control
+- BCrypt password hashing for secure credential storage
+
+**Important**: Always use the provided start scripts. Direct execution will fail due to missing environment variables.
+
+## ■ Installation and Startup
+
+The application uses a unified startup approach with automatic environment configuration.
+
+### Windows Instructions
+
 ```bash
+# Clone the repository
+git clone <repository-url>
 cd PizzaWorld+
+
+# Start both Backend and Frontend
 ./start.bat
 ```
 
-### Mac/Linux
+The script automatically:
+- Sets all required environment variables
+- Starts the Spring Boot backend (port 8080)
+- Starts the Angular frontend (port 4200)
+- Opens http://localhost:4200 in your default browser
+
+### macOS/Linux Instructions
+
 ```bash
+# Clone the repository
+git clone <repository-url>
 cd PizzaWorld+
+
+# Make script executable (first time only)
+chmod +x start.sh
+
+# Start both Backend and Frontend
 ./start.sh
 ```
 
-Das war's! Die Anwendung startet automatisch auf `http://localhost:4200`
+### Manual Installation (if needed)
 
-## 🔧 Was die Start-Skripte machen
+If you prefer manual setup or encounter issues:
 
-Die Skripte (`start.bat` / `start.sh`) führen automatisch folgende Schritte aus:
-
-1. **Setzen der Umgebungsvariablen** (sicher, ohne Passwörter im Code)
-   - Datenbankverbindung
-   - JWT-Secret
-   - Weitere Konfigurationen
-
-2. **Starten beider Services parallel**
-   - Backend (Spring Boot) auf Port 8080
-   - Frontend (Angular) auf Port 4200
-
-3. **Automatische Proxy-Konfiguration**
-   - Frontend leitet API-Calls automatisch an Backend weiter
-
-## 🔒 Sicherheitsfeatures
-
-- **JWT-basierte Authentifizierung**
-- **Rollenbasierte Zugriffskontrolle**
-- **Sichere Umgebungsvariablen** (keine Passwörter im Sourcecode)
-- **BCrypt Passwort-Hashing**
-- **Route Guards** im Frontend
-- **Spring Security** im Backend
-
-## 🏗️ Technologie-Stack
-
-**Frontend:**
-- Angular 19
-- TypeScript
-- Tailwind CSS
-- PrimeNG Components
-- ApexCharts für Visualisierungen
-
-**Backend:**
-- Spring Boot 3
-- Spring Security
-- JWT Authentication
-- PostgreSQL (Supabase)
-- Maven
-
-## 📊 Features
-
-- **Dashboard** mit KPIs und Charts
-- **Bestellverwaltung**
-- **Produktkatalog**
-- **Filialverwaltung**
-- **Verkaufsanalysen**
-- **Kundenanalysen**
-- **Liefermetriken**
-- **Support-System**
-
-## 🔧 Manuelle Installation (falls nötig)
-
-### Voraussetzungen
-- Node.js (v18+)
-- Java 17+
-- Maven
-
-### Frontend Setup
 ```bash
-cd PizzaWorld+/frontend
-npm install
-```
-
-### Backend Setup
-```bash
+# Backend setup
 cd PizzaWorld+
 ./mvnw clean install
-```
 
-### Manueller Start
-```bash
+# Frontend setup
+cd PizzaWorld+/frontend
+npm install
+
+# Set environment variables manually (example for Linux/Mac)
+export DB_URL="jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:6543/postgres?prepareThreshold=0"
+export DB_USERNAME="postgres.xmjywzcuaajlmghgpcev"
+export DB_PASSWORD="PizzaWorld.2025"
+export JWT_SECRET="supergeheimerSchluessel123456789012345"
+
+# Start services
 # Terminal 1: Backend
-cd PizzaWorld+
 ./mvnw spring-boot:run
 
 # Terminal 2: Frontend
-cd PizzaWorld+/frontend
+cd frontend
 npm start
 ```
 
-## 🌐 Zugriff
+## ▲ Login Credentials
 
-- **Frontend**: http://localhost:4200
-- **Backend API**: http://localhost:8080/api
+The application includes pre-configured demo users:
 
-## 👤 Demo-Zugangsdaten
+| Username | Password | Role | Description |
+|----------|----------|------|-------------|
+| `admin` | `admin123` | `HQ_ADMIN` | Full access to all features and data |
+| `state` | `state123` | `STATE_MANAGER` | State-level access (California) |
+| `store` | `store123` | `STORE_MANAGER` | Store-level access (Store #1) |
 
-- **Username**: admin
-- **Password**: admin123
-
-## 🔍 Entwicklung
-
-### Frontend-Entwicklung
-```bash
-cd PizzaWorld+/frontend
-npm run watch    # Live-Reload für Entwicklung
-npm run build    # Produktions-Build
-npm run test     # Unit Tests
-```
-
-### Backend-Entwicklung
-```bash
-cd PizzaWorld+
-./mvnw spring-boot:run    # Backend starten
-./mvnw test              # Tests ausführen
-```
-
-## 📁 Projektstruktur
+## ◆ Project Structure
 
 ```
 PizzaWorld+/
-├── frontend/           # Angular Frontend
-│   ├── src/app/       # Angular Components
-│   ├── proxy.conf.json # Proxy-Konfiguration
-│   └── package.json   # Frontend Dependencies
-├── src/main/java/     # Spring Boot Backend
-│   └── pizzaworld/    # Java Packages
-├── start.bat          # Windows Start-Skript
-├── start.sh           # Mac/Linux Start-Skript
-└── pom.xml           # Backend Dependencies
+├── src/main/java/pizzaworld/          # Spring Boot Backend
+│   ├── controller/                    # REST API Controllers
+│   │   ├── AuthController.java        # Authentication endpoints
+│   │   ├── OptimizedPizzaController.java # Main business endpoints
+│   │   └── SupportController.java     # Support ticket system
+│   ├── service/                       # Business Logic Layer
+│   │   ├── OptimizedPizzaService.java # Core business operations
+│   │   ├── UserService.java           # User management
+│   │   └── EmailService.java          # Email notifications
+│   ├── model/                         # Data Models
+│   │   ├── User.java                  # User entity
+│   │   └── CustomUserDetails.java     # Spring Security integration
+│   ├── repository/                    # Database Access Layer
+│   │   ├── OptimizedPizzaRepo.java    # Native SQL queries
+│   │   └── UserRepo.java              # User data access
+│   ├── security/                      # Security Configuration
+│   │   └── JwtAuthFilter.java         # JWT authentication filter
+│   ├── dto/                           # Data Transfer Objects
+│   └── util/                          # Utility Classes
+│       ├── JwtUtil.java               # JWT token operations
+│       └── CsvExportUtil.java         # CSV export functionality
+├── src/main/resources/
+│   └── application.properties         # Spring configuration
+├── frontend/                          # Angular Frontend
+│   ├── src/app/
+│   │   ├── pages/                     # Feature Pages
+│   │   │   ├── dashboard/             # Main dashboard with KPIs
+│   │   │   ├── orders/                # Order management
+│   │   │   ├── products/              # Product catalog
+│   │   │   ├── stores/                # Store management
+│   │   │   ├── sales/                 # Sales analytics
+│   │   │   ├── customer-analytics/    # Customer insights
+│   │   │   ├── delivery-metrics/      # Delivery performance
+│   │   │   └── login/                 # Authentication
+│   │   ├── core/                      # Core Services
+│   │   │   ├── auth.service.ts        # Authentication service
+│   │   │   ├── kpi.service.ts         # KPI data management
+│   │   │   └── auth.guard.ts          # Route protection
+│   │   └── shared/                    # Reusable Components
+│   ├── angular.json                   # Angular configuration
+│   ├── proxy.conf.json                # API proxy configuration
+│   └── package.json                   # Frontend dependencies
+├── start.sh                           # Unix startup script
+├── start.bat                          # Windows startup script
+├── pom.xml                            # Maven configuration
+└── README.md                          # This file
 ```
 
-## 🚨 Wichtige Hinweise
+## ▪ Features
 
-- **Verwende immer die Start-Skripte** (`start.bat` / `start.sh`)
-- **Nicht direkt `npm run start:all` ausführen** - das führt zu Fehlern
-- Die Umgebungsvariablen werden automatisch gesetzt
-- Beide Services starten parallel für optimale Performance
+### Backend (Spring Boot)
+- **RESTful API** with comprehensive endpoint coverage
+- **JWT Authentication** with role-based access control (RBAC)
+- **Spring Security** with custom authentication filter
+- **PostgreSQL Integration** with optimized native queries
+- **Performance Optimization** through materialized views
+- **CSV Export** for all data tables
+- **Global Exception Handling** with meaningful error messages
+- **Request Caching** for frequently accessed data
+- **Input Validation** and SQL injection protection
+- **CORS Configuration** for frontend integration
 
-## 🤝 Support
+### Frontend (Angular 19)
+- **Responsive Design** with Tailwind CSS
+- **Interactive Dashboards** with ApexCharts visualizations
+- **Real-time Updates** via efficient HTTP polling
+- **Role-based UI** with dynamic navigation
+- **Progressive Web App** capabilities
+- **Accessibility Compliance** (WCAG 2.1)
+- **TypeScript** for type safety
+- **Component Architecture** with lazy loading
+- **State Management** with RxJS
+- **Form Validation** with reactive forms
 
-Bei Problemen oder Fragen wende dich an das Entwicklungsteam oder nutze das integrierte Support-System im Dashboard. 
+### Security Features
+- **Environment Variables** for all sensitive configuration
+- **JWT Tokens** with 24-hour expiration
+- **BCrypt Hashing** for password storage
+- **Role-based Access Control** at API and UI levels
+- **HTTPS Ready** configuration
+- **XSS Protection** in frontend
+- **CSRF Protection** disabled for API usage
+- **SQL Injection Prevention** through parameterized queries
+
+## ● User Roles & Permission Matrix
+
+| Role | Dashboard | Orders | Products | Stores | Analytics | Export | Admin |
+|------|-----------|--------|----------|---------|-----------|---------|--------|
+| **HQ_ADMIN** | ✓ All data | ✓ All stores | ✓ Full CRUD | ✓ All states | ✓ Full access | ✓ All reports | ✓ User mgmt |
+| **STATE_MANAGER** | ✓ State data | ✓ State stores | ✓ View/Edit | ✓ Own state | ✓ State analytics | ✓ State reports | ✗ |
+| **STORE_MANAGER** | ✓ Store data | ✓ Own store | ✓ View only | ✓ Own store | ✓ Store analytics | ✓ Store reports | ✗ |
+
+## ◈ API Endpoints
+
+### Authentication
+- `POST /api/login` - User authentication
+- `GET /api/me` - Current user information
+- `POST /api/logout` - Session termination
+
+### Dashboard & Analytics
+- `GET /api/dashboard-kpis` - Main KPI metrics
+- `GET /api/recent-orders` - Recent order list
+- `GET /api/kpi/revenue-trend` - Revenue analytics
+- `GET /api/kpi/orders-per-day` - Order frequency
+- `GET /api/analytics/customer-lifetime-value` - CLV analysis
+- `GET /api/analytics/customer-retention` - Retention metrics
+
+### Business Operations
+- `GET /api/orders` - Order management
+- `GET /api/products` - Product catalog
+- `GET /api/stores` - Store directory
+- `GET /api/sales` - Sales data
+- `POST /api/support/contact` - Support tickets
+
+### Data Export
+- `GET /api/orders/export` - Orders CSV
+- `GET /api/products/export` - Products CSV
+- `GET /api/stores/export` - Stores CSV
+
+## ◐ Technology Stack
+
+### Backend
+- **Spring Boot 3.4.0** - Application framework
+- **Spring Security 6** - Authentication & authorization
+- **Spring Data JPA** - ORM layer
+- **PostgreSQL** - Primary database
+- **HikariCP** - Connection pooling
+- **Maven** - Build automation
+- **Java 17** - Runtime environment
+
+### Frontend
+- **Angular 19** - SPA framework
+- **TypeScript 5.7** - Type-safe JavaScript
+- **RxJS 7.8** - Reactive programming
+- **Tailwind CSS 3.4** - Utility-first CSS
+- **PrimeNG 19** - UI component library
+- **ApexCharts 3.41** - Data visualization
+- **Webpack** - Module bundling
+
+## ■ Configuration
+
+### Environment Variables
+
+The application requires the following environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DB_URL` | PostgreSQL connection URL | Yes |
+| `DB_USERNAME` | Database username | Yes |
+| `DB_PASSWORD` | Database password | Yes |
+| `JWT_SECRET` | Secret key for JWT signing | Yes |
+
+### Database Configuration
+
+The application uses a cloud-hosted PostgreSQL database with:
+- Connection pooling (20 max connections)
+- SSL/TLS encryption
+- Automatic reconnection handling
+- Query optimization through indexes
+- Materialized views for analytics
+
+## ▸ Development
+
+### Backend Development
+```bash
+# Run in development mode
+./mvnw spring-boot:run
+
+# Run tests
+./mvnw test
+
+# Build JAR
+./mvnw clean package
+
+# Skip tests during build
+./mvnw clean package -DskipTests
+```
+
+### Frontend Development
+```bash
+# Development server with hot reload
+ng serve
+
+# Production build
+ng build --configuration production
+
+# Run unit tests
+ng test
+
+# Run linting
+ng lint
+
+# Generate component
+ng generate component component-name
+```
+
+## ◉ Troubleshooting
+
+### Common Issues
+
+**Backend won't start**
+- Ensure using start scripts (`start.bat` / `start.sh`)
+- Verify Java 17+ installed: `java -version`
+- Check environment variables are set
+
+**Frontend compilation errors**
+- Clear node_modules: `rm -rf node_modules package-lock.json`
+- Reinstall dependencies: `npm install`
+- Check Node.js version: `node -v` (should be 18+)
+
+**Database connection issues**
+- Verify internet connection (cloud database)
+- Check firewall settings
+- Ensure environment variables are correct
+
+**Port conflicts**
+- Frontend (4200): `ng serve --port 4201`
+- Backend (8080): Edit `application.properties`
+
+## ▲ Demo Data
+
+The application includes comprehensive demo data:
+- **4 US States**: Arizona, California, Nevada, Utah
+- **52 Stores**: Distributed across states
+- **100,000+ Orders**: 3 years of historical data (2022-2024)
+- **25 Products**: Various pizza types and sizes
+- **Performance Metrics**: Pre-calculated analytics
+
+## ◆ Academic Context
+
+This application was developed as part of the Programming Lab module in the Business Information Systems bachelor's program. It demonstrates practical implementation of:
+
+### Software Engineering
+- Clean architecture with separation of concerns
+- Design patterns (Repository, DTO, Factory)
+- SOLID principles application
+- Comprehensive error handling
+- Code documentation and comments
+
+### Full-Stack Development
+- RESTful API design and implementation
+- Single Page Application architecture
+- Responsive web design principles
+- State management patterns
+- Asynchronous programming
+
+### Security & Performance
+- Authentication and authorization
+- Secure credential management
+- Database query optimization
+- Caching strategies
+- Load time optimization
+
+### Professional Practices
+- Version control with Git
+- Build automation
+- Testing strategies
+- Documentation
+- Deployment preparation
+
+---
+
+**© 2025 PizzaWorld Dashboard - Academic Project** 

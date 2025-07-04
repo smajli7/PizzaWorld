@@ -606,9 +606,27 @@ public class OptimizedPizzaService {
         return switch (user.getRole()) {
             case "HQ_ADMIN" -> repo.getCustomerAcquisitionAnalyticsHQ();
             case "STATE_MANAGER" -> repo.getCustomerAcquisitionAnalyticsState(user.getStateAbbr());
-            case "STORE_MANAGER" -> List.of(); // Store managers don't have acquisition data
+            case "STORE_MANAGER" -> getStoreCustomerAcquisitionData(user.getStoreId());
             default -> throw new AccessDeniedException("Unknown role: " + user.getRole());
         };
+    }
+
+    // Helper method to get store-specific customer acquisition data
+    private List<Map<String, Object>> getStoreCustomerAcquisitionData(String storeId) {
+        String sql = """
+            SELECT 
+                EXTRACT(YEAR FROM o.orderdate) as year,
+                EXTRACT(MONTH FROM o.orderdate) as month,
+                TO_CHAR(o.orderdate, 'Month') as month_name,
+                COUNT(DISTINCT o.customerid) as new_customers,
+                SUM(o.total) as revenue_from_new_customers
+            FROM orders o
+            WHERE o.storeid = ?
+            GROUP BY EXTRACT(YEAR FROM o.orderdate), EXTRACT(MONTH FROM o.orderdate), TO_CHAR(o.orderdate, 'Month')
+            ORDER BY year DESC, month DESC
+            LIMIT 12
+            """;
+        return jdbcTemplate.queryForList(sql, storeId);
     }
 
     // Daily Revenue Trends - Only for HQ (only view available)

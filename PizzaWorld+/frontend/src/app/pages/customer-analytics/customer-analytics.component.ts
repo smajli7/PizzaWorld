@@ -15,6 +15,8 @@ import {
   ApexPlotOptions,
   ApexLegend
 } from 'ng-apexcharts';
+import { AuthService } from '../../core/auth.service';
+import { CurrentUser } from '../../core/models/current-user.model';
 
 interface CustomerLifetimeValue {
   customerid: string;
@@ -166,13 +168,18 @@ export class CustomerAnalyticsComponent implements OnInit {
   // Math for template
   Math = Math;
 
-  constructor(private http: HttpClient) {}
+  currentUser: CurrentUser | null = null;
+
+  constructor(private http: HttpClient, private auth: AuthService) {}
 
   ngOnInit(): void {
-    this.loadCustomerSummary();
-    this.loadCustomerLifetimeValue();
-    this.loadCustomerRetention();
-    this.loadCustomerAcquisition();
+    this.auth.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      this.loadCustomerSummary();
+      this.loadCustomerLifetimeValue();
+      this.loadCustomerRetention();
+      this.loadCustomerAcquisition();
+    });
   }
 
   private getAuthHeaders(): HttpHeaders {
@@ -180,11 +187,18 @@ export class CustomerAnalyticsComponent implements OnInit {
     return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
   }
 
-
-
   loadCustomerSummary(): void {
     this.loading = true;
-    this.http.get<CustomerSummary>('/api/v2/analytics/customer-lifetime-value/summary', {
+    let url = '/api/v2/analytics/customer-lifetime-value/summary';
+    const params: any = {};
+    if (this.currentUser?.role === 'STATE_MANAGER') {
+      params.state = this.currentUser.stateAbbr;
+    } else if (this.currentUser?.role === 'STORE_MANAGER') {
+      params.storeId = this.currentUser.storeId;
+    }
+    const query = new URLSearchParams(params).toString();
+    if (query) url += `?${query}`;
+    this.http.get<CustomerSummary>(url, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
@@ -202,8 +216,14 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   loadCustomerLifetimeValue(): void {
     this.loading = true;
-    const params = new URLSearchParams({ limit: this.clvLimit.toString() });
-    this.http.get<CustomerLifetimeValue[]>(`/api/v2/analytics/customer-lifetime-value?${params}`, {
+    const params: any = { limit: this.clvLimit.toString() };
+    if (this.currentUser?.role === 'STATE_MANAGER') {
+      params.state = this.currentUser.stateAbbr;
+    } else if (this.currentUser?.role === 'STORE_MANAGER') {
+      params.storeId = this.currentUser.storeId;
+    }
+    const query = new URLSearchParams(params).toString();
+    this.http.get<CustomerLifetimeValue[]>(`/api/v2/analytics/customer-lifetime-value?${query}`, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
@@ -222,8 +242,14 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   loadCustomerRetention(): void {
     this.loading = true;
-    const params = new URLSearchParams({ limit: this.retentionLimit.toString() });
-    this.http.get<CustomerRetention[]>(`/api/v2/analytics/customer-retention?${params}`, {
+    const params: any = { limit: this.retentionLimit.toString() };
+    if (this.currentUser?.role === 'STATE_MANAGER') {
+      params.state = this.currentUser.stateAbbr;
+    } else if (this.currentUser?.role === 'STORE_MANAGER') {
+      params.storeId = this.currentUser.storeId;
+    }
+    const query = new URLSearchParams(params).toString();
+    this.http.get<CustomerRetention[]>(`/api/v2/analytics/customer-retention?${query}`, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
@@ -241,11 +267,19 @@ export class CustomerAnalyticsComponent implements OnInit {
 
   loadCustomerAcquisition(): void {
     this.loading = true;
-    this.http.get<CustomerAcquisition[]>('/api/v2/analytics/customer-acquisition', {
+    let url = '/api/v2/analytics/customer-acquisition';
+    const params: any = {};
+    if (this.currentUser?.role === 'STATE_MANAGER') {
+      params.state = this.currentUser.stateAbbr;
+    } else if (this.currentUser?.role === 'STORE_MANAGER') {
+      params.storeId = this.currentUser.storeId;
+    }
+    const query = new URLSearchParams(params).toString();
+    if (query) url += `?${query}`;
+    this.http.get<CustomerAcquisition[]>(url, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
-        // Reverse the data to show chronological order (oldest to newest)
         this.customerAcquisition = data.reverse();
         this.buildAcquisitionChart();
         this.loading = false;
@@ -276,10 +310,6 @@ export class CustomerAnalyticsComponent implements OnInit {
     this.sortCustomers();
     this.updatePagination();
   }
-
-
-
-
 
   // Pagination methods
   updatePagination(): void {
@@ -347,12 +377,10 @@ export class CustomerAnalyticsComponent implements OnInit {
     this.applyFilters();
   }
 
-    applyFilters(): void {
+  applyFilters(): void {
     // No filters anymore, just reload data
     this.loadCustomerLifetimeValue();
   }
-
-
 
   clearAllFilters(): void {
     // No filters to clear anymore
@@ -478,6 +506,14 @@ export class CustomerAnalyticsComponent implements OnInit {
     return `${(value * 100).toFixed(1)}%`;
   }
 
+  formatNumberWithDots(value: number): string {
+    return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  formatWholeNumberWithDots(value: number): string {
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   getSegmentColor(segment: string): string {
     switch (segment.toLowerCase()) {
       case 'vip':
@@ -493,7 +529,7 @@ export class CustomerAnalyticsComponent implements OnInit {
     }
   }
 
-    // Chart building methods
+  // Chart building methods
   buildAcquisitionChart(): void {
     if (!this.customerAcquisition.length) return;
 

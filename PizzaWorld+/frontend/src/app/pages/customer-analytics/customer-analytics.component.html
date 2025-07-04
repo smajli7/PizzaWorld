@@ -87,7 +87,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Total Customers</p>
-              <p class="text-2xl font-bold text-gray-900">{{ getTotalCustomers() }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ formatWholeNumberWithDots(getTotalCustomers()) }}</p>
               <p class="text-sm text-gray-500">Active customers</p>
             </div>
           </div>
@@ -114,7 +114,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Average CLV</p>
-              <p class="text-2xl font-bold text-gray-900">${{ getAverageCLV().toFixed(2) }}</p>
+              <p class="text-2xl font-bold text-gray-900">${{ formatNumberWithDots(getAverageCLV()) }}</p>
               <p class="text-sm text-gray-500">Lifetime value</p>
             </div>
           </div>
@@ -168,7 +168,7 @@
             </div>
             <div class="ml-4">
               <p class="text-sm font-medium text-gray-600">Repeat Customers</p>
-              <p class="text-2xl font-bold text-gray-900">{{ getRepeatCustomers() }}</p>
+              <p class="text-2xl font-bold text-gray-900">{{ formatWholeNumberWithDots(getRepeatCustomers()) }}</p>
               <p class="text-sm text-gray-500">Multiple orders</p>
             </div>
           </div>

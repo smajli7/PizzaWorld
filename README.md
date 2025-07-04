@@ -4,7 +4,8 @@ A comprehensive business intelligence dashboard system for PizzaWorld with Sprin
 
 **Developed for the Programming Lab module in the Business Information Systems bachelor's program.**
 
-Contact: pizzaworldplus@proton.me
+Contact: 
+**pizzaworldplus@proton.me**
 
 ## Local Setup for Evaluation
 
@@ -131,9 +132,9 @@ PizzaWorld+/
 │   │   ├── core/                      # Services and Guards
 │   │   └── shared/                    # Reusable Components
 │   └── package.json
-├── start.sh                          # Required start script for macOS/Linux
-├── start.bat                         # Required start script for Windows
-└── README.md                         # This file
+├── start.sh                           # Required start script for macOS/Linux
+├── start.bat                          # Required start script for Windows
+└── README.md                          # This file
 ```
 
 ## Features

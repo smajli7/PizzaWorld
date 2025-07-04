@@ -9,8 +9,17 @@ export DB_USERNAME="postgres.xmjywzcuaajlmghgpcev"
 export DB_PASSWORD="PizzaWorld.2025"
 export JWT_SECRET="supergeheimerSchluessel123456789012345"
 
-echo "🔒 Environment variables set securely"
-echo "🚀 Starting PizzaWorld Backend and Frontend..."
+echo ""
+echo "   *     *     *     *     *     *     *   "
+echo "=========================================="
+echo "    PizzaWorld Dashboard Startup"
+echo "=========================================="
+echo "   *     *     *     *     *     *     *   "
+echo ""
+echo "[OK] Environment variables set securely"
+echo "[>>] Starting Backend and Frontend..."
+echo ""
+echo "   *     *     *     *     *     *     *   "
 
 # Navigate to frontend directory and run both backend and frontend
 cd frontend

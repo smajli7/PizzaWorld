@@ -8,8 +8,17 @@ set DB_USERNAME=postgres.xmjywzcuaajlmghgpcev
 set DB_PASSWORD=PizzaWorld.2025
 set JWT_SECRET=supergeheimerSchluessel123456789012345
 
-echo Environment variables set securely
-echo Starting PizzaWorld Backend and Frontend...
+echo.
+echo    *     *     *     *     *     *     *   
+echo ==========================================
+echo     PizzaWorld Dashboard Startup
+echo ==========================================
+echo    *     *     *     *     *     *     *   
+echo.
+echo [OK] Environment variables set securely
+echo [>>] Starting Backend and Frontend...
+echo.
+echo    *     *     *     *     *     *     *   
 
 REM Navigate to frontend directory and run both backend and frontend
 cd frontend

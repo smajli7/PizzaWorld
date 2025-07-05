@@ -155,11 +155,7 @@ export class ProfileComponent implements OnInit {
         description: 'Access customer lifetime value and retention data',
         granted: true
       },
-      {
-        name: 'Sales Analytics',
-        description: 'View sales reports and trends',
-        granted: true
-      },
+
       {
         name: 'Product Analytics',
         description: 'Access product performance data',

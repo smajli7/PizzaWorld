@@ -4,6 +4,13 @@
   right: 20px;
   z-index: 1000;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Hide toggle button on mobile - it's in sidebar instead */
+  @media (max-width: 1024px) {
+    .chatbot-toggle-btn {
+      display: none;
+    }
+  }
 }
 
 /* Toggle Button */

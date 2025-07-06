@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AIService, ChatMessage } from '../../core/ai.service';
@@ -235,5 +235,16 @@ export class AIChatbotComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.error = error.message;
       }
     });
+  }
+
+  @HostListener('window:openChatbot', ['$event'])
+  onOpenChatbot(event: Event): void {
+    this.isOpen = true;
+    this.isMinimized = false;
+    setTimeout(() => {
+      if (this.messageInput) {
+        this.messageInput.nativeElement.focus();
+      }
+    }, 100);
   }
 }

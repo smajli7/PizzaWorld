@@ -29,5 +29,6 @@ echo.
 echo    *     *     *     *     *     *     *   
 
 REM Navigate to frontend directory and run both backend and frontend
+
 cd frontend
 npm run start:all 
